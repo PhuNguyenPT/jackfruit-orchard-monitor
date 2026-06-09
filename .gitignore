@@ -1,0 +1,13 @@
+# PlatformIO build directories and local configurations
+.pio/
+.vscode/
+.clang_complete
+.gcc-flags.json
+
+# Ignore actual credentials containing sensitive strings
+include/config.h
+include/broker_config.h
+
+# Except the example templates
+!include/config.h.example
+!include/broker_config.h.example
