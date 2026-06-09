@@ -28,6 +28,15 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
+      - name: Generate broker_config.h
+        run: cp include/broker_config.h.example include/broker_config.h
+
+      - name: Inject MQTT secrets
+        run: |
+          sed -i 's|const char\* const MQTT_SERVER.*=.*"";|const char* const MQTT_SERVER = "${{ secrets.MQTT_SERVER }}";|' include/broker_config.h
+          sed -i 's|const char\* const MQTT_USER.*=.*"";|const char* const MQTT_USER   = "${{ secrets.MQTT_USER }}";|' include/broker_config.h
+          sed -i 's|const char\* const MQTT_PASS.*=.*"";|const char* const MQTT_PASS   = "${{ secrets.MQTT_PASS }}";|' include/broker_config.h
+
       - name: Build
         run: platformio run --environment esp32dev
 
