@@ -1,0 +1,65 @@
+# Jackfruit Orchard Monitor
+
+ESP32 firmware built with PlatformIO and the Arduino framework. It polls environmental data from an industrial SHT40 RS485 sensor via Modbus RTU and uploads the telemetry to an MQTT broker over TLS.
+
+Designed for the ESP32 WROOM 32 (38-pin NodeMCU variant).
+
+## Features
+
+- Modbus RTU polling over RS485 (non-blocking loop).
+- Secure MQTT client with TLS encryption and JSON payloads.
+- Connection supervisor for automated WiFi and MQTT reconnection.
+- Static analysis integration via Clang-Format and Clang-Tidy.
+
+---
+
+## Hardware Wiring
+
+### ESP32 WROOM 32 (38-pin) to RS485 TTL V3 Module
+
+| ESP32 Pin    | RS485 Module Pin | Wire Color |
+|--------------|------------------|------------|
+| GPIO17 (TX2) | TXD              | Orange     |
+| GPIO16 (RX2) | RXD              | Yellow     |
+| 3.3V         | VCC              | Red        |
+| GND          | GND              | Black      |
+
+### RS485 Module to SHT40 RS485 Sensor
+
+| RS485 Module | SHT40 Pin          | Wire Color |
+|--------------|--------------------|------------|
+| V+           | External 5V–28V    | Brown      |
+| V-           | System GND         | Black      |
+| RS485-A      | A+                 | Yellow     |
+| RS485-B      | B-                 | Blue       |
+
+> [!WARNING]
+> The SHT40 RS485 sensor requires at least 5V on V+. Do not power it using the ESP32's 3.3V pin. Swapping A+ and B- does not work and will cause a communication timeout error.
+
+---
+
+## Commands
+
+### Build the project
+
+```bash
+platformio run --environment esp32dev
+```
+
+### Upload to ESP32
+
+```bash
+platformio run --target upload --environment esp32dev
+```
+
+### Run Linter (Clang-Tidy)
+
+```bash
+platformio check --environment esp32dev
+```
+
+---
+
+## License
+
+[GNU General Public License v3.0 (GPL-3.0)](https://www.gnu.org/licenses/gpl-3.0.html) — Open-source, strong copyleft. Any derivative works must also be fully open-sourced.
