@@ -109,12 +109,11 @@ void pollSensor(uint8_t idx) {
 
             const bool success = client.publish(topic.data(), payload.data());
 
-            Serial.print("  --> MQTT ");
-            if (success) {
-                Serial.printf("Published to [%s]: %s\n", topic.data(), payload.data());
-            } else {
-                Serial.println("Publish FAILED");
+            if (!success) {
+                Serial.println("  --> MQTT Publish FAILED");
+                return;
             }
+            Serial.printf("  --> MQTT Published to [%s]: %s\n", topic.data(), payload.data());
         }
     } else {
         Serial.printf("Sensor%d ERROR 0x%02X\n", SLAVE_ADDRS[idx], result);
