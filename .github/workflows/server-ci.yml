@@ -2,7 +2,7 @@ name: Server CI
 on: [push, pull_request]
 
 jobs:
-  build:
+  server-validation:
     runs-on: ubuntu-latest
 
     steps:
