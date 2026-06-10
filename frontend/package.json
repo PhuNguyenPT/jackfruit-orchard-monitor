@@ -1,0 +1,39 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "build": "npm run minify:css && npm run lint && npm run bundle:js",
+    "minify:css": "npx tailwindcss -i ./public/styles/index.css -o ./public/output.css --minify",
+    "bundle:js": "for f in public/scripts/*.js; do npx esbuild $f --bundle --minify --outfile=public/$(basename $f .js).min.js; done",
+    "lint": "eslint public/scripts/**/*.js",
+    "lint:fix": "eslint public/scripts/**/*.js --fix",
+    "fmt": "prettier --write public/scripts/**/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "chart.js": "^4.5.1",
+    "tailwindcss": "^4.1.18"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.27.3",
+    "eslint": "^10.0.2",
+    "globals": "^17.4.0",
+    "prettier": "^3.8.1",
+    "terser": "^5.46.0"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.5.6": true,
+    "esbuild@0.27.7": true
+  }
+}
