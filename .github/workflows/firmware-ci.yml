@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  lint-and-check:
+  firmware-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -40,8 +40,8 @@ jobs:
           MQTT_PASS: ${{ secrets.MQTT_PASS }}
         run: |
           sed -i "s|const char\* const MQTT_SERVER.*=.*\"\";|const char* const MQTT_SERVER = \"${MQTT_SERVER}\";|" include/broker_config.h
-          sed -i "s|const char\* const MQTT_USER.*=.*\"\";|const char* const MQTT_USER   = \"${MQTT_USER}\";|" include/broker_config.h
-          sed -i "s|const char\* const MQTT_PASS.*=.*\"\";|const char* const MQTT_PASS   = \"${MQTT_PASS}\";|" include/broker_config.h
+          sed -i "s|const char\* const MQTT_USER.*=.*\"\";|const char* const MQTT_USER = \"${MQTT_USER}\";|" include/broker_config.h
+          sed -i "s|const char\* const MQTT_PASS.*=.*\"\";|const char* const MQTT_PASS = \"${MQTT_PASS}\";|" include/broker_config.h
       - name: Build
         run: platformio run --environment esp32dev
       - name: Clang-Tidy (static analysis)
