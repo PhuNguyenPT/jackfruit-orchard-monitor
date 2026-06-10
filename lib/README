@@ -29,18 +29,18 @@ For example, see the structure of the following example libraries `Foo` and `Bar
 
 Example contents of `src/main.c` using Foo and Bar:
 ```
-#include <Foo.h>
 #include <Bar.h>
+#include <Foo.h>
 
 int main (void)
 {
-  ...
+    ...
 }
 
 ```
 
-The PlatformIO Library Dependency Finder will find automatically dependent
-libraries by scanning project source files.
+    The PlatformIO Library Dependency Finder will find automatically dependent libraries by scanning
+        project source files.
 
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+    More information about PlatformIO Library Dependency Finder -
+    https:  // docs.platformio.org/page/librarymanager/ldf.html
