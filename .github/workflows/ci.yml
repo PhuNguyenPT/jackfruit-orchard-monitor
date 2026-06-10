@@ -9,6 +9,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      # 1. Run the format check immediately on your raw repository code
+      - name: Clang-Format check
+        run: |-
+          find src include -name "*.cpp" -o -name "*.h" |
+          xargs clang-format --dry-run --Werror
+
+      # 2. Proceed with setting up dependencies and compilation
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -23,8 +31,8 @@ jobs:
         run: pip install --upgrade platformio
       - name: Generate config headers
         run: |
-          cp include/broker_config.h.example include/broker_config.h
-          cp include/config.h.example include/config.h
+          cp include/broker_config.example.h include/broker_config.h
+          cp include/config.example.h include/config.h
       - name: Inject MQTT secrets
         env:
           MQTT_SERVER: ${{ secrets.MQTT_SERVER }}
@@ -39,8 +47,3 @@ jobs:
       - name: Clang-Tidy (static analysis)
         run: >
           platformio check --environment esp32dev --fail-on-defect high
-
-      - name: Clang-Format check
-        run: |-
-          find src include -name "*.cpp" -o -name "*.h" |
-          xargs clang-format --dry-run --Werror
