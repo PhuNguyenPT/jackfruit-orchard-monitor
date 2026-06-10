@@ -90,3 +90,5 @@ coverage.html
 *.key
 *.srl
 *.pem
+
+compile_commands.json
