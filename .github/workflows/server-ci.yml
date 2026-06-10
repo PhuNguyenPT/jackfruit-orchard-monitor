@@ -1,4 +1,4 @@
-name: Go-test
+name: Server CI
 on: [push, pull_request]
 
 jobs:
