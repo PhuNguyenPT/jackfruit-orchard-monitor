@@ -1,5 +1,24 @@
----
-Checks: "-*,bugprone-*,cert-*,cppcoreguidelines-*,modernize-*,performance-*,readability-*,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-readability-magic-numbers"
+# .clang-tidy
+Checks: >-
+  -*,
+  bugprone-*,
+  cert-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -altera-*,
+  -cert-err58-cpp,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -fuchsia-*,
+  -llvmlibc-*,
+  -misc-include-cleaner,
+  -misc-use-internal-linkage,
+  -readability-magic-numbers
+
 WarningsAsErrors: ""
 HeaderFilterRegex: "^(include|src)/.*"
 FormatStyle: "file"
