@@ -1,0 +1,26 @@
+FROM golang:1.26.2-alpine AS build
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main cmd/api/main.go
+
+FROM golang:1.26.2-alpine AS watch
+WORKDIR /app
+RUN apk add --no-cache nodejs npm wget make
+COPY go.mod go.sum ./
+RUN go mod download
+RUN go install github.com/air-verse/air@latest && \
+    go clean -cache
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install && npm cache clean --force
+CMD ["air", "-c", ".air.docker.toml"]
+
+FROM alpine:3.23 AS prod
+RUN apk add --no-cache wget
+WORKDIR /app
+COPY --from=build /app/main /app/main
+COPY --from=build /app/frontend /app/frontend
+EXPOSE ${PORT}
+EXPOSE ${TLS_PORT}
+CMD ["/app/main"]
