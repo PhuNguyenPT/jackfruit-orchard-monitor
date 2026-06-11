@@ -29,16 +29,14 @@ constexpr size_t PAYLOAD_BUF_SIZE = 100U;
 
 // ---------------------------------------------------------------------------
 // Global objects
-// Arduino's single-TU architecture requires file-scope objects; these cannot
-// be made const or moved to local scope — suppress the cguidelines warning.
+// Arduino's single-TU architecture requires file-scope objects
 // ---------------------------------------------------------------------------
-HardwareSerial modbusSerial(1);  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-ModbusMaster node;      // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
-uint32_t lastPoll = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+HardwareSerial modbusSerial(1);
+ModbusMaster node;
+uint32_t lastPoll = 0;
 
-WiFiClientSecure espClient;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-PubSubClient client(
-    espClient);  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+WiFiClientSecure espClient;
+PubSubClient client(espClient);
 
 // ---------------------------------------------------------------------------
 // Wi-Fi
