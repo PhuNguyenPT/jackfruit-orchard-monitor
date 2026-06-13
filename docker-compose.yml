@@ -107,6 +107,8 @@ services:
       TLS_PORT: ${TLS_PORT}
       MQTT_USER: ${MQTT_USER}
       MQTT_PASS: ${MQTT_PASS}
+      MQTT_CERT_PATH: ${MQTT_CERT_PATH}
+      MQTT_KEY_PATH: ${MQTT_KEY_PATH}
     depends_on:
       psql:
         condition: service_healthy
