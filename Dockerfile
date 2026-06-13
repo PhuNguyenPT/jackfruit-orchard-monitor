@@ -1,10 +1,13 @@
+FROM ghcr.io/a-h/templ:latest AS generate
+WORKDIR /app
+COPY . .
+RUN ["templ", "generate"]
+
 FROM golang:1.26.2-alpine AS build
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
-RUN go install github.com/a-h/templ/cmd/templ@latest
-COPY . .
-RUN templ generate
+COPY --from=generate /app .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main cmd/api/main.go
 
 FROM golang:1.26.2-alpine AS watch
