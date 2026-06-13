@@ -189,8 +189,7 @@ void setup() {
     setupWiFi();
     setupTime();
 
-    espClient.setInsecure();
-    // espClient.setCACert(ROOT_CA);
+    espClient.setCACert(ROOT_CA);
     client.setServer(MQTT_SERVER, MQTT_PORT);
     connectMQTT();
 
