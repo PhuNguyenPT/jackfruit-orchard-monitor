@@ -5,13 +5,18 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
+#include <array>
+#include <cstdint>
+#include <ctime>
+
 #include "broker_config.h"
 #include "config.h"
 #include "gpio.h"
 #include "sht40.h"
+#include "wifi.h"
 
 // ---------------------------------------------------------------------------
-// Compile-time constants (replaces magic numbers throughout)
+// Compile-time constants
 // ---------------------------------------------------------------------------
 namespace {
 
@@ -24,29 +29,59 @@ constexpr float SENSOR_SCALE = 10.0F;
 
 constexpr size_t TOPIC_BUF_SIZE = 50U;
 constexpr size_t PAYLOAD_BUF_SIZE = 100U;
+constexpr size_t LOG_BUF_SIZE = 128U;
+constexpr size_t TIME_BUF_SIZE = 32U;
 
 }  // namespace
 
 // ---------------------------------------------------------------------------
-// Global objects
-// Arduino's single-TU architecture requires file-scope objects; these cannot
-// be made const or moved to local scope — suppress the cguidelines warning.
+// Logger
 // ---------------------------------------------------------------------------
-HardwareSerial modbusSerial(1);  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-ModbusMaster node;      // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
-uint32_t lastPoll = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+namespace Logger {
 
-WiFiClientSecure espClient;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
-PubSubClient client(
-    espClient);  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables,cert-err58-cpp)
+enum class Level : unsigned char { INFO, SUCCESS, WARN, ERROR };
+
+static constexpr std::array<const char*, 4> kLevelTags = {"[INFO] ", "[SUCC] ", "[WARN] ",
+                                                          "[ERRO] "};
+
+template <typename... Args>
+void log(Level level, const char* format, Args... args) {
+    std::array<char, TIME_BUF_SIZE> timebuf{};
+    struct tm timeinfo {};
+
+    if (getLocalTime(&timeinfo)) {
+        strftime(timebuf.data(), timebuf.size(), "[%Y-%m-%d %H:%M:%S] ", &timeinfo);
+    } else {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+        snprintf(timebuf.data(), timebuf.size(), "[%10lu s] ", millis() / 1000UL);
+    }
+    Serial.print(timebuf.data());
+    Serial.print(kLevelTags.at(static_cast<uint8_t>(level)));
+
+    std::array<char, LOG_BUF_SIZE> buffer{};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+    snprintf(buffer.data(), buffer.size(), format, args...);
+    Serial.println(buffer.data());
+}
+
+}  // namespace Logger
+
+// ---------------------------------------------------------------------------
+// Global objects
+// ---------------------------------------------------------------------------
+HardwareSerial modbusSerial(1);
+ModbusMaster node;
+uint32_t lastPoll = 0;
+
+WiFiClientSecure espClient;
+PubSubClient client(espClient);
 
 // ---------------------------------------------------------------------------
 // Wi-Fi
 // ---------------------------------------------------------------------------
 void setupWiFi() {
-    Serial.println("\n--- Initializing Wi-Fi ---");
-    Serial.print("Connecting to: ");
-    Serial.println(WIFI_SSID);
+    Logger::log(Logger::Level::INFO, "Initializing Wi-Fi interface...");
+    Logger::log(Logger::Level::INFO, "Connecting to SSID: %s", WIFI_SSID);
 
     WiFi.disconnect(true);
     delay(WIFI_INIT_DELAY_MS);
@@ -56,12 +91,32 @@ void setupWiFi() {
 
     while (WiFi.status() != WL_CONNECTED) {
         delay(WIFI_RECONNECT_DELAY_MS);
-        Serial.print(".");
+        Serial.print(".");  // Kept raw for visual connection tracking
+    }
+    Serial.println();
+
+    Logger::log(Logger::Level::SUCCESS, "Wi-Fi Connected! IP Assigned: %s",
+                WiFi.localIP().toString().c_str());
+}
+
+// ---------------------------------------------------------------------------
+// Time Synchronization
+// ---------------------------------------------------------------------------
+void setupTime() {
+    Logger::log(Logger::Level::INFO, "Querying NTP pools for network time sync...");
+    configTime(7 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+
+    time_t now = time(nullptr);
+    while (now < 1600000000) {
+        delay(500);
+        now = time(nullptr);
     }
 
-    Serial.println("\n[SUCCESS] Wi-Fi Connected!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    struct tm timeinfo {};
+    if (gmtime_r(&now, &timeinfo) == nullptr) {
+        Logger::log(Logger::Level::WARN, "gmtime_r returned null, timestamp may be inaccurate");
+    }
+    Logger::log(Logger::Level::SUCCESS, "NTP Time synchronized perfectly.");
 }
 
 // ---------------------------------------------------------------------------
@@ -69,16 +124,15 @@ void setupWiFi() {
 // ---------------------------------------------------------------------------
 void connectMQTT() {
     while (!client.connected() && WiFi.status() == WL_CONNECTED) {
-        Serial.print("Attempting Secure MQTT connection... ");
+        Logger::log(Logger::Level::INFO, "Attempting TLS encrypted MQTT handshake...");
 
         String clientId = "ESP32-Gateway-" + String(random(0xffff), HEX);
 
         if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASS)) {
-            Serial.println("[SUCCESS] Connected to Secure Broker!");
+            Logger::log(Logger::Level::SUCCESS, "TLS Session established. Connected to broker.");
         } else {
-            Serial.print("[FAILED] rc=");
-            Serial.print(client.state());
-            Serial.println(" -> Trying again in 5 seconds");
+            Logger::log(Logger::Level::ERROR, "MQTT connection failure, rc=%d. Retrying in 5s...",
+                        client.state());
             delay(MQTT_RETRY_DELAY_MS);
         }
     }
@@ -88,7 +142,8 @@ void connectMQTT() {
 // Modbus polling & MQTT publish
 // ---------------------------------------------------------------------------
 void pollSensor(uint8_t idx) {
-    node.begin(SLAVE_ADDRS[idx], modbusSerial);
+    const uint8_t addr = SLAVE_ADDRS.at(idx);
+    node.begin(addr, modbusSerial);
     uint8_t result = node.readHoldingRegisters(0x0000, 2);
 
     if (result == node.ku8MBSuccess) {
@@ -96,27 +151,29 @@ void pollSensor(uint8_t idx) {
         float temp =
             static_cast<float>(static_cast<int16_t>(node.getResponseBuffer(1))) / SENSOR_SCALE;
 
-        Serial.printf("Sensor%d  %.1f %%RH  %.1f C\n", SLAVE_ADDRS[idx], hum, temp);
+        Logger::log(Logger::Level::SUCCESS, "Sensor %d Readout: %.1f %%RH | %.1f C", addr, hum,
+                    temp);
 
         if (client.connected()) {
             std::array<char, TOPIC_BUF_SIZE> topic{};
             std::array<char, PAYLOAD_BUF_SIZE> payload{};
 
-            snprintf(topic.data(), topic.size(), MQTT_TOPIC_TEMPLATE, SLAVE_ADDRS[idx]);
-
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+            snprintf(topic.data(), topic.size(), MQTT_TOPIC_TEMPLATE, addr);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
             snprintf(payload.data(), payload.size(), R"({"temperature":%.1f, "humidity":%.1f})",
                      temp, hum);
 
-            const bool success = client.publish(topic.data(), payload.data());
-
-            if (!success) {
-                Serial.println("  --> MQTT Publish FAILED");
+            if (!client.publish(topic.data(), payload.data())) {
+                Logger::log(Logger::Level::ERROR, "MQTT Frame dropped. Publish failed.");
                 return;
             }
-            Serial.printf("  --> MQTT Published to [%s]: %s\n", topic.data(), payload.data());
+            Logger::log(Logger::Level::INFO, "MQTT Outbound -> [%s] Payload: %s", topic.data(),
+                        payload.data());
         }
     } else {
-        Serial.printf("Sensor%d ERROR 0x%02X\n", SLAVE_ADDRS[idx], result);
+        Logger::log(Logger::Level::ERROR, "Modbus fault on Sensor %d. Exception Code: 0x%02X", addr,
+                    result);
     }
 }
 
@@ -130,33 +187,33 @@ void setup() {
     modbusSerial.begin(4800, SERIAL_8N1, XY485_RX, XY485_TX);
 
     setupWiFi();
+    setupTime();
+
     espClient.setCACert(ROOT_CA);
     client.setServer(MQTT_SERVER, MQTT_PORT);
     connectMQTT();
 
     lastPoll = millis();
-    Serial.println("\n=== Gateway Initialized and Running ===");
+    Logger::log(Logger::Level::INFO, "System Pipeline Initialized. Commencing telemetry loops.");
 }
 
 void loop() {
-    // 1. Maintain Wi-Fi health
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("[WARNING] Wi-Fi lost! Halting system and reconnecting...");
+        Logger::log(Logger::Level::WARN, "Link state dropped! Re-asserting Wi-Fi stack...");
         setupWiFi();
     }
 
-    // 2. Maintain MQTT health
     if (!client.connected()) {
         connectMQTT();
     }
     client.loop();
 
-    // 3. Modbus polling cadence
     if (millis() - lastPoll < POLL_INTERVAL_MS) {
         return;
     }
     lastPoll = millis();
 
+    Logger::log(Logger::Level::INFO, "Executing scheduled Modbus scan...");
     for (uint8_t i = 0; i < NUM_SENSORS; i++) {
         pollSensor(i);
         if (i < NUM_SENSORS - 1U) {

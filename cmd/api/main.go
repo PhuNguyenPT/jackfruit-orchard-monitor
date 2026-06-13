@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"GoApp/internal/server"
+
+	mqtt "github.com/mochi-mqtt/server/v2"
 )
 
 func loadMTLSConfig(cfg *server.Config) (*tls.Config, error) {
@@ -34,17 +36,23 @@ func loadMTLSConfig(cfg *server.Config) (*tls.Config, error) {
 	}, nil
 }
 
-func gracefulShutdown(apiServer *http.Server, done chan bool) {
+func gracefulShutdown(httpSrv *http.Server, mqttSrv *mqtt.Server, done chan bool) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	<-ctx.Done()
 	log.Println("shutting down gracefully, press Ctrl+C again to force")
 	stop()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := apiServer.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown with error: %v", err)
+
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Printf("HTTP server forced to shutdown: %v", err)
 	}
+	if err := mqttSrv.Close(); err != nil {
+		log.Printf("MQTT broker forced to shutdown: %v", err)
+	}
+
 	log.Println("Server exiting")
 	done <- true
 }
@@ -55,21 +63,25 @@ func main() {
 		log.Fatalf("invalid config: %v", err)
 	}
 
-	srv := server.NewServer(cfg)
+	httpSrv, mqttSrv, err := server.NewServer(cfg)
+	if err != nil {
+		log.Fatalf("failed to start server: %v", err)
+	}
+
 	done := make(chan bool, 1)
-	go gracefulShutdown(srv, done)
+	go gracefulShutdown(httpSrv, mqttSrv, done)
 
 	if cfg.TLSCertPath != "" {
 		tlsCfg, tlsErr := loadMTLSConfig(cfg)
 		if tlsErr != nil {
 			log.Fatalf("failed to load mTLS config: %v", tlsErr)
 		}
-		srv.TLSConfig = tlsCfg
-		log.Printf("mTLS configured, starting HTTPS on %s", cfg.TLSPort)
-		err = srv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath)
+		httpSrv.TLSConfig = tlsCfg
+		log.Printf("mTLS configured, starting HTTPS on %d", cfg.TLSPort)
+		err = httpSrv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath)
 	} else {
-		log.Printf("starting HTTP on %s", cfg.Port)
-		err = srv.ListenAndServe()
+		log.Printf("starting HTTP on %d", cfg.Port)
+		err = httpSrv.ListenAndServe()
 	}
 
 	if err != nil && err != http.ErrServerClosed {

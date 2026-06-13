@@ -29,7 +29,6 @@ func (m *mockDB) CreateUser(ctx context.Context, arg database.CreateUserParams) 
 	if err != nil {
 		return database.User{}, err
 	}
-
 	return database.User{ID: id, Name: arg.Name, Email: arg.Email, PasswordHash: arg.PasswordHash, CreatedAt: time.Now(), UpdatedAt: time.Now()}, nil
 }
 
@@ -102,9 +101,7 @@ func (m *mockDB) GetSessionByToken(ctx context.Context, token string) (database.
 	return database.Session{ID: id, UserID: userID, Token: token, CreatedAt: time.Now(), ExpiresAt: time.Now().Add(1 * time.Hour.Abs())}, nil
 }
 
-func (m *mockDB) DeleteSession(ctx context.Context, token string) error {
-	return nil
-}
+func (m *mockDB) DeleteSession(ctx context.Context, token string) error { return nil }
 
 func (m *mockDB) DeleteExpiredSessions(ctx context.Context) error {
 	m.deleteExpiredSessionsCalled++
@@ -153,6 +150,32 @@ func (m *mockDB) CountContactsByEmailToday(ctx context.Context, email string) (i
 	return 0, nil
 }
 
+func (m *mockDB) InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error {
+	return nil
+}
+
+func (m *mockDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error) {
+	return []database.GetLatestReadingsRow{
+		{Addr: 1, Temperature: 284, Humidity: 742, CreatedAt: time.Now()},
+		{Addr: 2, Temperature: 291, Humidity: 718, CreatedAt: time.Now()},
+		{Addr: 3, Temperature: 276, Humidity: 765, CreatedAt: time.Now()},
+	}, nil
+}
+
+func (m *mockDB) GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error) {
+	return []database.GetReadingsByAddrRow{
+		{Addr: arg.Addr, Temperature: 284, Humidity: 742, CreatedAt: time.Now()},
+		{Addr: arg.Addr, Temperature: 281, Humidity: 748, CreatedAt: time.Now().Add(-1 * time.Minute)},
+		{Addr: arg.Addr, Temperature: 279, Humidity: 751, CreatedAt: time.Now().Add(-2 * time.Minute)},
+	}, nil
+}
+
+func (m *mockDB) DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error {
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+
 var testHandler http.Handler
 
 func TestMain(m *testing.M) {
@@ -178,7 +201,6 @@ func TestHomePageHandler(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
 	}
-
 	if ct := rr.Header().Get("Content-Type"); !strings.Contains(ct, "text/html") {
 		t.Errorf("expected HTML content type, got %v", ct)
 	}

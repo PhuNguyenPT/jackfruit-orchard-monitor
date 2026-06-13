@@ -3,11 +3,11 @@
 // ==========================================
 #ifndef BROKER_CONFIG_H
 #define BROKER_CONFIG_H
-const char* const MQTT_SERVER = "";
+static const char MQTT_SERVER[] = "";
 static const int MQTT_PORT = 8883;
-const char* const MQTT_USER = "";
-const char* const MQTT_PASS = "";
-const char* const ROOT_CA =
+static const char MQTT_USER[] = "";
+static const char MQTT_PASS[] = "";
+static const char ROOT_CA[] =
     "-----BEGIN CERTIFICATE-----\n"
     "MIIFBTCCAu2gAwIBAgIQWgDyEtjUtIDzkkFX6imDBTANBgkqhkiG9w0BAQsFADBP\n"
     "MQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFy\n"

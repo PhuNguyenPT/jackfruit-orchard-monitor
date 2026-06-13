@@ -15,7 +15,7 @@ import (
 
 type DBConfig struct {
 	Host     string
-	Port     string
+	Port     int
 	Database string
 	Username string
 	Password string
@@ -26,7 +26,7 @@ type DBConfig struct {
 var migrations embed.FS
 
 func Open(cfg *DBConfig) *sql.DB {
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s",
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable&search_path=%s",
 		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.Database, cfg.Schema)
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {

@@ -2,7 +2,9 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strconv"
 	"testing"
 	"time"
 
@@ -38,10 +40,14 @@ func mustStartPostgresContainer() (func(context.Context, ...testcontainers.Termi
 	if err != nil {
 		return dbContainer.Terminate, err
 	}
+	portNum, err := strconv.Atoi(dbPort.Port())
+	if err != nil {
+		return dbContainer.Terminate, fmt.Errorf("invalid port %q: %w", dbPort.Port(), err)
+	}
 
 	testCfg = &DBConfig{
 		Host:     dbHost,
-		Port:     dbPort.Port(),
+		Port:     portNum,
 		Database: "database",
 		Username: "user",
 		Password: "password",

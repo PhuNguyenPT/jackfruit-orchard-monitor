@@ -20,6 +20,14 @@ type Contact struct {
 	CreatedAt time.Time
 }
 
+type SensorReading struct {
+	ID          int64
+	Addr        int16
+	Temperature int16
+	Humidity    int16
+	CreatedAt   time.Time
+}
+
 type Session struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
