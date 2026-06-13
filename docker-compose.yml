@@ -86,6 +86,8 @@ services:
       - "8443"
     ports:
       - "8883:8883"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     build:
       context: .
       dockerfile: Dockerfile

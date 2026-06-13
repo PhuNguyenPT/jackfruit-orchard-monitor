@@ -33,9 +33,11 @@ type Config struct {
 	TLSCAPath   string
 	TLSPort     int `validate:"required,gt=0"`
 	// MQTT
-	MQTTPort int    `validate:"required,gt=0"`
-	MQTTUser string `validate:"required"`
-	MQTTPass string `validate:"required,min=8"`
+	MQTTPort     int    `validate:"required,gt=0"`
+	MQTTUser     string `validate:"required"`
+	MQTTPass     string `validate:"required,min=8"`
+	MQTTCertPath string
+	MQTTKeyPath  string
 }
 
 func getEnvOrDefaultStr(key, defaultVal string) string {
@@ -58,24 +60,26 @@ func getEnvOrDefaultInt(key string, defaultVal int) int {
 
 func LoadConfig() (*Config, error) {
 	cfg := &Config{
-		Port:        getEnvOrDefaultInt("PORT", 8080),
-		AppEnv:      os.Getenv("APP_ENV"),
-		GinMode:     os.Getenv("GIN_MODE"),
-		DBHost:      os.Getenv("POSTGRES_HOST"),
-		DBPort:      getEnvOrDefaultInt("POSTGRES_PORT", 5432),
-		DBDatabase:  os.Getenv("POSTGRES_DATABASE"),
-		DBUsername:  os.Getenv("POSTGRES_USERNAME"),
-		DBPassword:  os.Getenv("POSTGRES_PASSWORD"),
-		DBSchema:    os.Getenv("POSTGRES_SCHEMA"),
-		PageSize:    getEnvOrDefaultInt("PAGE_SIZE", 20),
-		MaxPageSize: getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
-		TLSCertPath: getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
-		TLSKeyPath:  getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
-		TLSCAPath:   getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
-		TLSPort:     getEnvOrDefaultInt("TLS_PORT", 8443),
-		MQTTPort:    getEnvOrDefaultInt("MQTT_PORT", 8883),
-		MQTTUser:    getEnvOrDefaultStr("MQTT_USER", "esp32"),
-		MQTTPass:    getEnvOrDefaultStr("MQTT_PASS", "yourpassword"),
+		Port:         getEnvOrDefaultInt("PORT", 8080),
+		AppEnv:       os.Getenv("APP_ENV"),
+		GinMode:      os.Getenv("GIN_MODE"),
+		DBHost:       os.Getenv("POSTGRES_HOST"),
+		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),
+		DBDatabase:   os.Getenv("POSTGRES_DATABASE"),
+		DBUsername:   os.Getenv("POSTGRES_USERNAME"),
+		DBPassword:   os.Getenv("POSTGRES_PASSWORD"),
+		DBSchema:     os.Getenv("POSTGRES_SCHEMA"),
+		PageSize:     getEnvOrDefaultInt("PAGE_SIZE", 20),
+		MaxPageSize:  getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
+		TLSCertPath:  getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
+		TLSKeyPath:   getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
+		TLSCAPath:    getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
+		TLSPort:      getEnvOrDefaultInt("TLS_PORT", 8443),
+		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 8883),
+		MQTTUser:     getEnvOrDefaultStr("MQTT_USER", "esp32"),
+		MQTTPass:     getEnvOrDefaultStr("MQTT_PASS", "yourpassword"),
+		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
+		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())

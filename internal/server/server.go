@@ -165,8 +165,17 @@ func NewServer(cfg *Config) (*http.Server, *mqtt.Server, error) {
 	s.StartSessionCleanup(context.Background(), 1*time.Hour)
 
 	var mqttTLS *tls.Config
-	if cfg.TLSCertPath != "" {
-		cert, err := tls.LoadX509KeyPair(cfg.TLSCertPath, cfg.TLSKeyPath)
+
+	// Use Let's Encrypt overrides if provided; otherwise fallback to internal mTLS certs
+	mqttCertPath := cfg.MQTTCertPath
+	mqttKeyPath := cfg.MQTTKeyPath
+	if mqttCertPath == "" {
+		mqttCertPath = cfg.TLSCertPath
+		mqttKeyPath = cfg.TLSKeyPath
+	}
+
+	if mqttCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(mqttCertPath, mqttKeyPath)
 		if err != nil {
 			return nil, nil, fmt.Errorf("mqtt tls: load cert: %w", err)
 		}
