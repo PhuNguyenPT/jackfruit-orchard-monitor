@@ -1,9 +1,9 @@
 #ifndef SHT40_H
 #define SHT40_H
-#define NUM_SENSORS 2
-static const uint8_t SLAVE_ADDRS[NUM_SENSORS] = {1, 2};
+static const uint8_t NUM_SENSORS = 2;
+constexpr std::array<uint8_t, NUM_SENSORS> SLAVE_ADDRS = {1, 2};
 
 // --- MQTT Topic Definitions ---
-#define MQTT_TOPIC_TEMPLATE "sht40/sensor%d/data"
+static const char MQTT_TOPIC_TEMPLATE[] = "sht40/%d/data";
 
 #endif

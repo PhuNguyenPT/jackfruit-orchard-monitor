@@ -10,6 +10,7 @@ import (
 func (s *Server) RegisterRoutes(cfg *Config) http.Handler {
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
+	r.Use(s.nonceMiddleware())
 	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		SkipPaths: []string{"/api/health", "/.well-known/appspecific/com.chrome.devtools.json"},
 	}))
@@ -63,6 +64,9 @@ func (s *Server) RegisterRoutes(cfg *Config) http.Handler {
 		protected.PUT("/dashboard/name", s.updateUserNameHandler)
 		protected.PUT("/dashboard/password", s.updateUserPasswordHandler)
 		protected.DELETE("/dashboard/session/:id", s.revokeSessionHandler)
+		protected.GET("/sensors", s.sensorsPageHandler)
+		protected.GET("/sensors/readings", s.sensorsGridHandler)
+		protected.GET("/sensors/ws", s.sensorsWSHandler)
 	}
 	return r
 }

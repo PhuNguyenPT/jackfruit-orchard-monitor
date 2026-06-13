@@ -14,24 +14,30 @@ const (
 )
 
 type Config struct {
-	Port    string `validate:"required"`
+	Port    int    `validate:"required,gt=0"`
 	AppEnv  string `validate:"required,oneof=dev production test"`
 	GinMode string `validate:"required,oneof=debug release test"`
 	// Database
 	DBHost     string `validate:"required"`
-	DBPort     string `validate:"required,numeric"`
+	DBPort     int    `validate:"required,gt=0"`
 	DBDatabase string `validate:"required"`
 	DBUsername string `validate:"required"`
 	DBPassword string `validate:"required,min=8"`
 	DBSchema   string `validate:"required"`
 	// Pagination
-	PageSize    int
-	MaxPageSize int
+	PageSize    int `validate:"gt=0"`
+	MaxPageSize int `validate:"gt=0"`
 	// mTLS cert paths (optional — defaults to Docker secrets paths)
 	TLSCertPath string
 	TLSKeyPath  string
 	TLSCAPath   string
-	TLSPort     string
+	TLSPort     int `validate:"required,gt=0"`
+	// MQTT
+	MQTTPort     int    `validate:"required,gt=0"`
+	MQTTUser     string `validate:"required"`
+	MQTTPass     string `validate:"required,min=8"`
+	MQTTCertPath string
+	MQTTKeyPath  string
 }
 
 func getEnvOrDefaultStr(key, defaultVal string) string {
@@ -42,31 +48,38 @@ func getEnvOrDefaultStr(key, defaultVal string) string {
 }
 
 func getEnvOrDefaultInt(key string, defaultVal int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
-		}
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal // not set → use default
 	}
-	return defaultVal
+	if n, err := strconv.Atoi(v); err == nil && n > 0 {
+		return n
+	}
+	return 0 // set but unparseable → 0, let validator catch it
 }
 
 func LoadConfig() (*Config, error) {
 	cfg := &Config{
-		Port:        os.Getenv("PORT"),
-		AppEnv:      os.Getenv("APP_ENV"),
-		GinMode:     os.Getenv("GIN_MODE"),
-		DBHost:      os.Getenv("POSTGRES_HOST"),
-		DBPort:      os.Getenv("POSTGRES_PORT"),
-		DBDatabase:  os.Getenv("POSTGRES_DATABASE"),
-		DBUsername:  os.Getenv("POSTGRES_USERNAME"),
-		DBPassword:  os.Getenv("POSTGRES_PASSWORD"),
-		DBSchema:    os.Getenv("POSTGRES_SCHEMA"),
-		PageSize:    getEnvOrDefaultInt("PAGE_SIZE", 20),
-		MaxPageSize: getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
-		TLSCertPath: getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
-		TLSKeyPath:  getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
-		TLSCAPath:   getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
-		TLSPort:     getEnvOrDefaultStr("TLS_PORT", "8443"),
+		Port:         getEnvOrDefaultInt("PORT", 8080),
+		AppEnv:       os.Getenv("APP_ENV"),
+		GinMode:      os.Getenv("GIN_MODE"),
+		DBHost:       os.Getenv("POSTGRES_HOST"),
+		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),
+		DBDatabase:   os.Getenv("POSTGRES_DATABASE"),
+		DBUsername:   os.Getenv("POSTGRES_USERNAME"),
+		DBPassword:   os.Getenv("POSTGRES_PASSWORD"),
+		DBSchema:     os.Getenv("POSTGRES_SCHEMA"),
+		PageSize:     getEnvOrDefaultInt("PAGE_SIZE", 20),
+		MaxPageSize:  getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
+		TLSCertPath:  getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
+		TLSKeyPath:   getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
+		TLSCAPath:    getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
+		TLSPort:      getEnvOrDefaultInt("TLS_PORT", 8443),
+		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 8883),
+		MQTTUser:     getEnvOrDefaultStr("MQTT_USER", "esp32"),
+		MQTTPass:     getEnvOrDefaultStr("MQTT_PASS", "yourpassword"),
+		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
+		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())

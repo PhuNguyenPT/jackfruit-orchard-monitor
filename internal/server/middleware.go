@@ -1,6 +1,8 @@
 package server
 
 import (
+	"GoApp/internal/ctxutil"
+	"context"
 	"log"
 	"net/http"
 
@@ -65,4 +67,25 @@ func getUserName(c *gin.Context) string {
 		return s
 	}
 	return ""
+}
+
+func (s *Server) nonceMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 1. Get the nonce passed from Nginx
+		nonce := c.GetHeader("X-Nonce")
+
+		// 2. Fallback for local development when bypassing Nginx
+		if nonce == "" {
+			nonce = "dev-fallback-nonce"
+		}
+
+		// 3. Optional: Store in Gin's context if you need it in Gin handlers
+		c.Set("nonce", nonce)
+
+		// 4. CRITICAL: Store in the underlying standard request Context for Templ!
+		ctx := context.WithValue(c.Request.Context(), ctxutil.NonceKey, nonce)
+		c.Request = c.Request.WithContext(ctx)
+
+		c.Next()
+	}
 }

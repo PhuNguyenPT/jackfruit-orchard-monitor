@@ -37,7 +37,7 @@ func TestLoadConfig_Valid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if cfg.Port != "8080" {
+	if cfg.Port != 8080 {
 		t.Errorf("expected port 8080, got %v", cfg.Port)
 	}
 	if cfg.GinMode != "debug" {
@@ -46,16 +46,14 @@ func TestLoadConfig_Valid(t *testing.T) {
 }
 
 func TestLoadConfig_MissingRequired(t *testing.T) {
-	// Start with valid env then remove one required field
 	setEnv(t, validEnv)
-	os.Unsetenv("PORT")
+	os.Unsetenv("APP_ENV") // no default for this one
 
 	_, err := LoadConfig()
 	if err == nil {
-		t.Error("expected error for missing PORT, got nil")
+		t.Error("expected error for missing APP_ENV, got nil")
 	}
 }
-
 func TestLoadConfig_InvalidGinMode(t *testing.T) {
 	env := maps.Clone(validEnv)
 	env["GIN_MODE"] = "invalid"
