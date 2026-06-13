@@ -49,6 +49,11 @@ services:
       - nginx_client_key
       - backend_ca
     volumes:
+      # SSL certs already on host
+      - /etc/ssl/cert.pem:/etc/ssl/cert.pem:ro
+      - /etc/ssl/key.pem:/etc/ssl/key.pem:ro
+      - /etc/ssl/cloudflare.crt:/etc/ssl/cloudflare.crt:ro
+      # nginx config
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d/upstream.prod.conf:/etc/nginx/conf.d/upstream.conf:ro
       - ./nginx/nginxconfig.io/proxy.conf:/etc/nginx/nginxconfig.io/proxy.conf:ro
@@ -56,7 +61,8 @@ services:
       - ./nginx/sites-available/goapp.prod.conf:/etc/nginx/sites-enabled/goapp.prod.conf:ro
       - ./nginx/dhparam.pem:/etc/nginx/dhparam.pem:ro
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
     depends_on:
       psql:
         condition: service_healthy
