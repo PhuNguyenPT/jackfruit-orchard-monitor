@@ -39,7 +39,7 @@ constexpr size_t TIME_BUF_SIZE = 32U;
 // ---------------------------------------------------------------------------
 namespace Logger {
 
-enum class Level : std::uint8_t { INFO, SUCCESS, WARN, ERROR };
+enum class Level : unsigned char { INFO, SUCCESS, WARN, ERROR };
 
 static constexpr std::array<const char*, 4> kLevelTags = {"[INFO] ", "[SUCC] ", "[WARN] ",
                                                           "[ERRO] "};
