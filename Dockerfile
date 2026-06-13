@@ -3,11 +3,19 @@ WORKDIR /app
 COPY --chown=65532:65532 . .
 RUN ["templ", "generate"]
 
+FROM node:24-alpine AS frontend-build
+WORKDIR /app
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm install
+COPY --from=generate /app/frontend ./frontend
+RUN cd frontend && npm run minify:css
+
 FROM golang:1.26.2-alpine AS build
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY --from=generate /app .
+COPY --from=frontend-build /app/frontend/public/output.css ./frontend/public/output.css
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main cmd/api/main.go
 
 FROM golang:1.26.2-alpine AS watch
