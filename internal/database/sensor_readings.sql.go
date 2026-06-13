@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+const deleteOldSensorReadings = `-- name: DeleteOldSensorReadings :exec
+DELETE FROM sensor_readings WHERE created_at < $1
+`
+
+func (q *Queries) DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteOldSensorReadings, createdAt)
+	return err
+}
+
 const getLatestReadings = `-- name: GetLatestReadings :many
 SELECT DISTINCT ON (addr)
     addr, temperature, humidity, created_at
@@ -18,9 +27,9 @@ ORDER BY addr, created_at DESC
 `
 
 type GetLatestReadingsRow struct {
-	Addr        string
-	Temperature float32
-	Humidity    float32
+	Addr        int16
+	Temperature int16
+	Humidity    int16
 	CreatedAt   time.Time
 }
 
@@ -61,14 +70,14 @@ LIMIT $2
 `
 
 type GetReadingsByAddrParams struct {
-	Addr  string
+	Addr  int16
 	Limit int32
 }
 
 type GetReadingsByAddrRow struct {
-	Addr        string
-	Temperature float32
-	Humidity    float32
+	Addr        int16
+	Temperature int16
+	Humidity    int16
 	CreatedAt   time.Time
 }
 
@@ -106,9 +115,9 @@ VALUES ($1, $2, $3)
 `
 
 type InsertSensorReadingParams struct {
-	Addr        string
-	Temperature float32
-	Humidity    float32
+	Addr        int16
+	Temperature int16
+	Humidity    int16
 }
 
 func (q *Queries) InsertSensorReading(ctx context.Context, arg InsertSensorReadingParams) error {

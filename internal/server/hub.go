@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"math"
+	"strconv"
 	"sync"
 	"time"
 
@@ -36,10 +38,16 @@ func (h *Hub) unregister(c *websocket.Conn) {
 }
 
 func (h *Hub) Broadcast(addr string, temperature, humidity float32) {
+	addrInt, err := strconv.ParseInt(addr, 10, 16)
+	if err != nil {
+		log.Printf("[Hub] invalid addr %q: %v", addr, err)
+		return
+	}
+
 	row := database.GetLatestReadingsRow{
-		Addr:        addr,
-		Temperature: temperature,
-		Humidity:    humidity,
+		Addr:        int16(addrInt),
+		Temperature: int16(math.Round(float64(temperature) * 10)),
+		Humidity:    int16(math.Round(float64(humidity) * 10)),
 		CreatedAt:   time.Now(),
 	}
 

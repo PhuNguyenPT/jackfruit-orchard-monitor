@@ -22,9 +22,9 @@ type Contact struct {
 
 type SensorReading struct {
 	ID          int64
-	Addr        string
-	Temperature float32
-	Humidity    float32
+	Addr        int16
+	Temperature int16
+	Humidity    int16
 	CreatedAt   time.Time
 }
 

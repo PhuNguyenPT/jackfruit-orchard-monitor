@@ -41,6 +41,7 @@ type DB interface {
 	InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error
 	GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error)
 	GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error)
+	DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -121,6 +122,10 @@ func (s *sqlDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestRead
 
 func (s *sqlDB) GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error) {
 	return s.queries.GetReadingsByAddr(ctx, arg)
+}
+
+func (s *sqlDB) DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error {
+	return s.queries.DeleteOldSensorReadings(ctx, createdAt)
 }
 
 type Server struct {

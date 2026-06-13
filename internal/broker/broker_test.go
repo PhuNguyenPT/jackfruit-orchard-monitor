@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"testing"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
@@ -110,37 +111,37 @@ func TestSensorHook_OnPublish(t *testing.T) {
 		dbErrOn       int
 		wantInsert    bool
 		wantBroadcast bool
-		wantAddr      string
+		wantAddr      int16
 		wantHum       float32
 		wantTemp      float32
 	}{
 		{
 			name:          "valid reading — positive temperature",
-			topic:         "sht40/sensor1/data",
+			topic:         "sht40/1/data",
 			payload:       makePayload(55.3, 27.4),
 			wantInsert:    true,
 			wantBroadcast: true,
-			wantAddr:      "sensor1",
+			wantAddr:      1,
 			wantHum:       55.3,
 			wantTemp:      27.4,
 		},
 		{
 			name:          "valid reading — negative temperature",
-			topic:         "sht40/sensor3/data",
+			topic:         "sht40/3/data",
 			payload:       makePayload(80.0, -5.2),
 			wantInsert:    true,
 			wantBroadcast: true,
-			wantAddr:      "sensor3",
+			wantAddr:      3,
 			wantHum:       80.0,
 			wantTemp:      -5.2,
 		},
 		{
 			name:          "valid reading — zero temperature boundary",
-			topic:         "sht40/sensor10/data",
+			topic:         "sht40/10/data",
 			payload:       makePayload(40.0, 0.0),
 			wantInsert:    true,
 			wantBroadcast: true,
-			wantAddr:      "sensor10",
+			wantAddr:      10,
 			wantHum:       40.0,
 			wantTemp:      0.0,
 		},
@@ -158,37 +159,43 @@ func TestSensorHook_OnPublish(t *testing.T) {
 		},
 		{
 			name:       "wrong prefix — pass through",
-			topic:      "device/sht40/sensor1/data",
+			topic:      "device/sht40/1/data",
 			payload:    makePayload(50.0, 25.0),
 			wantInsert: false,
 		},
 		{
 			name:       "wrong suffix — pass through",
-			topic:      "sht40/sensor1/status",
+			topic:      "sht40/1/status",
+			payload:    makePayload(50.0, 25.0),
+			wantInsert: false,
+		},
+		{
+			name:       "non-numeric addr — drop",
+			topic:      "sht40/sensorABC/data",
 			payload:    makePayload(50.0, 25.0),
 			wantInsert: false,
 		},
 		{
 			name:       "invalid JSON — drop",
-			topic:      "sht40/sensor2/data",
+			topic:      "sht40/2/data",
 			payload:    []byte("not-json"),
 			wantInsert: false,
 		},
 		{
 			name:       "empty payload — drop",
-			topic:      "sht40/sensor2/data",
+			topic:      "sht40/2/data",
 			payload:    []byte{},
 			wantInsert: false,
 		},
 		{
 			name:       "malformed JSON — drop",
-			topic:      "sht40/sensor2/data",
+			topic:      "sht40/2/data",
 			payload:    []byte(`{"temperature": "bad_value"}`),
 			wantInsert: false,
 		},
 		{
 			name:          "db insert error — no broadcast",
-			topic:         "sht40/sensor5/data",
+			topic:         "sht40/5/data",
 			payload:       makePayload(60.0, 30.0),
 			dbErrOn:       1,
 			wantInsert:    true,
@@ -247,15 +254,43 @@ func TestSensorHook_OnPublish(t *testing.T) {
 				return
 			}
 
+			// --- DB insert assertions ---
+			// addr, temperature, humidity are all stored as int16.
+			// Temperature and humidity are scaled ×10 before storage.
 			arg := store.calls[0]
+
 			if arg.Addr != tc.wantAddr {
-				t.Errorf("Addr = %q, want %q", arg.Addr, tc.wantAddr)
+				t.Errorf("Addr = %d, want %d", arg.Addr, tc.wantAddr)
 			}
-			if !closeF32(arg.Humidity, tc.wantHum, eps) {
-				t.Errorf("Humidity = %.2f, want %.2f", arg.Humidity, tc.wantHum)
+
+			wantStoredTemp := int16(math.Round(float64(tc.wantTemp) * 10))
+			if arg.Temperature != wantStoredTemp {
+				t.Errorf("Temperature = %d, want %d", arg.Temperature, wantStoredTemp)
 			}
-			if !closeF32(arg.Temperature, tc.wantTemp, eps) {
-				t.Errorf("Temperature = %.2f, want %.2f", arg.Temperature, tc.wantTemp)
+
+			wantStoredHum := int16(math.Round(float64(tc.wantHum) * 10))
+			if arg.Humidity != wantStoredHum {
+				t.Errorf("Humidity = %d, want %d", arg.Humidity, wantStoredHum)
+			}
+
+			// --- Broadcast assertions ---
+			// The notifier receives the raw float32 values from the JSON payload,
+			// and the topic segment string (e.g. "1") as the addr.
+			if !tc.wantBroadcast {
+				return
+			}
+
+			bc := notifier.calls[0]
+
+			wantBroadcastAddr := strconv.Itoa(int(tc.wantAddr))
+			if bc.addr != wantBroadcastAddr {
+				t.Errorf("Broadcast addr = %q, want %q", bc.addr, wantBroadcastAddr)
+			}
+			if !closeF32(bc.temperature, tc.wantTemp, eps) {
+				t.Errorf("Broadcast temperature = %.2f, want %.2f", bc.temperature, tc.wantTemp)
+			}
+			if !closeF32(bc.humidity, tc.wantHum, eps) {
+				t.Errorf("Broadcast humidity = %.2f, want %.2f", bc.humidity, tc.wantHum)
 			}
 		})
 	}

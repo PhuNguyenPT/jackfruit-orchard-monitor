@@ -14,3 +14,6 @@ FROM sensor_readings
 WHERE addr = $1
 ORDER BY created_at DESC
 LIMIT $2;
+
+-- name: DeleteOldSensorReadings :exec
+DELETE FROM sensor_readings WHERE created_at < $1;

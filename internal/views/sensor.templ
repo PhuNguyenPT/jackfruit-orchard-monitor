@@ -52,37 +52,34 @@ templ SensorGrid(readings []database.GetLatestReadingsRow, lang string) {
 	</div>
 }
 
-// SensorCard renders a sensor card for initial page load / polling refresh.
 templ SensorCard(r database.GetLatestReadingsRow, lang string) {
-	<div id={ "sensor-" + r.Addr } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+	<div id={ fmt.Sprintf("sensor-%d", r.Addr) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
 		@sensorCardBody(r, lang)
 	</div>
 }
 
-// SensorCardOOB renders the same card wrapped for an out-of-band websocket swap.
 templ SensorCardOOB(r database.GetLatestReadingsRow, lang string) {
-	<div id={ "sensor-" + r.Addr } hx-swap-oob="true" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
+	<div id={ fmt.Sprintf("sensor-%d", r.Addr) } hx-swap-oob="true" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
 		@sensorCardBody(r, lang)
 	</div>
 }
 
-// sensorCardBody is the shared inner content for both variants above.
 templ sensorCardBody(r database.GetLatestReadingsRow, lang string) {
 	<div class="flex items-center gap-2">
-		<span class="text-sm font-semibold text-gray-700">{ T(lang).SensorAddr } { r.Addr }</span>
+		<span class="text-sm font-semibold text-gray-700">{ T(lang).SensorAddr } { fmt.Sprintf("%d", r.Addr) }</span>
 	</div>
 	<div class="grid grid-cols-2 gap-3">
 		<div class="bg-orange-50 rounded-lg p-3 space-y-1">
 			<p class="text-xs font-medium text-orange-500">{ T(lang).SensorTemperature }</p>
 			<p class="text-2xl font-bold text-gray-800">
-				{ fmt.Sprintf("%.1f", r.Temperature) }
+				{ fmt.Sprintf("%.1f", float32(r.Temperature)/10) }
 				<span class="text-sm font-normal text-gray-500 ml-0.5">°C</span>
 			</p>
 		</div>
 		<div class="bg-blue-50 rounded-lg p-3 space-y-1">
 			<p class="text-xs font-medium text-blue-500">{ T(lang).SensorHumidity }</p>
 			<p class="text-2xl font-bold text-gray-800">
-				{ fmt.Sprintf("%.1f", r.Humidity) }
+				{ fmt.Sprintf("%.1f", float32(r.Humidity)/10) }
 				<span class="text-sm font-normal text-gray-500 ml-0.5">%</span>
 			</p>
 		</div>

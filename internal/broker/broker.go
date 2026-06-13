@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
+	"strconv"
 	"strings"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
@@ -60,10 +62,15 @@ func (h *sensorHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packe
 		return pk, nil
 	}
 
+	addrInt, err := strconv.ParseInt(addr, 10, 16)
+	if err != nil {
+		log.Printf("[MQTT] %s/%s/%s: invalid sensor address: %v — dropping", topicPrefix, addr, topicSuffix, err)
+		return pk, nil
+	}
 	if err := h.db.InsertSensorReading(context.Background(), database.InsertSensorReadingParams{
-		Addr:        addr,
-		Temperature: sp.Temperature,
-		Humidity:    sp.Humidity,
+		Addr:        int16(addrInt),
+		Temperature: int16(math.Round(float64(sp.Temperature) * 10)),
+		Humidity:    int16(math.Round(float64(sp.Humidity) * 10)),
 	}); err != nil {
 		log.Printf("[MQTT] %s/%s/%s: DB insert failed: %v", topicPrefix, addr, topicSuffix, err)
 		return pk, nil

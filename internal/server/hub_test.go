@@ -56,7 +56,7 @@ func TestHub_Broadcast(t *testing.T) {
 
 	waitForClientCount(t, h, 1)
 
-	h.Broadcast("sensor1", 30.1, 72.5)
+	h.Broadcast("1", 30.1, 72.5)
 
 	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
 		t.Fatalf("SetReadDeadline: %v", err)
@@ -67,7 +67,7 @@ func TestHub_Broadcast(t *testing.T) {
 	}
 
 	html := string(msg)
-	if !strings.Contains(html, `id="sensor-sensor1"`) {
+	if !strings.Contains(html, `id="sensor-1"`) {
 		t.Errorf("missing OOB target id, got: %s", html)
 	}
 	if !strings.Contains(html, `hx-swap-oob="true"`) {
@@ -88,7 +88,7 @@ func TestHub_Broadcast_MultipleClients(t *testing.T) {
 
 	waitForClientCount(t, h, 2)
 
-	h.Broadcast("sensor2", 28.0, 65.0)
+	h.Broadcast("2", 28.0, 65.0)
 
 	for _, conn := range []*websocket.Conn{conn1, conn2} {
 		if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
@@ -98,7 +98,7 @@ func TestHub_Broadcast_MultipleClients(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read: %v", err)
 		}
-		if !strings.Contains(string(msg), `id="sensor-sensor2"`) {
+		if !strings.Contains(string(msg), `id="sensor-2"`) {
 			t.Errorf("missing OOB target id, got: %s", msg)
 		}
 	}
@@ -115,5 +115,5 @@ func TestHub_Broadcast_DropsFailingClient(t *testing.T) {
 	waitForClientCount(t, h, 0)
 
 	// Broadcasting with no clients should be a no-op, not a panic.
-	h.Broadcast("sensor1", 30.0, 70.0)
+	h.Broadcast("1", 30.0, 70.0)
 }

@@ -104,13 +104,13 @@ void test_payload_does_not_overflow(void) {
 void test_topic_format_addr_1(void) {
     std::array<char, TOPIC_BUF_SIZE> topic{};
     snprintf(topic.data(), topic.size(), MQTT_TOPIC_TEMPLATE, 1);
-    TEST_ASSERT_EQUAL_STRING("sht40/sensor1/data", topic.data());
+    TEST_ASSERT_EQUAL_STRING("sht40/1/data", topic.data());
 }
 
 void test_topic_format_addr_2(void) {
     std::array<char, TOPIC_BUF_SIZE> topic{};
     snprintf(topic.data(), topic.size(), MQTT_TOPIC_TEMPLATE, 2);
-    TEST_ASSERT_EQUAL_STRING("sht40/sensor2/data", topic.data());
+    TEST_ASSERT_EQUAL_STRING("sht40/2/data", topic.data());
 }
 
 void test_topic_does_not_overflow(void) {
@@ -127,7 +127,7 @@ void test_topic_does_not_overflow(void) {
 #include <Arduino.h>
 
 void setup() {
-    delay(2000);  // Give the board time to settle before tests run
+    delay(10000);  // Give the board time to settle before tests run
     UNITY_BEGIN();
 
     RUN_TEST(test_humidity_scaling_normal);
