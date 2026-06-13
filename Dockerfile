@@ -5,10 +5,8 @@ RUN ["templ", "generate"]
 
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
-COPY --from=generate /app /app
-RUN cd frontend && npm run minify:css && npm run bundle:js
+COPY --from=generate /app .
+RUN cd frontend && npm install && npm run minify:css && npm run bundle:js
 
 FROM golang:1.26.2-alpine AS build
 WORKDIR /app
