@@ -28,7 +28,9 @@ static float scaleTemperature(uint16_t raw) {
 // ---------------------------------------------------------------------------
 // setUp / tearDown (required by Unity)
 // ---------------------------------------------------------------------------
+// cppcheck-suppress unusedFunction
 void setUp(void) {}
+// cppcheck-suppress unusedFunction
 void tearDown(void) {}
 
 // ---------------------------------------------------------------------------
@@ -121,26 +123,50 @@ void test_topic_does_not_overflow(void) {
 // ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
-int main(int argc, char** argv) {
+#ifdef ARDUINO
+#include <Arduino.h>
+
+void setup() {
+    delay(2000);  // Give the board time to settle before tests run
     UNITY_BEGIN();
 
-    // Scaling
     RUN_TEST(test_humidity_scaling_normal);
     RUN_TEST(test_humidity_scaling_zero);
     RUN_TEST(test_humidity_scaling_max);
     RUN_TEST(test_temperature_scaling_positive);
     RUN_TEST(test_temperature_scaling_negative);
     RUN_TEST(test_temperature_scaling_zero);
-
-    // Payload
     RUN_TEST(test_payload_format_positive_temp);
     RUN_TEST(test_payload_format_negative_temp);
     RUN_TEST(test_payload_does_not_overflow);
+    RUN_TEST(test_topic_format_addr_1);
+    RUN_TEST(test_topic_format_addr_2);
+    RUN_TEST(test_topic_does_not_overflow);
 
-    // Topic
+    UNITY_END();
+}
+
+void loop() {}
+
+#else  // native
+
+int main(int argc, char** argv) {
+    UNITY_BEGIN();
+
+    RUN_TEST(test_humidity_scaling_normal);
+    RUN_TEST(test_humidity_scaling_zero);
+    RUN_TEST(test_humidity_scaling_max);
+    RUN_TEST(test_temperature_scaling_positive);
+    RUN_TEST(test_temperature_scaling_negative);
+    RUN_TEST(test_temperature_scaling_zero);
+    RUN_TEST(test_payload_format_positive_temp);
+    RUN_TEST(test_payload_format_negative_temp);
+    RUN_TEST(test_payload_does_not_overflow);
     RUN_TEST(test_topic_format_addr_1);
     RUN_TEST(test_topic_format_addr_2);
     RUN_TEST(test_topic_does_not_overflow);
 
     return UNITY_END();
 }
+
+#endif
