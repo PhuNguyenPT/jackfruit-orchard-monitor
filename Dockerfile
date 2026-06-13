@@ -1,6 +1,6 @@
 FROM ghcr.io/a-h/templ:latest AS generate
 WORKDIR /app
-COPY . .
+COPY --chown=65532:65532 . .
 RUN ["templ", "generate"]
 
 FROM golang:1.26.2-alpine AS build
