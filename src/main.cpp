@@ -5,10 +5,13 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
+#include <ctime>
+
 #include "broker_config.h"
 #include "config.h"
 #include "gpio.h"
 #include "sht40.h"
+#include "wifi.h"
 
 // ---------------------------------------------------------------------------
 // Compile-time constants (replaces magic numbers throughout)
@@ -128,7 +131,8 @@ void setup() {
     modbusSerial.begin(4800, SERIAL_8N1, XY485_RX, XY485_TX);
 
     setupWiFi();
-    espClient.setCACert(ROOT_CA);
+
+    espClient.setInsecure();  // TEMP: bypass cert verification
     client.setServer(MQTT_SERVER, MQTT_PORT);
     connectMQTT();
 

@@ -153,6 +153,26 @@ func (m *mockDB) CountContactsByEmailToday(ctx context.Context, email string) (i
 	return 0, nil
 }
 
+func (m *mockDB) InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error {
+	return nil
+}
+
+func (m *mockDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error) {
+	return []database.GetLatestReadingsRow{
+		{Addr: "1", Temperature: 28.4, Humidity: 74.2, CreatedAt: time.Now()},
+		{Addr: "2", Temperature: 29.1, Humidity: 71.8, CreatedAt: time.Now()},
+		{Addr: "3", Temperature: 27.6, Humidity: 76.5, CreatedAt: time.Now()},
+	}, nil
+}
+
+func (m *mockDB) GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error) {
+	return []database.GetReadingsByAddrRow{
+		{Addr: arg.Addr, Temperature: 28.4, Humidity: 74.2, CreatedAt: time.Now()},
+		{Addr: arg.Addr, Temperature: 28.1, Humidity: 74.8, CreatedAt: time.Now().Add(-1 * time.Minute)},
+		{Addr: arg.Addr, Temperature: 27.9, Humidity: 75.1, CreatedAt: time.Now().Add(-2 * time.Minute)},
+	}, nil
+}
+
 var testHandler http.Handler
 
 func TestMain(m *testing.M) {

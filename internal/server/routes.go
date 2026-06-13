@@ -63,6 +63,9 @@ func (s *Server) RegisterRoutes(cfg *Config) http.Handler {
 		protected.PUT("/dashboard/name", s.updateUserNameHandler)
 		protected.PUT("/dashboard/password", s.updateUserPasswordHandler)
 		protected.DELETE("/dashboard/session/:id", s.revokeSessionHandler)
+		protected.GET("/sensors", s.sensorsPageHandler)
+		protected.GET("/sensors/readings", s.sensorsGridHandler)
+		protected.GET("/sensors/ws", s.sensorsWSHandler)
 	}
 	return r
 }

@@ -2,18 +2,20 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"log"
 	"mime"
 	"net/http"
-	"strconv"
 	"time"
 
+	"GoApp/internal/broker"
 	"GoApp/internal/database"
 
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
+	mqtt "github.com/mochi-mqtt/server/v2"
 )
 
 type DB interface {
@@ -35,6 +37,10 @@ type DB interface {
 	CreateContact(ctx context.Context, arg database.CreateContactParams) (database.Contact, error)
 	CountContactsByIPToday(ctx context.Context, ipAddress string) (int64, error)
 	CountContactsByEmailToday(ctx context.Context, email string) (int64, error)
+
+	InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error
+	GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error)
+	GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error)
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -105,10 +111,23 @@ func (s *sqlDB) CountContactsByEmailToday(ctx context.Context, email string) (in
 	return s.queries.CountContactsByEmailToday(ctx, email)
 }
 
+func (s *sqlDB) InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error {
+	return s.queries.InsertSensorReading(ctx, arg)
+}
+
+func (s *sqlDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error) {
+	return s.queries.GetLatestReadings(ctx)
+}
+
+func (s *sqlDB) GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error) {
+	return s.queries.GetReadingsByAddr(ctx, arg)
+}
+
 type Server struct {
 	port int
 	db   DB
 	cfg  *Config
+	hub  *Hub
 }
 
 func init() {
@@ -117,12 +136,7 @@ func init() {
 	}
 }
 
-func NewServer(cfg *Config) *http.Server {
-	port, err := strconv.Atoi(cfg.Port)
-	if err != nil {
-		log.Fatalf("invalid PORT value %v", err)
-	}
-
+func NewServer(cfg *Config) (*http.Server, *mqtt.Server, error) {
 	dbCfg := &database.DBConfig{
 		Host:     cfg.DBHost,
 		Port:     cfg.DBPort,
@@ -135,25 +149,45 @@ func NewServer(cfg *Config) *http.Server {
 	raw := database.Open(dbCfg)
 
 	if err := database.Migrate(raw); err != nil {
-		log.Fatalf("failed to run migrations: %v", err)
+		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	s := &Server{
-		port: port,
+		port: cfg.Port,
 		db: &sqlDB{
 			raw:     raw,
 			queries: database.New(raw),
 		},
 		cfg: cfg,
+		hub: NewHub(),
 	}
 
 	s.StartSessionCleanup(context.Background(), 1*time.Hour)
 
-	return &http.Server{
-		Addr:         fmt.Sprintf(":%s", cfg.TLSPort),
+	var mqttTLS *tls.Config
+	if cfg.TLSCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.TLSCertPath, cfg.TLSKeyPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("mqtt tls: load cert: %w", err)
+		}
+		mqttTLS = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+	}
+
+	mqttSrv, err := broker.Start(cfg.MQTTPort, s.db, s.hub, mqttTLS, cfg.MQTTUser, cfg.MQTTPass)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to start MQTT broker: %w", err)
+	}
+
+	httpSrv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.TLSPort),
 		Handler:      s.RegisterRoutes(cfg),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
+
+	return httpSrv, mqttSrv, nil
 }

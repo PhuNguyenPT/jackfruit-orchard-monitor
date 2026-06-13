@@ -11,6 +11,7 @@ templ Header(currentPage string, userName string, lang string) {
 						<a href="/" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "home"), templ.KV("text-gray-600", currentPage != "home") }>{ T(lang).Home }</a>
 						<a href="/contact" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "contact"), templ.KV("text-gray-600", currentPage != "contact") }>{ T(lang).Contact }</a>
 						if userName != "" {
+							<a href="/sensors" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "sensors"), templ.KV("text-gray-600", currentPage != "sensors") }>{ T(lang).SensorsTitle }</a>
 							<a href="/dashboard" class="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600">
 								<div class="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center uppercase">
 									{ string([]rune(userName)[0:1]) }
@@ -57,6 +58,7 @@ templ Header(currentPage string, userName string, lang string) {
 					<a href="/" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "home"), templ.KV("text-gray-600", currentPage != "home") }>{ T(lang).Home }</a>
 					<a href="/contact" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "contact"), templ.KV("text-gray-600", currentPage != "contact") }>{ T(lang).Contact }</a>
 					if userName != "" {
+						<a href="/sensors" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "sensors"), templ.KV("text-gray-600", currentPage != "sensors") }>{ T(lang).SensorsTitle }</a>
 						<a href="/dashboard" class="px-2 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2">
 							<div class="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center uppercase">
 								{ string([]rune(userName)[0:1]) }
@@ -131,6 +133,7 @@ templ Head(seo SEOMeta) {
 		<link rel="manifest" href="/public/site.webmanifest"/>
 		<link href="/public/output.css" rel="stylesheet"/>
 		<script src="/public/htmx.min.js"></script>
+		<script src="/public/ws.min.js"></script>
 		<script src="/public/header.min.js"></script>
 	</head>
 }

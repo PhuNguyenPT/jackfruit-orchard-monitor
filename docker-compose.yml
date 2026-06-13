@@ -78,6 +78,8 @@ services:
       - backend_ca
     expose:
       - "8443"
+    ports:
+      - "8883:8883"
     build:
       context: .
       dockerfile: Dockerfile
@@ -95,6 +97,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA}
       TLS_PORT: ${TLS_PORT}
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASS: ${MQTT_PASS}
     depends_on:
       psql:
         condition: service_healthy
@@ -105,7 +109,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     deploy:
       resources:
         limits:
@@ -120,6 +124,8 @@ services:
     profiles: ["dev"]
     expose:
       - "8443"
+    ports:
+      - "8883:8883"
     build:
       context: .
       dockerfile: Dockerfile
@@ -137,6 +143,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_SCHEMA: ${POSTGRES_SCHEMA}
       TLS_PORT: ${TLS_PORT}
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASS: ${MQTT_PASS}
     volumes:
       - .:/app
       - air_tmp:/app/tmp
@@ -151,13 +159,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
     deploy:
       resources:
         limits:
           memory: 2g
-          cpus: "3.0"
-
   psql:
     profiles: ["prod", "dev"]
     image: postgres:${POSTGRES_VERSION}

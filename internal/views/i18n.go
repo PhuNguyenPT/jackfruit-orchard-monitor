@@ -92,6 +92,17 @@ type Translations struct {
 	HomeCTA            string
 	HomeLatestProducts string
 	HomeViewAll        string
+	// Sensors
+	SensorsTitle       string
+	SensorsDescription string
+	SensorsHeading     string
+	SensorsSubtitle    string
+	SensorAddr         string
+	SensorTemperature  string
+	SensorHumidity     string
+	SensorLastUpdated  string
+	SensorNoData       string
+	SensorAutoRefresh  string
 }
 
 const (
@@ -193,6 +204,17 @@ func T(lang string) Translations {
 			HomeCTA:            "Xem bảng điều khiển",
 			HomeLatestProducts: "Sản phẩm mới nhất",
 			HomeViewAll:        "Xem tất cả →",
+			// Sensors
+			SensorsTitle:       "Cảm biến",
+			SensorsDescription: "Dữ liệu thời gian thực từ các cảm biến",
+			SensorsHeading:     "Dữ liệu cảm biến",
+			SensorsSubtitle:    "Tự động cập nhật mỗi 10 giây",
+			SensorAddr:         "Cảm biến",
+			SensorTemperature:  "Nhiệt độ",
+			SensorHumidity:     "Độ ẩm",
+			SensorLastUpdated:  "Cập nhật lúc",
+			SensorNoData:       "Chưa có dữ liệu từ cảm biến.",
+			SensorAutoRefresh:  "Tự động cập nhật",
 		}
 	}
 	return Translations{
@@ -287,5 +309,16 @@ func T(lang string) Translations {
 		HomeCTA:            "View Dashboard",
 		HomeLatestProducts: "Latest Products",
 		HomeViewAll:        "View all →",
+		// Sensors
+		SensorsTitle:       "Sensors",
+		SensorsDescription: "Live readings from all sensors",
+		SensorsHeading:     "Sensor Readings",
+		SensorsSubtitle:    "Auto-refreshes every 10 seconds",
+		SensorAddr:         "Sensor",
+		SensorTemperature:  "Temperature",
+		SensorHumidity:     "Humidity",
+		SensorLastUpdated:  "Updated",
+		SensorNoData:       "No sensor data available yet.",
+		SensorAutoRefresh:  "Auto-refresh",
 	}
 }
