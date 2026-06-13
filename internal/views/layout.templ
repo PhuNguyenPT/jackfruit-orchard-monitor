@@ -1,5 +1,7 @@
 package views
 
+import "GoApp/internal/ctxutil"
+
 templ Header(currentPage string, userName string, lang string) {
 	<header class="bg-white shadow-sm">
 		<div class="max-w-4xl mx-auto px-4 py-3">
@@ -132,9 +134,9 @@ templ Head(seo SEOMeta) {
 		<link rel="icon" type="image/png" sizes="16x16" href="/public/favicon-16x16.png"/>
 		<link rel="manifest" href="/public/site.webmanifest"/>
 		<link href="/public/output.css" rel="stylesheet"/>
-		<script src="/public/htmx.min.js"></script>
-		<script src="/public/ws.min.js"></script>
-		<script src="/public/header.min.js"></script>
+		<script nonce={ ctxutil.GetNonce(ctx) } src="/public/htmx.min.js"></script>
+		<script nonce={ ctxutil.GetNonce(ctx) } src="/public/ws.min.js"></script>
+		<script nonce={ ctxutil.GetNonce(ctx) } src="/public/header.min.js"></script>
 	</head>
 }
 

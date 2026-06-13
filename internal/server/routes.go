@@ -10,6 +10,7 @@ import (
 func (s *Server) RegisterRoutes(cfg *Config) http.Handler {
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
+	r.Use(s.nonceMiddleware())
 	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{
 		SkipPaths: []string{"/api/health", "/.well-known/appspecific/com.chrome.devtools.json"},
 	}))
