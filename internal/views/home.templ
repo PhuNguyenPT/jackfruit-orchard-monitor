@@ -14,7 +14,16 @@ templ HomePage(userName string, lang string) {
 				<div class="max-w-4xl mx-auto px-8 py-12">
 					<div class="text-center mb-12">
 						<h1 class="text-5xl font-bold mb-4">{ T(lang).HomeWelcome }</h1>
-						<p class="text-xl text-gray-600">{ T(lang).HomeSubtitle }</p>
+						<p class="text-xl text-gray-600 mb-8">{ T(lang).HomeSubtitle }</p>
+						if userName != "" {
+							<a href="/sensors" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm">
+								{ T(lang).SensorsTitle } →
+							</a>
+						} else {
+							<a href="/register?next=/sensors" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm">
+								{ T(lang).HomeCTA }
+							</a>
+						}
 					</div>
 				</div>
 			</main>

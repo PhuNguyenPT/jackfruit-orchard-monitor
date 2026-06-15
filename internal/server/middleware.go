@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +14,8 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := c.Cookie("session_token")
 		if err != nil {
-			c.Redirect(http.StatusFound, "/login")
+			next := url.QueryEscape(c.Request.URL.RequestURI())
+			c.Redirect(http.StatusFound, "/login?next="+next)
 			c.Abort()
 			return
 		}
@@ -22,7 +24,8 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 		if err != nil {
 			secure := s.cfg.AppEnv == EnvProduction
 			c.SetCookie("session_token", "", -1, "/", "", secure, true)
-			c.Redirect(http.StatusFound, "/login")
+			next := url.QueryEscape(c.Request.URL.RequestURI())
+			c.Redirect(http.StatusFound, "/login?next="+next)
 			c.Abort()
 			return
 		}
@@ -71,18 +74,14 @@ func getUserName(c *gin.Context) string {
 
 func (s *Server) nonceMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 1. Get the nonce passed from Nginx
 		nonce := c.GetHeader("X-Nonce")
 
-		// 2. Fallback for local development when bypassing Nginx
 		if nonce == "" {
 			nonce = "dev-fallback-nonce"
 		}
 
-		// 3. Optional: Store in Gin's context if you need it in Gin handlers
 		c.Set("nonce", nonce)
 
-		// 4. CRITICAL: Store in the underlying standard request Context for Templ!
 		ctx := context.WithValue(c.Request.Context(), ctxutil.NonceKey, nonce)
 		c.Request = c.Request.WithContext(ctx)
 

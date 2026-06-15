@@ -5,6 +5,7 @@ import (
 	"GoApp/internal/views"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -29,7 +30,7 @@ func (s *Server) dashboardPageHandler(c *gin.Context) {
 
 	user, err := s.db.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		c.Redirect(http.StatusFound, "/login")
+		c.Redirect(http.StatusFound, "/login?next="+url.QueryEscape(c.Request.URL.RequestURI()))
 		return
 	}
 
