@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE sensor_readings (
+CREATE TABLE air_temp_humid_readings (
     id          BIGSERIAL    PRIMARY KEY,
     addr        SMALLINT     NOT NULL,
     temperature SMALLINT     NOT NULL,
@@ -11,5 +11,5 @@ CREATE TABLE sensor_readings (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS sensor_readings;
+DROP TABLE IF EXISTS air_temp_humid_readings;
 -- +goose StatementEnd

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"GoApp/internal/broker"
+	appConfig "GoApp/internal/config"
 	"GoApp/internal/database"
 
 	"github.com/google/uuid"
@@ -38,10 +39,21 @@ type DB interface {
 	CountContactsByIPToday(ctx context.Context, ipAddress string) (int64, error)
 	CountContactsByEmailToday(ctx context.Context, email string) (int64, error)
 
-	InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error
-	GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error)
-	GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error)
-	DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error
+	InsertAirTempHumidReading(ctx context.Context, arg database.InsertAirTempHumidReadingParams) error
+	GetLatestAirTempHumidReadings(ctx context.Context) ([]database.GetLatestAirTempHumidReadingsRow, error)
+	GetAirTempHumidReadingsByAddr(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrParams) ([]database.GetAirTempHumidReadingsByAddrRow, error)
+	DeleteOldAirTempHumidReadings(ctx context.Context, createdAt time.Time) error
+
+	// MQTT credentials
+	GetMQTTCredentialByUsername(ctx context.Context, username string) (database.MqttCredential, error)
+	CreateMQTTCredential(ctx context.Context, arg database.CreateMQTTCredentialParams) (database.MqttCredential, error)
+	GetMQTTACLByCredentialID(ctx context.Context, credentialID uuid.UUID) ([]database.MqttAcl, error)
+	CreateMQTTACL(ctx context.Context, arg database.CreateMQTTACLParams) (database.MqttAcl, error)
+
+	// Soil readings
+	InsertSoilMoistureReading(ctx context.Context, arg database.InsertSoilMoistureReadingParams) error
+	GetLatestSoilMoistureReadings(ctx context.Context) ([]database.GetLatestSoilMoistureReadingsRow, error)
+	DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -112,26 +124,48 @@ func (s *sqlDB) CountContactsByEmailToday(ctx context.Context, email string) (in
 	return s.queries.CountContactsByEmailToday(ctx, email)
 }
 
-func (s *sqlDB) InsertSensorReading(ctx context.Context, arg database.InsertSensorReadingParams) error {
-	return s.queries.InsertSensorReading(ctx, arg)
+func (s *sqlDB) InsertAirTempHumidReading(ctx context.Context, arg database.InsertAirTempHumidReadingParams) error {
+	return s.queries.InsertAirTempHumidReading(ctx, arg)
 }
 
-func (s *sqlDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error) {
-	return s.queries.GetLatestReadings(ctx)
+func (s *sqlDB) GetLatestAirTempHumidReadings(ctx context.Context) ([]database.GetLatestAirTempHumidReadingsRow, error) {
+	return s.queries.GetLatestAirTempHumidReadings(ctx)
 }
 
-func (s *sqlDB) GetReadingsByAddr(ctx context.Context, arg database.GetReadingsByAddrParams) ([]database.GetReadingsByAddrRow, error) {
-	return s.queries.GetReadingsByAddr(ctx, arg)
+func (s *sqlDB) GetAirTempHumidReadingsByAddr(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrParams) ([]database.GetAirTempHumidReadingsByAddrRow, error) {
+	return s.queries.GetAirTempHumidReadingsByAddr(ctx, arg)
 }
 
-func (s *sqlDB) DeleteOldSensorReadings(ctx context.Context, createdAt time.Time) error {
-	return s.queries.DeleteOldSensorReadings(ctx, createdAt)
+func (s *sqlDB) DeleteOldAirTempHumidReadings(ctx context.Context, createdAt time.Time) error {
+	return s.queries.DeleteOldAirTempHumidReadings(ctx, createdAt)
+}
+
+func (s *sqlDB) GetMQTTCredentialByUsername(ctx context.Context, username string) (database.MqttCredential, error) {
+	return s.queries.GetMQTTCredentialByUsername(ctx, username)
+}
+func (s *sqlDB) CreateMQTTCredential(ctx context.Context, arg database.CreateMQTTCredentialParams) (database.MqttCredential, error) {
+	return s.queries.CreateMQTTCredential(ctx, arg)
+}
+func (s *sqlDB) GetMQTTACLByCredentialID(ctx context.Context, credentialID uuid.UUID) ([]database.MqttAcl, error) {
+	return s.queries.GetMQTTACLByCredentialID(ctx, credentialID)
+}
+func (s *sqlDB) CreateMQTTACL(ctx context.Context, arg database.CreateMQTTACLParams) (database.MqttAcl, error) {
+	return s.queries.CreateMQTTACL(ctx, arg)
+}
+func (s *sqlDB) InsertSoilMoistureReading(ctx context.Context, arg database.InsertSoilMoistureReadingParams) error {
+	return s.queries.InsertSoilMoistureReading(ctx, arg)
+}
+func (s *sqlDB) GetLatestSoilMoistureReadings(ctx context.Context) ([]database.GetLatestSoilMoistureReadingsRow, error) {
+	return s.queries.GetLatestSoilMoistureReadings(ctx)
+}
+func (s *sqlDB) DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error {
+	return s.queries.DeleteOldSoilMoistureReadings(ctx, createdAt)
 }
 
 type Server struct {
 	port int
 	db   DB
-	cfg  *Config
+	cfg  *appConfig.Config
 	hub  *Hub
 }
 
@@ -141,7 +175,7 @@ func init() {
 	}
 }
 
-func NewServer(cfg *Config) (*http.Server, *mqtt.Server, error) {
+func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
 	dbCfg := &database.DBConfig{
 		Host:     cfg.DBHost,
 		Port:     cfg.DBPort,
@@ -164,7 +198,7 @@ func NewServer(cfg *Config) (*http.Server, *mqtt.Server, error) {
 			queries: database.New(raw),
 		},
 		cfg: cfg,
-		hub: NewHub(),
+		hub: NewHub(cfg),
 	}
 
 	s.StartSessionCleanup(context.Background(), 1*time.Hour)

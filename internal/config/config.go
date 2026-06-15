@@ -38,6 +38,9 @@ type Config struct {
 	MQTTPass     string `validate:"required,min=8"`
 	MQTTCertPath string
 	MQTTKeyPath  string
+	// Soil Calibration Thresholds
+	SoilDryValue int `validate:"required,gt=0"`
+	SoilWetValue int `validate:"required,gt=0"`
 }
 
 func getEnvOrDefaultStr(key, defaultVal string) string {
@@ -58,7 +61,7 @@ func getEnvOrDefaultInt(key string, defaultVal int) int {
 	return 0 // set but unparseable → 0, let validator catch it
 }
 
-func LoadConfig() (*Config, error) {
+func LoadAppConfig() (*Config, error) {
 	cfg := &Config{
 		Port:         getEnvOrDefaultInt("PORT", 8080),
 		AppEnv:       os.Getenv("APP_ENV"),
@@ -80,6 +83,8 @@ func LoadConfig() (*Config, error) {
 		MQTTPass:     getEnvOrDefaultStr("MQTT_PASS", "yourpassword"),
 		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
 		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
+		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3340),
+		SoilWetValue: getEnvOrDefaultInt("SOIL_WET_VALUE", 1805),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())

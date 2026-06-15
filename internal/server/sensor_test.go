@@ -15,13 +15,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// erroringDB wraps mockDB but forces GetLatestReadings to fail,
+// erroringDB wraps mockDB but forces GetLatestAirTempHumidReadings to fail,
 // so we can exercise the error branches without restating the mock.
 type erroringDB struct {
 	*mockDB
 }
 
-func (e *erroringDB) GetLatestReadings(ctx context.Context) ([]database.GetLatestReadingsRow, error) {
+func (e *erroringDB) GetLatestAirTempHumidReadings(ctx context.Context) ([]database.GetLatestAirTempHumidReadingsRow, error) {
 	return nil, errors.New("db down")
 }
 
@@ -40,7 +40,7 @@ func newSensorTestContext(method, path string) (*gin.Context, *httptest.Response
 // ---------------------------------------------------------------------------
 
 func TestSensorsPageHandler_Success(t *testing.T) {
-	s := &Server{db: &mockDB{}}
+	s := &Server{db: &mockDB{}, cfg: newTestConfig()}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors")
 
 	s.sensorsPageHandler(c)
@@ -60,7 +60,7 @@ func TestSensorsPageHandler_Success(t *testing.T) {
 }
 
 func TestSensorsPageHandler_DBError(t *testing.T) {
-	s := &Server{db: &erroringDB{&mockDB{}}}
+	s := &Server{db: &erroringDB{&mockDB{}}, cfg: newTestConfig()}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors")
 
 	s.sensorsPageHandler(c)
@@ -71,7 +71,7 @@ func TestSensorsPageHandler_DBError(t *testing.T) {
 }
 
 func TestSensorsGridHandler_WithReadings(t *testing.T) {
-	s := &Server{db: &mockDB{}}
+	s := &Server{db: &mockDB{}, cfg: newTestConfig()}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors/readings")
 
 	s.sensorsGridHandler(c)
@@ -86,7 +86,7 @@ func TestSensorsGridHandler_WithReadings(t *testing.T) {
 }
 
 func TestSensorsGridHandler_DBError(t *testing.T) {
-	s := &Server{db: &erroringDB{&mockDB{}}}
+	s := &Server{db: &erroringDB{&mockDB{}}, cfg: newTestConfig()}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors/readings")
 
 	s.sensorsGridHandler(c)
@@ -117,7 +117,10 @@ func waitForClientCount(t *testing.T, h *Hub, want int) {
 
 func newSensorWSServer() (*Server, *httptest.Server) {
 	gin.SetMode(gin.TestMode)
-	s := &Server{db: &mockDB{}, hub: NewHub()}
+
+	cfg := newTestConfig()
+	s := &Server{db: &mockDB{}, cfg: cfg, hub: NewHub(cfg)}
+
 	r := gin.New()
 	r.GET("/sensors/ws", func(c *gin.Context) {
 		c.Set("lang", "en")
@@ -154,7 +157,7 @@ func TestSensorsWSHandler_BroadcastReachesClient(t *testing.T) {
 
 	waitForClientCount(t, s.hub, 1)
 
-	s.hub.Broadcast("1", 27.3, 55.5)
+	s.hub.BroadcastAirTempHumid("1", 27.3, 55.5)
 
 	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		t.Fatalf("SetReadDeadline: %v", err)

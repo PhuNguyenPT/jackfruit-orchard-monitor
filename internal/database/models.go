@@ -10,6 +10,14 @@ import (
 	"github.com/google/uuid"
 )
 
+type AirTempHumidReading struct {
+	ID          int64
+	Addr        int16
+	Temperature int16
+	Humidity    int16
+	CreatedAt   time.Time
+}
+
 type Contact struct {
 	ID        uuid.UUID
 	Name      string
@@ -20,12 +28,19 @@ type Contact struct {
 	CreatedAt time.Time
 }
 
-type SensorReading struct {
-	ID          int64
-	Addr        int16
-	Temperature int16
-	Humidity    int16
-	CreatedAt   time.Time
+type MqttAcl struct {
+	ID           uuid.UUID
+	CredentialID uuid.UUID
+	Topic        string
+	Permission   string
+	CreatedAt    time.Time
+}
+
+type MqttCredential struct {
+	ID        uuid.UUID
+	Username  string
+	Password  string
+	CreatedAt time.Time
 }
 
 type Session struct {
@@ -35,6 +50,13 @@ type Session struct {
 	ExpiresAt time.Time
 	UserAgent string
 	IpAddress string
+	CreatedAt time.Time
+}
+
+type SoilMoistureReading struct {
+	ID        int64
+	SensorIdx int16
+	Raw       int16
 	CreatedAt time.Time
 }
 

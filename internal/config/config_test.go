@@ -30,10 +30,10 @@ var validEnv = map[string]string{
 	"POSTGRES_SCHEMA":   "public",
 }
 
-func TestLoadConfig_Valid(t *testing.T) {
+func TestLoadAppConfig_Valid(t *testing.T) {
 	setEnv(t, validEnv)
 
-	cfg, err := LoadConfig()
+	cfg, err := LoadAppConfig()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -45,43 +45,43 @@ func TestLoadConfig_Valid(t *testing.T) {
 	}
 }
 
-func TestLoadConfig_MissingRequired(t *testing.T) {
+func TestLoadAppConfig_MissingRequired(t *testing.T) {
 	setEnv(t, validEnv)
 	os.Unsetenv("APP_ENV") // no default for this one
 
-	_, err := LoadConfig()
+	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for missing APP_ENV, got nil")
 	}
 }
-func TestLoadConfig_InvalidGinMode(t *testing.T) {
+func TestLoadAppConfig_InvalidGinMode(t *testing.T) {
 	env := maps.Clone(validEnv)
 	env["GIN_MODE"] = "invalid"
 	setEnv(t, env)
 
-	_, err := LoadConfig()
+	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for invalid GIN_MODE, got nil")
 	}
 }
 
-func TestLoadConfig_ShortPassword(t *testing.T) {
+func TestLoadAppConfig_ShortPassword(t *testing.T) {
 	env := maps.Clone(validEnv)
 	env["POSTGRES_PASSWORD"] = "short"
 	setEnv(t, env)
 
-	_, err := LoadConfig()
+	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for password shorter than 8 chars, got nil")
 	}
 }
 
-func TestLoadConfig_NonNumericDBPort(t *testing.T) {
+func TestLoadAppConfig_NonNumericDBPort(t *testing.T) {
 	env := maps.Clone(validEnv)
 	env["POSTGRES_PORT"] = "notaport"
 	setEnv(t, env)
 
-	_, err := LoadConfig()
+	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for non-numeric POSTGRES_PORT, got nil")
 	}

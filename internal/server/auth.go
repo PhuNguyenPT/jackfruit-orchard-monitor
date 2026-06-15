@@ -1,18 +1,18 @@
 package server
 
 import (
+	appConfig "GoApp/internal/config"
 	"GoApp/internal/database"
 	"GoApp/internal/views"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var validate = validator.New()
@@ -121,7 +121,7 @@ func (s *Server) registerHandler(c *gin.Context) {
 		renderError(views.T(getLangStr(c)).ErrSomethingWrong)
 		return
 	}
-	secure := s.cfg.AppEnv == EnvProduction
+	secure := s.cfg.AppEnv == appConfig.EnvProduction
 	c.SetCookie("session_token", token.String(), 86400, "/", "", secure, true)
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
@@ -190,7 +190,7 @@ func (s *Server) loginHandler(c *gin.Context) {
 		renderError(views.T(getLangStr(c)).ErrSomethingWrong)
 		return
 	}
-	secure := s.cfg.AppEnv == EnvProduction
+	secure := s.cfg.AppEnv == appConfig.EnvProduction
 
 	c.SetCookie("session_token", token, 86400, "/", "", secure, true)
 	c.Status(http.StatusOK)
@@ -208,7 +208,7 @@ func (s *Server) logoutHandler(c *gin.Context) {
 			log.Printf("error deleting session: %v", err)
 		}
 	}
-	secure := s.cfg.AppEnv == EnvProduction
+	secure := s.cfg.AppEnv == appConfig.EnvProduction
 	c.SetCookie("session_token", "", -1, "/", "", secure, true)
 	c.Redirect(http.StatusFound, "/")
 }
