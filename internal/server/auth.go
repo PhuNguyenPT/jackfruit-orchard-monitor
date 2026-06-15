@@ -34,10 +34,18 @@ func getClientIP(c *gin.Context) string {
 	return ip
 }
 
+func safeNext(next string) string {
+	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
+		return "/"
+	}
+	return next
+}
+
 func (s *Server) registerPageHandler(c *gin.Context) {
+	next := safeNext(c.DefaultQuery("next", "/"))
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.RegisterPage(getUserName(c), getLangStr(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.RegisterPage(getUserName(c), getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering register page: %v", err)
 	}
 }
@@ -117,7 +125,8 @@ func (s *Server) registerHandler(c *gin.Context) {
 	c.SetCookie("session_token", token.String(), 86400, "/", "", secure, true)
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.RegisterSuccess(input.Name, getLangStr(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	next := safeNext(c.DefaultPostForm("next", "/"))
+	if err := views.RegisterSuccess(input.Name, getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering register success: %v", err)
 	}
 }
@@ -128,9 +137,10 @@ type LoginInput struct {
 }
 
 func (s *Server) loginPageHandler(c *gin.Context) {
+	next := safeNext(c.DefaultQuery("next", "/"))
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.LoginPage(getUserName(c), getLangStr(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.LoginPage(getUserName(c), getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering login page: %v", err)
 	}
 }
@@ -185,7 +195,8 @@ func (s *Server) loginHandler(c *gin.Context) {
 	c.SetCookie("session_token", token, 86400, "/", "", secure, true)
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.LoginSuccess(user.Name, getLangStr(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	next := safeNext(c.DefaultPostForm("next", "/"))
+	if err := views.LoginSuccess(user.Name, getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering login success: %v", err)
 	}
 }
@@ -199,7 +210,7 @@ func (s *Server) logoutHandler(c *gin.Context) {
 	}
 	secure := s.cfg.AppEnv == EnvProduction
 	c.SetCookie("session_token", "", -1, "/", "", secure, true)
-	c.Redirect(http.StatusFound, "/login")
+	c.Redirect(http.StatusFound, "/")
 }
 
 func (s *Server) revokeSessionHandler(c *gin.Context) {
