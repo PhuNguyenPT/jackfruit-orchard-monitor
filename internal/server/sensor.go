@@ -16,28 +16,46 @@ var upgrader = websocket.Upgrader{
 
 func (s *Server) sensorsPageHandler(c *gin.Context) {
 	lang := getLangStr(c)
-	readings, err := s.db.GetLatestReadings(c.Request.Context())
+
+	// 1. Fetch SHT40 Data
+	shtReadings, err := s.db.GetLatestAirTempHumidReadings(c.Request.Context())
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	// 2. Fetch MKE-S13 Data
+	soilReadings, err := s.db.GetLatestSoilMoistureReadings(c.Request.Context())
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorsPage(readings, lang, getUserName(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
 
 func (s *Server) sensorsGridHandler(c *gin.Context) {
 	lang := getLangStr(c)
-	readings, err := s.db.GetLatestReadings(c.Request.Context())
+
+	shtReadings, err := s.db.GetLatestAirTempHumidReadings(c.Request.Context())
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	soilReadings, err := s.db.GetLatestSoilMoistureReadings(c.Request.Context())
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorGrid(readings, lang).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorGrid(shtReadings, soilReadings, lang, s.cfg).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }

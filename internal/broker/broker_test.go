@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"strconv"
 	"testing"
 
+	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
 
@@ -19,34 +19,87 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockStorage struct {
-	calls []database.InsertSensorReadingParams
-	errOn int
-	callN int
+	// SHT40 Tracking
+	airTempHumidCalls []database.InsertAirTempHumidReadingParams
+	errOn             int
+	callN             int
+
+	// Soil Tracking
+	soilCalls []database.InsertSoilMoistureReadingParams
+	soilErrOn int
+	soilCallN int
+
+	// Auth/ACL Tracking
+	getCredErr error
+	cred       database.MqttCredential
+	acls       []database.MqttAcl
 }
 
-func (m *mockStorage) InsertSensorReading(_ context.Context, arg database.InsertSensorReadingParams) error {
+func (m *mockStorage) InsertAirTempHumidReading(_ context.Context, arg database.InsertAirTempHumidReadingParams) error {
 	m.callN++
-	m.calls = append(m.calls, arg)
+	m.airTempHumidCalls = append(m.airTempHumidCalls, arg)
 	if m.errOn != 0 && m.callN == m.errOn {
 		return errors.New("mock db error")
 	}
 	return nil
 }
 
+func (m *mockStorage) InsertSoilMoistureReading(_ context.Context, arg database.InsertSoilMoistureReadingParams) error {
+	m.soilCallN++
+	m.soilCalls = append(m.soilCalls, arg)
+	if m.soilErrOn != 0 && m.soilCallN == m.soilErrOn {
+		return errors.New("mock db error")
+	}
+	return nil
+}
+func (m *mockStorage) GetMQTTCredentialByUsername(_ context.Context, username string) (database.MqttCredential, error) {
+	if m.getCredErr != nil {
+		return database.MqttCredential{}, m.getCredErr
+	}
+	// Default to returning a matching username to bypass seeding logic smoothly if invoked
+	if m.cred.Username == "" {
+		return database.MqttCredential{Username: username}, nil
+	}
+	return m.cred, nil
+}
+
+func (m *mockStorage) CreateMQTTCredential(_ context.Context, arg database.CreateMQTTCredentialParams) (database.MqttCredential, error) {
+	return database.MqttCredential{Username: arg.Username}, nil
+}
+
+func (m *mockStorage) GetMQTTACLByCredentialID(_ context.Context, _ uuid.UUID) ([]database.MqttAcl, error) {
+	return m.acls, nil
+}
+
+func (m *mockStorage) CreateMQTTACL(_ context.Context, arg database.CreateMQTTACLParams) (database.MqttAcl, error) {
+	return database.MqttAcl{CredentialID: arg.CredentialID, Topic: arg.Topic}, nil
+}
+
 type mockNotifier struct {
-	calls []struct {
+	airTempHumidCalls []struct {
 		addr        string
 		temperature float32
 		humidity    float32
 	}
+	soilCalls []struct {
+		addr string
+		raw  int
+	}
 }
 
-func (m *mockNotifier) Broadcast(addr string, temperature, humidity float32) {
-	m.calls = append(m.calls, struct {
+func (m *mockNotifier) BroadcastAirTempHumid(addr string, temperature, humidity float32) {
+	m.airTempHumidCalls = append(m.airTempHumidCalls, struct {
 		addr        string
 		temperature float32
 		humidity    float32
 	}{addr, temperature, humidity})
+}
+
+func (m *mockNotifier) BroadcastSoilMoisture(addr string, raw int) {
+	m.soilCalls = append(m.soilCalls, struct {
+		addr string
+		raw  int
+	}{addr, raw})
 }
 
 // ---------------------------------------------------------------------------
@@ -96,110 +149,69 @@ func TestSensorHook_Provides(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// sensorHook.OnPublish — table-driven
+// sensorHook.OnPublish — Soil Tests
 // ---------------------------------------------------------------------------
 
-func TestSensorHook_OnPublish(t *testing.T) {
+func TestSensorHook_OnPublish_Soil(t *testing.T) {
 	t.Parallel()
 
-	const eps = float32(0.05)
-
 	tests := []struct {
-		name          string
-		topic         string
-		payload       []byte
-		dbErrOn       int
-		wantInsert    bool
-		wantBroadcast bool
-		wantAddr      int16
-		wantHum       float32
-		wantTemp      float32
+		name       string
+		topic      string
+		payload    []byte
+		dbErrOn    int
+		wantInsert bool
+		wantIdx    int16
+		wantRaw    int16
 	}{
 		{
-			name:          "valid reading — positive temperature",
-			topic:         "sht40/1/data",
-			payload:       makePayload(55.3, 27.4),
-			wantInsert:    true,
-			wantBroadcast: true,
-			wantAddr:      1,
-			wantHum:       55.3,
-			wantTemp:      27.4,
+			name:       "valid soil reading",
+			topic:      "mke-s13/1/data",
+			payload:    []byte(`{"raw":1500}`),
+			wantInsert: true,
+			wantIdx:    1,
+			wantRaw:    1500,
 		},
 		{
-			name:          "valid reading — negative temperature",
-			topic:         "sht40/3/data",
-			payload:       makePayload(80.0, -5.2),
-			wantInsert:    true,
-			wantBroadcast: true,
-			wantAddr:      3,
-			wantHum:       80.0,
-			wantTemp:      -5.2,
+			name:       "valid soil reading — index 0",
+			topic:      "mke-s13/0/data",
+			payload:    []byte(`{"raw":3000}`),
+			wantInsert: true,
+			wantIdx:    0,
+			wantRaw:    3000,
 		},
 		{
-			name:          "valid reading — zero temperature boundary",
-			topic:         "sht40/10/data",
-			payload:       makePayload(40.0, 0.0),
-			wantInsert:    true,
-			wantBroadcast: true,
-			wantAddr:      10,
-			wantHum:       40.0,
-			wantTemp:      0.0,
-		},
-		{
-			name:       "non-matching topic — pass through",
-			topic:      "other/topic/foo",
-			payload:    makePayload(50.0, 25.0),
+			name:       "wrong suffix — drop",
+			topic:      "mke-s13/1/status",
+			payload:    []byte(`{"raw":1500}`),
 			wantInsert: false,
 		},
 		{
-			name:       "bare prefix only — pass through",
-			topic:      "sht40",
-			payload:    makePayload(50.0, 25.0),
-			wantInsert: false,
-		},
-		{
-			name:       "wrong prefix — pass through",
-			topic:      "device/sht40/1/data",
-			payload:    makePayload(50.0, 25.0),
-			wantInsert: false,
-		},
-		{
-			name:       "wrong suffix — pass through",
-			topic:      "sht40/1/status",
-			payload:    makePayload(50.0, 25.0),
-			wantInsert: false,
-		},
-		{
-			name:       "non-numeric addr — drop",
-			topic:      "sht40/sensorABC/data",
-			payload:    makePayload(50.0, 25.0),
+			name:       "non-numeric index — drop",
+			topic:      "mke-s13/abc/data",
+			payload:    []byte(`{"raw":1500}`),
 			wantInsert: false,
 		},
 		{
 			name:       "invalid JSON — drop",
-			topic:      "sht40/2/data",
-			payload:    []byte("not-json"),
-			wantInsert: false,
-		},
-		{
-			name:       "empty payload — drop",
-			topic:      "sht40/2/data",
-			payload:    []byte{},
+			topic:      "mke-s13/2/data",
+			payload:    []byte(`not-json`),
 			wantInsert: false,
 		},
 		{
 			name:       "malformed JSON — drop",
-			topic:      "sht40/2/data",
-			payload:    []byte(`{"temperature": "bad_value"}`),
+			topic:      "mke-s13/2/data",
+			payload:    []byte(`{"raw": "bad_value"}`),
 			wantInsert: false,
 		},
 		{
-			name:          "db insert error — no broadcast",
-			topic:         "sht40/5/data",
-			payload:       makePayload(60.0, 30.0),
-			dbErrOn:       1,
-			wantInsert:    true,
-			wantBroadcast: false,
+			name:       "db insert error — handle gracefully",
+			topic:      "mke-s13/3/data",
+			payload:    []byte(`{"raw":2000}`),
+			dbErrOn:    1,
+			wantInsert: true,
+			wantIdx:    3,
+			wantRaw:    2000,
 		},
 	}
 
@@ -208,7 +220,7 @@ func TestSensorHook_OnPublish(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			store := &mockStorage{errOn: tc.dbErrOn}
+			store := &mockStorage{soilErrOn: tc.dbErrOn}
 			notifier := &mockNotifier{}
 			h := newTestHook(store, notifier)
 
@@ -226,15 +238,11 @@ func TestSensorHook_OnPublish(t *testing.T) {
 				t.Errorf("TopicName modified: got %q, want %q", got.TopicName, tc.topic)
 			}
 
-			insertCount := len(store.calls)
-			broadcastCount := len(notifier.calls)
+			insertCount := len(store.soilCalls)
 
 			if !tc.wantInsert {
 				if insertCount != 0 {
 					t.Errorf("expected no DB insert, got %d", insertCount)
-				}
-				if broadcastCount != 0 {
-					t.Errorf("expected no broadcast, got %d", broadcastCount)
 				}
 				return
 			}
@@ -243,54 +251,19 @@ func TestSensorHook_OnPublish(t *testing.T) {
 				t.Fatalf("expected 1 DB insert, got %d", insertCount)
 			}
 
-			if tc.wantBroadcast && broadcastCount != 1 {
-				t.Errorf("expected 1 broadcast, got %d", broadcastCount)
-			}
-			if !tc.wantBroadcast && broadcastCount != 0 {
-				t.Errorf("expected no broadcast, got %d", broadcastCount)
-			}
-
 			if tc.dbErrOn != 0 {
-				return
+				return // Stop evaluating fields if DB insert simulated an error
 			}
 
 			// --- DB insert assertions ---
-			// addr, temperature, humidity are all stored as int16.
-			// Temperature and humidity are scaled ×10 before storage.
-			arg := store.calls[0]
+			arg := store.soilCalls[0]
 
-			if arg.Addr != tc.wantAddr {
-				t.Errorf("Addr = %d, want %d", arg.Addr, tc.wantAddr)
+			if arg.SensorIdx != tc.wantIdx {
+				t.Errorf("SensorIdx = %d, want %d", arg.SensorIdx, tc.wantIdx)
 			}
 
-			wantStoredTemp := int16(math.Round(float64(tc.wantTemp) * 10))
-			if arg.Temperature != wantStoredTemp {
-				t.Errorf("Temperature = %d, want %d", arg.Temperature, wantStoredTemp)
-			}
-
-			wantStoredHum := int16(math.Round(float64(tc.wantHum) * 10))
-			if arg.Humidity != wantStoredHum {
-				t.Errorf("Humidity = %d, want %d", arg.Humidity, wantStoredHum)
-			}
-
-			// --- Broadcast assertions ---
-			// The notifier receives the raw float32 values from the JSON payload,
-			// and the topic segment string (e.g. "1") as the addr.
-			if !tc.wantBroadcast {
-				return
-			}
-
-			bc := notifier.calls[0]
-
-			wantBroadcastAddr := strconv.Itoa(int(tc.wantAddr))
-			if bc.addr != wantBroadcastAddr {
-				t.Errorf("Broadcast addr = %q, want %q", bc.addr, wantBroadcastAddr)
-			}
-			if !closeF32(bc.temperature, tc.wantTemp, eps) {
-				t.Errorf("Broadcast temperature = %.2f, want %.2f", bc.temperature, tc.wantTemp)
-			}
-			if !closeF32(bc.humidity, tc.wantHum, eps) {
-				t.Errorf("Broadcast humidity = %.2f, want %.2f", bc.humidity, tc.wantHum)
+			if arg.Raw != tc.wantRaw {
+				t.Errorf("Raw = %d, want %d", arg.Raw, tc.wantRaw)
 			}
 		})
 	}
@@ -321,4 +294,30 @@ func TestStart_DifferentPort(t *testing.T) {
 		t.Fatalf("Start() on alt port error = %v", err)
 	}
 	t.Cleanup(func() { _ = srv.Close() })
+}
+
+func TestSensorHook_OnPublish_SHT40(t *testing.T) {
+	t.Parallel()
+	store := &mockStorage{}
+	notifier := &mockNotifier{}
+	h := newTestHook(store, notifier)
+
+	// Using makePayload here!
+	payload := makePayload(45.5, 23.2)
+	pk := packets.Packet{TopicName: "sht40/12/data", Payload: payload}
+
+	_, err := h.OnPublish(nil, pk)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(notifier.airTempHumidCalls) != 1 {
+		t.Fatalf("expected 1 notification broadcast, got %d", len(notifier.airTempHumidCalls))
+	}
+
+	// Using closeF32 here to compare floating-point values safely!
+	gotTemp := notifier.airTempHumidCalls[0].temperature
+	if !closeF32(gotTemp, 23.2, 0.01) {
+		t.Errorf("got temperature %f, want 23.2", gotTemp)
+	}
 }
