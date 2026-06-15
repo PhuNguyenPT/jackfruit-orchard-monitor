@@ -46,7 +46,7 @@ func TestDashboardPageHandler(t *testing.T) {
 		if rr.Code != http.StatusFound {
 			t.Errorf("expected redirect 302, got %v", rr.Code)
 		}
-		if rr.Header().Get("Location") != "/login" {
+		if !strings.HasPrefix(rr.Header().Get("Location"), "/login") {
 			t.Errorf("expected redirect to /login, got %v", rr.Header().Get("Location"))
 		}
 	})
@@ -95,7 +95,7 @@ func TestUpdateUserNameHandler(t *testing.T) {
 		if rr.Code != http.StatusFound {
 			t.Errorf("expected redirect 302, got %v", rr.Code)
 		}
-		if rr.Header().Get("Location") != "/login" {
+		if !strings.HasPrefix(rr.Header().Get("Location"), "/login") {
 			t.Errorf("expect redirect to /login, got %v", rr.Header().Get("Location"))
 		}
 	})
@@ -176,7 +176,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		if rr.Code != http.StatusFound {
 			t.Errorf("expected redirect 302, got %v", rr.Code)
 		}
-		if rr.Header().Get("Location") != "/login" {
+		if !strings.HasPrefix(rr.Header().Get("Location"), "/login") {
 			t.Errorf("expected redirect to /login, got %v", rr.Header().Get("Location"))
 		}
 	})

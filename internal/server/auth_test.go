@@ -81,6 +81,7 @@ func TestRegisterHandler(t *testing.T) {
 		form.Set("name", "Test User")
 		form.Set("email", "newuser@example.com")
 		form.Set("password", "password123")
+		form.Set("next", "/sensors")
 
 		req, err := http.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
 		if err != nil {
@@ -107,8 +108,8 @@ func TestRegisterHandler(t *testing.T) {
 			t.Errorf("expected session_token cookie to be set")
 		}
 
-		if !strings.Contains(rr.Body.String(), "/dashboard") {
-			t.Errorf("expected dashboard link in success response")
+		if !strings.Contains(rr.Body.String(), `hx-get="/sensors"`) {
+			t.Errorf("expected hx-get redirect to /sensors in success response")
 		}
 	})
 
@@ -212,6 +213,7 @@ func TestLoginHandler(t *testing.T) {
 		form := url.Values{}
 		form.Set("email", "test@example.com")
 		form.Set("password", "password123")
+		form.Set("next", "/sensors")
 
 		req, err := http.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
 		if err != nil {
@@ -239,8 +241,8 @@ func TestLoginHandler(t *testing.T) {
 		}
 
 		// Check success response renders dashboard link
-		if !strings.Contains(rr.Body.String(), "/dashboard") {
-			t.Errorf("expected dashboard link in success response")
+		if !strings.Contains(rr.Body.String(), `hx-get="/sensors"`) {
+			t.Errorf("expected hx-get redirect to /sensors in success response")
 		}
 	})
 
@@ -297,8 +299,8 @@ func TestLogoutHandler(t *testing.T) {
 		if rr.Code != http.StatusFound {
 			t.Errorf("expected redirect 302, got %v", rr.Code)
 		}
-		if rr.Header().Get("Location") != "/login" {
-			t.Errorf("expected redirect to /login, got %v", rr.Header().Get("Location"))
+		if rr.Header().Get("Location") != "/" {
+			t.Errorf("expected redirect to /, got %v", rr.Header().Get("Location"))
 		}
 	})
 }
@@ -319,7 +321,7 @@ func TestRevokeSessionHandler(t *testing.T) {
 		if rr.Code != http.StatusFound {
 			t.Errorf("expected redirect 302, got %v", rr.Code)
 		}
-		if rr.Header().Get("Location") != "/login" {
+		if !strings.HasPrefix(rr.Header().Get("Location"), "/login") {
 			t.Errorf("expected redirect to /login, got %v", rr.Header().Get("Location"))
 		}
 	})
