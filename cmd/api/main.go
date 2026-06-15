@@ -12,12 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	appConfig "GoApp/internal/config"
 	"GoApp/internal/server"
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 )
 
-func loadMTLSConfig(cfg *server.Config) (*tls.Config, error) {
+func loadMTLSConfig(cfg *appConfig.Config) (*tls.Config, error) {
 	caCert, err := os.ReadFile(cfg.TLSCAPath)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func gracefulShutdown(httpSrv *http.Server, mqttSrv *mqtt.Server, done chan bool
 }
 
 func main() {
-	cfg, err := server.LoadConfig()
+	cfg, err := appConfig.LoadAppConfig()
 	if err != nil {
 		log.Fatalf("invalid config: %v", err)
 	}

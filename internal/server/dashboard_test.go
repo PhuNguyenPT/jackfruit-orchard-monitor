@@ -1,6 +1,7 @@
 package server
 
 import (
+	server "GoApp/internal/config"
 	"GoApp/internal/database"
 	"context"
 	"net/http"
@@ -254,7 +255,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		}
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: &Config{AppEnv: EnvTest, GinMode: gin.TestMode},
+			cfg: &server.Config{AppEnv: server.EnvTest, GinMode: gin.TestMode},
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -284,7 +285,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: &Config{AppEnv: EnvTest, GinMode: gin.TestMode},
+			cfg: &server.Config{AppEnv: server.EnvTest, GinMode: gin.TestMode},
 		}
 		handler := s.RegisterRoutes(s.cfg)
 

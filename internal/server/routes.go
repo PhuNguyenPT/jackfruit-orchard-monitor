@@ -3,11 +3,13 @@ package server
 import (
 	"net/http"
 
+	appConfig "GoApp/internal/config"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) RegisterRoutes(cfg *Config) http.Handler {
+func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
 	r.Use(s.nonceMiddleware())
