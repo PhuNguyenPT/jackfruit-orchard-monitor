@@ -7,6 +7,7 @@ templ HomePage(userName string, lang string, site SiteConfig) {
 			Title:        "Orchard Monitor",
 			Description:  T(lang).HomeSubtitle,
 			CanonicalURL: site.BaseURL + "/",
+			OGImage:      site.BaseURL + "/public/og-image.png",
 		})
 		<body class="min-h-screen bg-gray-50 flex flex-col">
 			@Header("home", userName, lang)
