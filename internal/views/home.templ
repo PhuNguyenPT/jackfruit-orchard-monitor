@@ -1,12 +1,12 @@
 package views
 
-templ HomePage(userName string, lang string) {
+templ HomePage(userName string, lang string, site SiteConfig) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
 			Title:        "Orchard Monitor",
 			Description:  T(lang).HomeSubtitle,
-			CanonicalURL: "https://yourdomain.com/",
+			CanonicalURL: site.BaseURL + "/",
 		})
 		<body class="min-h-screen bg-gray-50 flex flex-col">
 			@Header("home", userName, lang)
@@ -27,7 +27,7 @@ templ HomePage(userName string, lang string) {
 					</div>
 				</div>
 			</main>
-			@Footer(lang)
+			@Footer(lang, site)
 		</body>
 	</html>
 }
