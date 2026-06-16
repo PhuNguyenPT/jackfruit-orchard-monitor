@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"log"
-	"mime"
 	"net/http"
 	"time"
 
@@ -168,12 +166,6 @@ type Server struct {
 	db   DB
 	cfg  *appConfig.Config
 	hub  *Hub
-}
-
-func init() {
-	if err := mime.AddExtensionType(".webmanifest", "application/manifest+json"); err != nil {
-		log.Fatalf("failed to register .webmanifest MIME type: %v", err)
-	}
 }
 
 func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {

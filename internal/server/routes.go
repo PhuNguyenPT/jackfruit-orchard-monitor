@@ -41,18 +41,11 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 
 	r.GET("/contact", s.contactPageHandler)
 	r.POST("/contact", s.contactFormHandler)
-	r.GET("/sitemap.xml", func(c *gin.Context) {
-		c.File("./frontend/public/sitemap.xml")
-	})
-	r.HEAD("/sitemap.xml", func(c *gin.Context) {
-		c.File("./frontend/public/sitemap.xml")
-	})
-	r.GET("/robots.txt", func(c *gin.Context) {
-		c.File("./frontend/public/robots.txt")
-	})
-	r.HEAD("/robots.txt", func(c *gin.Context) {
-		c.File("./frontend/public/robots.txt")
-	})
+	r.GET("/sitemap.xml", s.sitemapHandler)
+	r.HEAD("/sitemap.xml", s.sitemapHandler)
+	r.GET("/robots.txt", s.robotsHandler)
+	r.HEAD("/robots.txt", s.robotsHandler)
+	r.GET("/site.webmanifest", s.webmanifestHandler)
 	r.GET("/register", s.registerPageHandler)
 	r.POST("/register", s.registerHandler)
 	r.GET("/login", s.loginPageHandler)
