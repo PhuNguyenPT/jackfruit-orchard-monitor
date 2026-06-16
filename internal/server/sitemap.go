@@ -35,6 +35,8 @@ func (s *Server) webmanifestHandler(c *gin.Context) {
 	body := fmt.Sprintf(`{
     "name": "%s",
     "short_name": "%s",
+    "start_url": "/",
+    "scope": "/",
     "icons": [
         {
             "src": "/public/android-chrome-192x192.png",
