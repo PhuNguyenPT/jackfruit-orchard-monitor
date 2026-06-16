@@ -59,6 +59,7 @@ services:
       - ./nginx/nginxconfig.io/proxy.conf:/etc/nginx/nginxconfig.io/proxy.conf:ro
       - ./nginx/nginxconfig.io/security.goapp.conf:/etc/nginx/nginxconfig.io/security.conf:ro
       - ./nginx/sites-available/goapp.prod.conf:/etc/nginx/sites-enabled/goapp.prod.conf:ro
+      - ./nginx/sites-available/mqtt.prod.conf:/etc/nginx/sites-enabled/mqtt.prod.conf:ro
       - ./nginx/dhparam.pem:/etc/nginx/dhparam.pem:ro
     ports:
       - "80:80"
