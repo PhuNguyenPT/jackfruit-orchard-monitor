@@ -75,7 +75,7 @@ templ Header(currentPage string, userName string, lang string) {
 	</header>
 }
 
-templ Footer(lang string) {
+templ Footer(lang string, site SiteConfig) {
 	<footer class="bg-gray-800 text-white py-8">
 		<div class="max-w-4xl mx-auto px-8">
 			<div class="grid md:grid-cols-3 gap-8">
@@ -94,13 +94,15 @@ templ Footer(lang string) {
 				<div>
 					<h3 class="text-lg font-semibold mb-3">{ T(lang).Contact }</h3>
 					<ul class="space-y-2 text-gray-400">
-						<li>{ T(lang).FooterEmail }: info@yourdomain.com</li>
-						<li>{ T(lang).FooterPhone }: +1 234 567 890</li>
+						<li>{ T(lang).FooterEmail }: { site.ContactEmail }</li>
+						if site.ContactPhone != "" {
+							<li>{ T(lang).FooterPhone }: { site.ContactPhone }</li>
+						}
 					</ul>
 				</div>
 			</div>
 			<div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-				<p>&copy; 2026 Prizm. { T(lang).AllRightsReserved }</p>
+				<p>&copy; 2026 { site.AppName }. { T(lang).AllRightsReserved }</p>
 			</div>
 		</div>
 	</footer>
