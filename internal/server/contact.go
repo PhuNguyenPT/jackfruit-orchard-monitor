@@ -14,7 +14,7 @@ import (
 func (s *Server) contactPageHandler(c *gin.Context) {
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.ContactPage(getUserName(c), getLangStr(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.ContactPage(getUserName(c), getLangStr(c), s.siteConfig()).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering contact page: %v", err)
 	}
 }

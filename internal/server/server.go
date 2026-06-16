@@ -13,6 +13,7 @@ import (
 	"GoApp/internal/broker"
 	appConfig "GoApp/internal/config"
 	"GoApp/internal/database"
+	"GoApp/internal/views"
 
 	"github.com/google/uuid"
 	_ "github.com/joho/godotenv/autoload"
@@ -238,4 +239,13 @@ func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
 	}
 
 	return httpSrv, mqttSrv, nil
+}
+
+func (s *Server) siteConfig() views.SiteConfig {
+	return views.SiteConfig{
+		AppName:      s.cfg.AppName,
+		ContactEmail: s.cfg.ContactEmail,
+		ContactPhone: s.cfg.ContactPhone,
+		BaseURL:      s.cfg.BaseURL,
+	}
 }

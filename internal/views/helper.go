@@ -1,7 +1,6 @@
 package views
 
 import (
-	appConfig "GoApp/internal/config"
 	"fmt"
 	"strconv"
 	"strings"
@@ -105,19 +104,14 @@ func paginationPages(current, total int) []int {
 	return pages
 }
 
-func calculateSoilPercentage(raw int16, cfg *appConfig.Config) float32 {
-	// Cast config ints to int16 to match the 'raw' type
-	dry := int16(cfg.SoilDryValue)
-	wet := int16(cfg.SoilWetValue)
-
-	// Clamp values that exceed physical thresholds
-	if raw >= dry {
+func calculateSoilPercentage(raw int16, dry, wet int) float32 {
+	dryVal := int16(dry)
+	wetVal := int16(wet)
+	if raw >= dryVal {
 		return 0.0
 	}
-	if raw <= wet {
+	if raw <= wetVal {
 		return 100.0
 	}
-
-	// Calculate percentage based on inversely proportional linear scale
-	return float32(dry-raw) / float32(dry-wet) * 100.0
+	return float32(dryVal-raw) / float32(dryVal-wetVal) * 100.0
 }

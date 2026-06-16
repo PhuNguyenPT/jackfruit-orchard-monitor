@@ -1,12 +1,19 @@
 package views
 
 import (
-	appConfig "GoApp/internal/config"
 	"GoApp/internal/database"
 	"fmt"
+	"time"
 )
 
-templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, cfg *appConfig.Config) {
+type SoilReadingView struct {
+	SensorIdx  int16
+	Raw        int16
+	Percentage float32
+	CreatedAt  time.Time
+}
+
+templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, soilDry int, soilWet int, site SiteConfig) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -28,16 +35,16 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 						</span>
 					</div>
 					<div hx-ext="ws" ws-connect="/sensors/ws">
-						@SensorGrid(shtReadings, soilReadings, lang, cfg)
+						@SensorGrid(shtReadings, soilReadings, lang, soilDry, soilWet)
 					</div>
 				</div>
 			</main>
-			@Footer(lang)
+			@Footer(lang, site)
 		</body>
 	</html>
 }
 
-templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, cfg *appConfig.Config) {
+templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div id="sensor-grid" class="space-y-10">
 		<div class="space-y-4">
 			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">SHT40 — Atmosphere</h2>
@@ -62,7 +69,7 @@ templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilRe
 			} else {
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					for _, r := range soilReadings {
-						@SoilCard(r, lang, cfg)
+						@SoilCard(r, lang, soilDry, soilWet)
 					}
 				</div>
 			}
@@ -105,19 +112,19 @@ templ sensorCardBody(r database.GetLatestAirTempHumidReadingsRow, lang string) {
 	<p class="text-xs text-gray-400">{ T(lang).SensorLastUpdated } { FormatDateTime(r.CreatedAt, lang) }</p>
 }
 
-templ SoilCard(r database.GetLatestSoilMoistureReadingsRow, lang string, cfg *appConfig.Config) {
+templ SoilCard(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-		@soilCardBody(r, lang, cfg)
+		@soilCardBody(r, lang, soilDry, soilWet)
 	</div>
 }
 
-templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, cfg *appConfig.Config) {
+templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } hx-swap-oob="true" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-		@soilCardBody(r, lang, cfg)
+		@soilCardBody(r, lang, soilDry, soilWet)
 	</div>
 }
 
-templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, cfg *appConfig.Config) {
+templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-semibold text-gray-700">{ T(lang).SensorAddr } { fmt.Sprintf("%d", r.SensorIdx) }</span>
 		<span class="text-xs text-gray-400">Raw: { fmt.Sprintf("%d", r.Raw) }</span>
@@ -126,7 +133,7 @@ templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, cfg
 		<div class="bg-emerald-50 rounded-lg p-3 space-y-1">
 			<p class="text-xs font-medium text-emerald-600">Soil Moisture</p>
 			<p class="text-2xl font-bold text-gray-800">
-				{ fmt.Sprintf("%.1f", calculateSoilPercentage(r.Raw, cfg)) }
+				{ fmt.Sprintf("%.1f", calculateSoilPercentage(r.Raw, soilDry, soilWet)) }
 				<span class="text-sm font-normal text-gray-500 ml-0.5">%</span>
 			</p>
 		</div>

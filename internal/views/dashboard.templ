@@ -4,7 +4,7 @@ import "time"
 import "strconv"
 import "GoApp/internal/database"
 
-templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt time.Time, sessions []database.Session, lang string) {
+templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt time.Time, sessions []database.Session, lang string, site SiteConfig) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -163,7 +163,7 @@ templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt
 					</div>
 				</div>
 			</main>
-			@Footer(lang)
+			@Footer(lang, site)
 		</body>
 	</html>
 }

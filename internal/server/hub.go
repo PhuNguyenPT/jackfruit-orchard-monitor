@@ -93,7 +93,7 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int) {
 		var buf bytes.Buffer
 
 		// Render the SoilCardOOB, passing in h.cfg
-		if err := views.SoilCardOOB(row, lang, h.cfg).Render(context.Background(), &buf); err != nil {
+		if err := views.SoilCardOOB(row, lang, h.cfg.SoilDryValue, h.cfg.SoilWetValue).Render(context.Background(), &buf); err != nil {
 			log.Printf("[Hub] render error: %v", err)
 			continue
 		}

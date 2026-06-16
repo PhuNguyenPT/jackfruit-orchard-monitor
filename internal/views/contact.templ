@@ -1,14 +1,14 @@
 package views
 
-templ ContactPage(userName string, lang string) {
+templ ContactPage(userName string, lang string, site SiteConfig) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
 			Title:        T(lang).ContactTitle,
 			Description:  T(lang).ContactSubtitle,
 			Keywords:     "go, golang, htmx, templ, web app",
-			CanonicalURL: "https://yourdomain.com/contact",
-			OGImage:      "https://yourdomain.com/public/og-image.png",
+			CanonicalURL: site.BaseURL + "/contact",
+			OGImage:      site.BaseURL + "/public/og-image.png",
 		})
 		<body class="min-h-screen bg-gray-50 flex flex-col">
 			@Header("contact", userName, lang)
@@ -89,7 +89,7 @@ templ ContactPage(userName string, lang string) {
 					</div>
 				</div>
 			</main>
-			@Footer(lang)
+			@Footer(lang, site)
 		</body>
 	</html>
 }

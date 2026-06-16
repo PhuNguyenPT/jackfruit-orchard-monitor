@@ -1,7 +1,7 @@
 // internal/views/register.templ
 package views
 
-templ RegisterPage(userName string, lang string, next string) {
+templ RegisterPage(userName string, lang string, next string, site SiteConfig) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -63,7 +63,7 @@ templ RegisterPage(userName string, lang string, next string) {
 					</p>
 				</div>
 			</main>
-			@Footer(lang)
+			@Footer(lang, site)
 		</body>
 	</html>
 }

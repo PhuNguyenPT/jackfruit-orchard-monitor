@@ -16,6 +16,7 @@ const (
 type Config struct {
 	Port    int    `validate:"required,gt=0"`
 	AppEnv  string `validate:"required,oneof=dev production test"`
+	AppName string `validate:"required"`
 	GinMode string `validate:"required,oneof=debug release test"`
 	// Database
 	DBHost     string `validate:"required"`
@@ -41,6 +42,11 @@ type Config struct {
 	// Soil Calibration Thresholds
 	SoilDryValue int `validate:"required,gt=0"`
 	SoilWetValue int `validate:"required,gt=0"`
+	// App URL
+	BaseURL string `validate:"required,url"`
+	// Contact Config
+	ContactEmail string `validate:"required,email"`
+	ContactPhone string
 }
 
 func getEnvOrDefaultStr(key, defaultVal string) string {
@@ -65,6 +71,8 @@ func LoadAppConfig() (*Config, error) {
 	cfg := &Config{
 		Port:         getEnvOrDefaultInt("PORT", 8080),
 		AppEnv:       os.Getenv("APP_ENV"),
+		AppName:      getEnvOrDefaultStr("APP_NAME", "Prizm"),
+		BaseURL:      getEnvOrDefaultStr("BASE_URL", "https://yourdomain.com"),
 		GinMode:      os.Getenv("GIN_MODE"),
 		DBHost:       os.Getenv("POSTGRES_HOST"),
 		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),
@@ -85,6 +93,8 @@ func LoadAppConfig() (*Config, error) {
 		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
 		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3340),
 		SoilWetValue: getEnvOrDefaultInt("SOIL_WET_VALUE", 1805),
+		ContactEmail: getEnvOrDefaultStr("CONTACT_EMAIL", "info@yourdomain.com"),
+		ContactPhone: getEnvOrDefaultStr("CONTACT_PHONE", ""),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())

@@ -1,10 +1,9 @@
 package server
 
 import (
+	"GoApp/internal/views"
 	"log"
 	"net/http"
-
-	"GoApp/internal/views"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -33,7 +32,7 @@ func (s *Server) sensorsPageHandler(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig()).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
@@ -55,7 +54,7 @@ func (s *Server) sensorsGridHandler(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorGrid(shtReadings, soilReadings, lang, s.cfg).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorGrid(shtReadings, soilReadings, lang, s.cfg.SoilDryValue, s.cfg.SoilWetValue).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
