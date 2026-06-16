@@ -53,6 +53,7 @@ services:
       - /etc/ssl/cert.pem:/etc/ssl/cert.pem:ro
       - /etc/ssl/key.pem:/etc/ssl/key.pem:ro
       - /etc/ssl/cloudflare.crt:/etc/ssl/cloudflare.crt:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       # nginx config
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d/upstream.prod.conf:/etc/nginx/conf.d/upstream.conf:ro
