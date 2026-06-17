@@ -9,7 +9,7 @@ on:
 
 jobs:
   # JOB 1: Code Verification (Runs on every Push and Pull Request)
-  validate:
+  server-validation:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -52,7 +52,7 @@ jobs:
 
   # JOB 2: Production Container Compilation (Only runs if Validate passes and it is a push/tag)
   publish-docker:
-    needs: validate
+    needs: server-validation
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
