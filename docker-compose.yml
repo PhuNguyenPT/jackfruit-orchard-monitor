@@ -50,8 +50,10 @@ services:
       - backend_ca
     volumes:
       # SSL certs already on host
-      - /etc/ssl/cert.pem:/etc/ssl/cert.pem:ro
-      - /etc/ssl/key.pem:/etc/ssl/key.pem:ro
+      - /etc/ssl/admission-help.org.pem:/etc/ssl/admission-help.org.pem:ro
+      - /etc/ssl/admission-help.org.key:/etc/ssl/admission-help.org.key:ro
+      - /etc/ssl/galaxyfreedom.com.cert.pem:/etc/ssl/galaxyfreedom.com.cert.pem:ro
+      - /etc/ssl/galaxyfreedom.com.key.pem:/etc/ssl/galaxyfreedom.com.key.pem:ro
       - /etc/ssl/cloudflare.crt:/etc/ssl/cloudflare.crt:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       # nginx config
