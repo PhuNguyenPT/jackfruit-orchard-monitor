@@ -6,8 +6,8 @@
 namespace MQTTManager {
 
 namespace {
-constexpr uint32_t kRetryDelayMs = 5000U;
-constexpr size_t   kClientIdSize = 24U;
+static const uint32_t kRetryDelayMs = 5000U;
+static const size_t   kClientIdSize = 24U;
 uint32_t           lastAttemptMs = 0U;
 
 // Single connection attempt — shared by connect() and maybeReconnect()

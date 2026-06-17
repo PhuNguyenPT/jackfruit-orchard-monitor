@@ -5,13 +5,13 @@
 
 namespace SoilPoller {
 
-constexpr size_t   kTopicBufSize   = 50U;
-constexpr size_t   kPayloadBufSize = 100U;
-constexpr char     kTopicTemplate[] = "mke-s13/%d/data";
+static const size_t   kTopicBufSize   = 50U;
+static const size_t   kPayloadBufSize = 100U;
+static const char     kTopicTemplate[] = "mke-s13/%d/data";
 
 // Calibration (MKE-S13 at 5V)
-constexpr uint16_t kDryValue = 3340U;
-constexpr uint16_t kWetValue = 1805U;
+static const uint16_t kDryValue = 3500U;
+static const uint16_t kWetValue = 1760U;
 
 inline float toPercent(uint16_t raw) {
     if (raw >= kDryValue) return 0.0F;

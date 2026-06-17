@@ -9,9 +9,9 @@ namespace Logger {
 enum class Level : unsigned char { INFO, SUCCESS, WARN, ERROR };
 
 namespace {
-constexpr size_t kTimeBufSize = 32U;
-constexpr size_t kLogBufSize  = 128U;
-constexpr std::array<const char*, 4> kLevelTags = {
+static const size_t kTimeBufSize = 32U;
+static const size_t kLogBufSize  = 128U;
+static const std::array<const char*, 4> kLevelTags = {
     "[INFO] ", "[SUCC] ", "[WARN] ", "[ERRO] "
 };
 }  // namespace

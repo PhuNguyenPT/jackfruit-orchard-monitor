@@ -5,7 +5,7 @@
 
 namespace SHT40Poller {
 
-constexpr float kSensorScale = 10.0F;
+static const float kSensorScale = 10.0F;
 static const size_t kTopicBufSize   = 50U;
 static const size_t kPayloadBufSize = 100U;
 static const char kTopicTemplate[] = "sht40/%d/data";
