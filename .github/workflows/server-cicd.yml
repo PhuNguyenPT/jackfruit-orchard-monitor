@@ -50,10 +50,10 @@ jobs:
       - name: Run Tests
         run: make all
 
-  # JOB 2: Production Container Compilation (Only runs if Validate passes and it is a push/tag)
+  # JOB 2: Production Container Compilation (ONLY runs on vX.X.X tags)
   publish-docker:
     needs: server-validation
-    if: github.event_name == 'push'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -77,13 +77,10 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/jackfruit-orchard-monitor-app
           tags: |
-            # Tag with branch name (creates :dev and :main images)
-            type=ref,event=branch
-            # Tag with semantic versioning metrics when a git tag is pushed
+            # Only semantic versioning metrics when a git tag is pushed
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            # Assigns :latest tracking tag only to pushes on the main branch
-            type=edge,branch=main
+            type=semver,pattern={{major}}
 
       - name: Build and Push Multi-Arch Production Image
         uses: docker/build-push-action@v7
