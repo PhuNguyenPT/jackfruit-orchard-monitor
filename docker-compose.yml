@@ -82,6 +82,7 @@ services:
 
   app:
     profiles: ["prod"]
+    image: phunpt01/jackfruit-orchard-monitor-app:${APP_VERSION:-latest}
     secrets:
       - go_crt
       - go_key
@@ -92,10 +93,6 @@ services:
       - "8883:8883"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt:ro
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: prod
     restart: unless-stopped
     env_file:
       - .env
