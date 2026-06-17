@@ -11,7 +11,6 @@
 #include "broker_config.h"
 #include "config.h"
 #include "gpio.h"
-#include "mke_s13.h"
 #include "sht40.h"
 #include "wifi.h"
 // ---------------------------------------------------------------------------
@@ -62,7 +61,7 @@ void setup() {
     delay(kSerialInitDelayMs);
 
     SHT40Poller::init(XY485_RX, XY485_TX);
-    SoilPoller::init(SoilConfig::kSoilPins, SoilConfig::kNumSensors);
+    SoilPoller::init();
 
     setupWiFi();
     TimeSync::setup();
