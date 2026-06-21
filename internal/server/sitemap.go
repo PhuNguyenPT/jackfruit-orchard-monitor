@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) sitemapHandler(c *gin.Context) {
-	base := s.cfg.BaseURL
+	base := s.requestBaseURL(c)
 	body := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
@@ -27,7 +27,8 @@ func (s *Server) sitemapHandler(c *gin.Context) {
 }
 
 func (s *Server) robotsHandler(c *gin.Context) {
-	body := fmt.Sprintf("User-agent: *\nAllow: /\n\nSitemap: %s/sitemap.xml", s.cfg.BaseURL)
+	base := s.requestBaseURL(c)
+	body := fmt.Sprintf("User-agent: *\nAllow: /\n\nSitemap: %s/sitemap.xml", base)
 	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(body))
 }
 
