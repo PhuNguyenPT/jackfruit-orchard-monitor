@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
 	"github.com/mochi-mqtt/server/v2/packets"
+	"golang.org/x/crypto/bcrypt"
 
 	"GoApp/internal/database"
 )
@@ -320,4 +321,182 @@ func TestSensorHook_OnPublish_SHT40(t *testing.T) {
 	if !closeF32(gotTemp, 23.2, 0.01) {
 		t.Errorf("got temperature %f, want 23.2", gotTemp)
 	}
+}
+
+// ---------------------------------------------------------------------------
+// mqttTopicMatch
+// ---------------------------------------------------------------------------
+
+func TestMqttTopicMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		pattern string
+		topic   string
+		want    bool
+	}{
+		{"exact single-level wildcard", "sht40/+/data", "sht40/1/data", true},
+		{"exact single-level wildcard — different addr", "sht40/+/data", "sht40/12/data", true},
+		{"mismatched prefix", "sht40/+/data", "mke-s13/1/data", false},
+		{"too many levels for + pattern", "sht40/+/data", "sht40/1/extra/data", false},
+		{"too few levels for + pattern", "sht40/+/data", "sht40/1", false},
+		{"exact match no wildcards", "sht40/1/data", "sht40/1/data", true},
+		{"exact match no wildcards — mismatch", "sht40/1/data", "sht40/2/data", false},
+
+		// '#' as the final (only valid) position
+		{"# matches single extra level", "sht40/#", "sht40/1", true},
+		{"# matches multiple extra levels", "sht40/#", "sht40/1/data", true},
+		{"# matches deeply nested", "sht40/#", "sht40/1/data/extra", true},
+		{"# alone matches everything", "#", "anything/at/all", true},
+		{"# alone matches single level", "#", "anything", true},
+
+		// '#' in a non-final position is malformed per MQTT 3.1.1 §4.7 — must never match
+		{"# mid-pattern — malformed, no match", "sht40/#/data", "sht40/1/data", false},
+		{"# first of two — malformed, no match", "#/data", "1/data", false},
+		{"# first of three — malformed, no match", "#/foo/bar", "1/foo/bar", false},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := mqttTopicMatch(tc.pattern, tc.topic); got != tc.want {
+				t.Errorf("mqttTopicMatch(%q, %q) = %v, want %v", tc.pattern, tc.topic, got, tc.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
+// authHook.ID / Provides
+// ---------------------------------------------------------------------------
+
+func TestAuthHook_ID(t *testing.T) {
+	t.Parallel()
+	h := &authHook{}
+	if got := h.ID(); got != "auth-ledger" {
+		t.Errorf("ID() = %q, want %q", got, "auth-ledger")
+	}
+}
+
+func TestAuthHook_Provides(t *testing.T) {
+	t.Parallel()
+	h := &authHook{}
+
+	for _, b := range []byte{mqtt.OnConnectAuthenticate, mqtt.OnACLCheck} {
+		if !h.Provides(b) {
+			t.Errorf("Provides(%d) = false, want true", b)
+		}
+	}
+	for _, b := range []byte{mqtt.OnPublish, mqtt.OnConnectAuthenticate - 1} {
+		if h.Provides(b) {
+			t.Errorf("Provides(%d) = true, want false", b)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// authHook.OnConnectAuthenticate
+// ---------------------------------------------------------------------------
+
+func TestAuthHook_OnConnectAuthenticate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid credentials authenticate", func(t *testing.T) {
+		t.Parallel()
+		hash, err := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+		if err != nil {
+			t.Fatalf("failed to hash password: %v", err)
+		}
+		store := &mockStorage{cred: database.MqttCredential{Username: "esp32", Password: string(hash)}}
+		h := &authHook{db: store}
+
+		pk := packets.Packet{Connect: packets.ConnectParams{
+			Username: []byte("esp32"),
+			Password: []byte("correctpass"),
+		}}
+
+		if !h.OnConnectAuthenticate(nil, pk) {
+			t.Error("OnConnectAuthenticate() = false, want true for correct credentials")
+		}
+	})
+
+	t.Run("wrong password rejected", func(t *testing.T) {
+		t.Parallel()
+		hash, _ := bcrypt.GenerateFromPassword([]byte("correctpass"), bcrypt.DefaultCost)
+		store := &mockStorage{cred: database.MqttCredential{Username: "esp32", Password: string(hash)}}
+		h := &authHook{db: store}
+
+		pk := packets.Packet{Connect: packets.ConnectParams{
+			Username: []byte("esp32"),
+			Password: []byte("wrongpass"),
+		}}
+
+		if h.OnConnectAuthenticate(nil, pk) {
+			t.Error("OnConnectAuthenticate() = true, want false for wrong password")
+		}
+	})
+
+	t.Run("unknown user rejected", func(t *testing.T) {
+		t.Parallel()
+		store := &mockStorage{getCredErr: errors.New("not found")}
+		h := &authHook{db: store}
+
+		pk := packets.Packet{Connect: packets.ConnectParams{
+			Username: []byte("ghost"),
+			Password: []byte("whatever"),
+		}}
+
+		if h.OnConnectAuthenticate(nil, pk) {
+			t.Error("OnConnectAuthenticate() = true, want false for lookup error")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// authHook.OnACLCheck
+// ---------------------------------------------------------------------------
+
+func TestAuthHook_OnACLCheck(t *testing.T) {
+	t.Parallel()
+
+	t.Run("topic covered by ACL is allowed", func(t *testing.T) {
+		t.Parallel()
+		store := &mockStorage{
+			cred: database.MqttCredential{Username: "esp32"},
+			acls: []database.MqttAcl{{Topic: "sht40/+/data"}, {Topic: "mke-s13/+/data"}},
+		}
+		h := &authHook{db: store}
+		cl := &mqtt.Client{Properties: mqtt.ClientProperties{Username: []byte("esp32")}}
+
+		if !h.OnACLCheck(cl, "sht40/1/data", true) {
+			t.Error("OnACLCheck() = false, want true for topic matching an ACL")
+		}
+	})
+
+	t.Run("topic not covered by any ACL is denied", func(t *testing.T) {
+		t.Parallel()
+		store := &mockStorage{
+			cred: database.MqttCredential{Username: "esp32"},
+			acls: []database.MqttAcl{{Topic: "sht40/+/data"}},
+		}
+		h := &authHook{db: store}
+		cl := &mqtt.Client{Properties: mqtt.ClientProperties{Username: []byte("esp32")}}
+
+		if h.OnACLCheck(cl, "admin/shutdown", true) {
+			t.Error("OnACLCheck() = true, want false for topic not covered by any ACL")
+		}
+	})
+
+	t.Run("credential lookup failure denies", func(t *testing.T) {
+		t.Parallel()
+		store := &mockStorage{getCredErr: errors.New("lookup failed")}
+		h := &authHook{db: store}
+		cl := &mqtt.Client{Properties: mqtt.ClientProperties{Username: []byte("ghost")}}
+
+		if h.OnACLCheck(cl, "sht40/1/data", true) {
+			t.Error("OnACLCheck() = true, want false when credential lookup fails")
+		}
+	})
 }

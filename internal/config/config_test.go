@@ -28,6 +28,7 @@ var validEnv = map[string]string{
 	"POSTGRES_USERNAME": "myuser",
 	"POSTGRES_PASSWORD": "mypassword",
 	"POSTGRES_SCHEMA":   "public",
+	"MQTT_PASS":         "testmqttpass",
 }
 
 func TestLoadAppConfig_Valid(t *testing.T) {
@@ -84,5 +85,27 @@ func TestLoadAppConfig_NonNumericDBPort(t *testing.T) {
 	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for non-numeric POSTGRES_PORT, got nil")
+	}
+}
+
+func TestLoadAppConfig_ShortMQTTPassword(t *testing.T) {
+	env := maps.Clone(validEnv)
+	env["MQTT_PASS"] = "short"
+	setEnv(t, env)
+
+	_, err := LoadAppConfig()
+	if err == nil {
+		t.Error("expected error for MQTT_PASS shorter than 8 chars, got nil")
+	}
+}
+
+func TestLoadAppConfig_MissingMQTTPass(t *testing.T) {
+	env := maps.Clone(validEnv)
+	delete(env, "MQTT_PASS")
+	setEnv(t, env)
+
+	_, err := LoadAppConfig()
+	if err == nil {
+		t.Error("expected error for missing MQTT_PASS, got nil")
 	}
 }
