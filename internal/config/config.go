@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 
@@ -42,11 +44,26 @@ type Config struct {
 	// Soil Calibration Thresholds
 	SoilDryValue int `validate:"required,gt=0"`
 	SoilWetValue int `validate:"required,gt=0"`
-	// App URL
-	BaseURL string `validate:"required,url"`
+	// BaseURLs holds every domain this app is reachable at. The first
+	// entry is the canonical/primary domain (used for things like
+	// generating absolute links, sitemap, robots.txt). All entries are
+	// valid WebSocket origins.
+	BaseURLs []string `validate:"required,min=1,dive,url"`
 	// Contact Config
 	ContactEmail string `validate:"required,email"`
 	ContactPhone string
+}
+
+func getEnvOrDefaultJSONList(key string, defaultVal []string) ([]string, error) {
+	v := os.Getenv(key)
+	if v == "" {
+		return defaultVal, nil
+	}
+	var out []string
+	if err := json.Unmarshal([]byte(v), &out); err != nil {
+		return nil, fmt.Errorf("%s: invalid JSON list: %w", key, err)
+	}
+	return out, nil
 }
 
 func getEnvOrDefaultStr(key, defaultVal string) string {
@@ -68,11 +85,15 @@ func getEnvOrDefaultInt(key string, defaultVal int) int {
 }
 
 func LoadAppConfig() (*Config, error) {
+	baseURLs, err := getEnvOrDefaultJSONList("BASE_URLS", []string{"https://yourdomain.com"})
+	if err != nil {
+		return nil, err
+	}
 	cfg := &Config{
 		Port:         getEnvOrDefaultInt("PORT", 8080),
 		AppEnv:       os.Getenv("APP_ENV"),
 		AppName:      getEnvOrDefaultStr("APP_NAME", "Prizm"),
-		BaseURL:      getEnvOrDefaultStr("BASE_URL", "https://yourdomain.com"),
+		BaseURLs:     baseURLs,
 		GinMode:      os.Getenv("GIN_MODE"),
 		DBHost:       os.Getenv("POSTGRES_HOST"),
 		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),

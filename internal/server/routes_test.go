@@ -13,13 +13,21 @@ import (
 
 var testHandler http.Handler
 
+func newTestAppConfig() *server.Config {
+	return &server.Config{
+		AppEnv:   server.EnvTest,
+		GinMode:  gin.TestMode,
+		BaseURLs: []string{"http://localhost:8080"},
+	}
+}
+
 func TestMain(m *testing.M) {
 	if err := os.Chdir("../../"); err != nil {
 		log.Fatalf("failed to change directory: %v", err)
 	}
 	s := &Server{
 		db:  &mockDB{},
-		cfg: &server.Config{AppEnv: server.EnvTest, GinMode: gin.TestMode},
+		cfg: newTestAppConfig(),
 	}
 	testHandler = s.RegisterRoutes(s.cfg)
 	os.Exit(m.Run())

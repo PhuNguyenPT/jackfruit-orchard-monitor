@@ -9,10 +9,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	appConfig "GoApp/internal/config"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestContactPageHandler(t *testing.T) {
@@ -183,7 +179,7 @@ func TestContactFormHandler(t *testing.T) {
 	t.Run("db error renders fail view", func(t *testing.T) {
 		s := &Server{
 			db:  &mockDBWithContactError{},
-			cfg: &appConfig.Config{AppEnv: appConfig.EnvTest, GinMode: gin.TestMode},
+			cfg: newTestAppConfig(),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -212,7 +208,7 @@ func TestContactFormHandler(t *testing.T) {
 	t.Run("ip rate limited returns rate limit view", func(t *testing.T) {
 		s := &Server{
 			db:  &mockDBRateLimited{},
-			cfg: &appConfig.Config{AppEnv: appConfig.EnvTest, GinMode: gin.TestMode},
+			cfg: newTestAppConfig(),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -241,7 +237,7 @@ func TestContactFormHandler(t *testing.T) {
 	t.Run("email rate limited returns rate limit view", func(t *testing.T) {
 		s := &Server{
 			db:  &mockDBEmailRateLimited{},
-			cfg: &appConfig.Config{AppEnv: appConfig.EnvTest, GinMode: gin.TestMode},
+			cfg: newTestAppConfig(),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 

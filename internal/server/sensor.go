@@ -9,10 +9,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
 func (s *Server) sensorsPageHandler(c *gin.Context) {
 	lang := getLangStr(c)
 
@@ -32,7 +28,7 @@ func (s *Server) sensorsPageHandler(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig()).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig(c)).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
@@ -61,7 +57,7 @@ func (s *Server) sensorsGridHandler(c *gin.Context) {
 
 func (s *Server) sensorsWSHandler(c *gin.Context) {
 	lang := getLangStr(c)
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	conn, err := s.wsUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("[WS] upgrade error: %v", err)
 		return
