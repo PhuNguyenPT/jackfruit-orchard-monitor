@@ -110,17 +110,23 @@ func (q *Queries) GetLatestAirTempHumidReadings(ctx context.Context) ([]GetLates
 }
 
 const insertAirTempHumidReading = `-- name: InsertAirTempHumidReading :exec
-INSERT INTO air_temp_humid_readings (addr, temperature, humidity)
-VALUES ($1, $2, $3)
+INSERT INTO air_temp_humid_readings (addr, temperature, humidity, created_at)
+VALUES ($1, $2, $3, $4)
 `
 
 type InsertAirTempHumidReadingParams struct {
 	Addr        int16
 	Temperature int16
 	Humidity    int16
+	CreatedAt   time.Time
 }
 
 func (q *Queries) InsertAirTempHumidReading(ctx context.Context, arg InsertAirTempHumidReadingParams) error {
-	_, err := q.db.ExecContext(ctx, insertAirTempHumidReading, arg.Addr, arg.Temperature, arg.Humidity)
+	_, err := q.db.ExecContext(ctx, insertAirTempHumidReading,
+		arg.Addr,
+		arg.Temperature,
+		arg.Humidity,
+		arg.CreatedAt,
+	)
 	return err
 }

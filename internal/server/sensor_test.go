@@ -157,7 +157,7 @@ func TestSensorsWSHandler_BroadcastReachesClient(t *testing.T) {
 
 	waitForClientCount(t, s.hub, 1)
 
-	s.hub.BroadcastAirTempHumid("1", 27.3, 55.5)
+	s.hub.BroadcastAirTempHumid("1", 27.3, 55.5, time.Now())
 
 	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
 		t.Fatalf("SetReadDeadline: %v", err)
