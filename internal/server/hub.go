@@ -42,7 +42,7 @@ func (h *Hub) unregister(c *websocket.Conn) {
 	c.Close()
 }
 
-func (h *Hub) BroadcastAirTempHumid(addr string, temperature, humidity float32) {
+func (h *Hub) BroadcastAirTempHumid(addr string, temperature, humidity float32, createdAt time.Time) {
 	addrInt, err := strconv.ParseInt(addr, 10, 16)
 	if err != nil {
 		log.Printf("[Hub] invalid addr %q: %v", addr, err)
@@ -53,7 +53,7 @@ func (h *Hub) BroadcastAirTempHumid(addr string, temperature, humidity float32) 
 		Addr:        int16(addrInt),
 		Temperature: int16(math.Round(float64(temperature) * 10)),
 		Humidity:    int16(math.Round(float64(humidity) * 10)),
-		CreatedAt:   time.Now(),
+		CreatedAt:   createdAt,
 	}
 
 	h.mu.RLock()
@@ -72,7 +72,7 @@ func (h *Hub) BroadcastAirTempHumid(addr string, temperature, humidity float32) 
 	}
 }
 
-func (h *Hub) BroadcastSoilMoisture(addr string, raw int) {
+func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 	addrInt, err := strconv.ParseInt(addr, 10, 16)
 	if err != nil {
 		log.Printf("[Hub] invalid soil addr %q: %v", addr, err)
@@ -83,7 +83,7 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int) {
 	row := database.GetLatestSoilMoistureReadingsRow{
 		SensorIdx: int16(addrInt),
 		Raw:       int16(raw),
-		CreatedAt: time.Now(),
+		CreatedAt: createdAt,
 	}
 
 	h.mu.RLock()

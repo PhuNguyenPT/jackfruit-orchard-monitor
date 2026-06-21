@@ -11,6 +11,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
@@ -38,16 +39,20 @@ type Storage interface {
 	CreateMQTTACL(ctx context.Context, arg database.CreateMQTTACLParams) (database.MqttAcl, error)
 }
 
-// sensorPayload matches the JSON published by the ESP32 firmware.
-type sensorPayload struct {
+type airTempHumidPayload struct {
 	Temperature float32 `json:"temperature"`
 	Humidity    float32 `json:"humidity"`
-}
-type Notifier interface {
-	BroadcastAirTempHumid(addr string, temperature, humidity float32)
-	BroadcastSoilMoisture(addr string, raw int)
+	Ts          *int64  `json:"ts"`
 }
 
+type soilMoisturePayload struct {
+	Raw int16  `json:"raw"`
+	Ts  *int64 `json:"ts"`
+}
+type Notifier interface {
+	BroadcastAirTempHumid(addr string, temperature, humidity float32, createdAt time.Time)
+	BroadcastSoilMoisture(addr string, raw int, createdAt time.Time)
+}
 type sensorHook struct {
 	mqtt.HookBase
 	db       Storage
@@ -179,6 +184,13 @@ func (h *sensorHook) Provides(b byte) bool {
 	return b == mqtt.OnPublish
 }
 
+func resolveTime(ts *int64) time.Time {
+	if ts != nil {
+		return time.Unix(*ts, 0).UTC()
+	}
+	return time.Now().UTC()
+}
+
 func (h *sensorHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
 	parts := strings.SplitN(pk.TopicName, "/", 3)
 	// Only validate that we have 3 parts and it ends with the correct suffix
@@ -197,45 +209,46 @@ func (h *sensorHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packe
 
 	switch prefix {
 	case "sht40":
-		var sp sensorPayload
+		var sp airTempHumidPayload
 		if err := json.Unmarshal(pk.Payload, &sp); err != nil {
 			log.Printf("[MQTT] %s: invalid JSON payload: %v — dropping", pk.TopicName, err)
 			return pk, nil
 		}
 
+		createdAt := resolveTime(sp.Ts)
 		if err := h.db.InsertAirTempHumidReading(context.Background(), database.InsertAirTempHumidReadingParams{
 			Addr:        int16(addrInt),
 			Temperature: int16(math.Round(float64(sp.Temperature) * 10)),
 			Humidity:    int16(math.Round(float64(sp.Humidity) * 10)),
+			CreatedAt:   createdAt,
 		}); err != nil {
 			log.Printf("[MQTT] %s: DB insert failed: %v", pk.TopicName, err)
 			return pk, nil
 		}
 
 		if h.notifier != nil {
-			h.notifier.BroadcastAirTempHumid(addr, sp.Temperature, sp.Humidity)
+			h.notifier.BroadcastAirTempHumid(addr, sp.Temperature, sp.Humidity, createdAt)
 		}
 		log.Printf("[MQTT] %s  %.1f %%RH  %.1f °C  → saved", pk.TopicName, sp.Humidity, sp.Temperature)
 
 	case "mke-s13":
-		var sp struct {
-			Raw int16 `json:"raw"`
-		}
+		var sp soilMoisturePayload
 		if err := json.Unmarshal(pk.Payload, &sp); err != nil {
 			log.Printf("[MQTT] %s: invalid JSON payload: %v — dropping", pk.TopicName, err)
 			return pk, nil
 		}
-
+		createdAt := resolveTime(sp.Ts)
 		if err := h.db.InsertSoilMoistureReading(context.Background(), database.InsertSoilMoistureReadingParams{
 			SensorIdx: int16(addrInt),
 			Raw:       sp.Raw,
+			CreatedAt: createdAt,
 		}); err != nil {
 			log.Printf("[MQTT] %s: DB insert failed: %v", pk.TopicName, err)
 			return pk, nil
 		}
 
 		if h.notifier != nil {
-			h.notifier.BroadcastSoilMoisture(addr, int(sp.Raw))
+			h.notifier.BroadcastSoilMoisture(addr, int(sp.Raw), createdAt)
 		}
 
 		log.Printf("[MQTT] %s  %d raw  → saved", pk.TopicName, sp.Raw)

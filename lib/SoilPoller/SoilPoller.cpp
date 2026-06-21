@@ -3,6 +3,7 @@
 #include <array>
 #include "Logger.h"
 #include "MKE_S13.h"
+#include "TimeSync.h"
 
 namespace SoilPoller {
 
@@ -99,10 +100,16 @@ void poll(PubSubClient& mqttClient) {
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
             snprintf(topic.data(), topic.size(), kTopicTemplate, sensorId);
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-            snprintf(payload.data(), payload.size(),
-                     R"({"moisture":%.1f, "raw":%d})", percent, raw);
-
+            if (TimeSync::isSynced()) {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+                snprintf(payload.data(), payload.size(),
+                         R"({"moisture": %.1f, "raw": %d, "ts": %ld})", percent, raw,
+                         static_cast<long>(TimeSync::now()));
+            } else {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+                snprintf(payload.data(), payload.size(),
+                         R"({"moisture": %.1f, "raw": %d})", percent, raw);
+            }
             if (!mqttClient.publish(topic.data(), payload.data())) {
                 Logger::log(Logger::Level::ERROR,
                             "MQTT Frame dropped. Publish failed for soil sensor %d.", sensorId);

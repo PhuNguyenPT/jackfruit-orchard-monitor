@@ -68,7 +68,7 @@ func TestHub_BroadcastAirTempHumid(t *testing.T) {
 
 	waitForClientCount(t, h, 1)
 
-	h.BroadcastAirTempHumid("1", 30.1, 72.5)
+	h.BroadcastAirTempHumid("1", 30.1, 72.5, time.Now())
 
 	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
 		t.Fatalf("SetReadDeadline: %v", err)
@@ -99,7 +99,7 @@ func TestHub_BroadcastSoilMoisture(t *testing.T) {
 	waitForClientCount(t, h, 1)
 
 	// Sending a raw value of 3340 should calculate out to exactly 0.0% moisture
-	h.BroadcastSoilMoisture("0", 3340)
+	h.BroadcastSoilMoisture("0", 3340, time.Now())
 
 	if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
 		t.Fatalf("SetReadDeadline: %v", err)
@@ -135,7 +135,7 @@ func TestHub_BroadcastAirTempHumid_MultipleClients(t *testing.T) {
 
 	waitForClientCount(t, h, 2)
 
-	h.BroadcastAirTempHumid("2", 28.0, 65.0)
+	h.BroadcastAirTempHumid("2", 28.0, 65.0, time.Now())
 
 	for _, conn := range []*websocket.Conn{conn1, conn2} {
 		if err := conn.SetReadDeadline(time.Now().Add(time.Second)); err != nil {
@@ -163,5 +163,5 @@ func TestHub_BroadcastAirTempHumid_DropsFailingClient(t *testing.T) {
 	waitForClientCount(t, h, 0)
 
 	// Broadcasting with no clients should be a no-op, not a panic.
-	h.BroadcastAirTempHumid("1", 30.0, 70.0)
+	h.BroadcastAirTempHumid("1", 30.0, 70.0, time.Now())
 }

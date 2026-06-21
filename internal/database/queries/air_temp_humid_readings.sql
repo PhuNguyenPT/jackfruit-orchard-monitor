@@ -1,7 +1,6 @@
 -- name: InsertAirTempHumidReading :exec
-INSERT INTO air_temp_humid_readings (addr, temperature, humidity)
-VALUES ($1, $2, $3);
-
+INSERT INTO air_temp_humid_readings (addr, temperature, humidity, created_at)
+VALUES ($1, $2, $3, $4);
 -- name: GetLatestAirTempHumidReadings :many
 SELECT DISTINCT ON (addr)
     addr, temperature, humidity, created_at

@@ -4,6 +4,7 @@
 #include <ModbusMaster.h>
 #include <array>
 #include "Logger.h"
+#include "TimeSync.h"
 
 namespace SHT40Poller {
 
@@ -33,9 +34,16 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
             snprintf(topic.data(), topic.size(), kTopicTemplate, slaveAddr);
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-            snprintf(payload.data(), payload.size(),
-                     R"({"temperature":%.1f, "humidity":%.1f})", temp, hum);
+            if (TimeSync::isSynced()) {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+                snprintf(payload.data(), payload.size(),
+                         R"({"temperature": %.1f, "humidity": %.1f, "ts": %ld})", temp, hum,
+                         static_cast<long>(TimeSync::now()));
+            } else {
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
+                snprintf(payload.data(), payload.size(),
+                         R"({"temperature": %.1f, "humidity": %.1f})", temp, hum);
+            }
 
             if (!mqttClient.publish(topic.data(), payload.data())) {
                 Logger::log(Logger::Level::ERROR, "MQTT Frame dropped. Publish failed.");
