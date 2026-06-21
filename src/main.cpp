@@ -78,6 +78,8 @@ void loop() {
         setupWiFi();
     }
 
+    TimeSync::maybeResync();
+
     MQTTManager::maybeReconnect(client, MQTT_USER, MQTT_PASS);
     client.loop();
 
