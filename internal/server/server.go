@@ -13,7 +13,9 @@ import (
 	"GoApp/internal/database"
 	"GoApp/internal/views"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	_ "github.com/joho/godotenv/autoload"
 	mqtt "github.com/mochi-mqtt/server/v2"
 )
@@ -162,10 +164,11 @@ func (s *sqlDB) DeleteOldSoilMoistureReadings(ctx context.Context, createdAt tim
 }
 
 type Server struct {
-	port int
-	db   DB
-	cfg  *appConfig.Config
-	hub  *Hub
+	port       int
+	db         DB
+	cfg        *appConfig.Config
+	hub        *Hub
+	wsUpgrader websocket.Upgrader
 }
 
 func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
@@ -193,7 +196,10 @@ func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
 		cfg: cfg,
 		hub: NewHub(cfg),
 	}
-
+	s.wsUpgrader = websocket.Upgrader{
+		HandshakeTimeout: wsHandshakeTimeout,
+		CheckOrigin:      s.wsCheckOrigin,
+	}
 	s.StartSessionCleanup(context.Background(), 1*time.Hour)
 
 	var mqttTLS *tls.Config
@@ -233,11 +239,11 @@ func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
 	return httpSrv, mqttSrv, nil
 }
 
-func (s *Server) siteConfig() views.SiteConfig {
+func (s *Server) siteConfig(c *gin.Context) views.SiteConfig {
 	return views.SiteConfig{
 		AppName:      s.cfg.AppName,
 		ContactEmail: s.cfg.ContactEmail,
 		ContactPhone: s.cfg.ContactPhone,
-		BaseURL:      s.cfg.BaseURL,
+		BaseURL:      s.requestBaseURL(c),
 	}
 }

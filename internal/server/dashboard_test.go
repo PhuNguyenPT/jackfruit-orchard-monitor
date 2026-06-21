@@ -1,7 +1,6 @@
 package server
 
 import (
-	server "GoApp/internal/config"
 	"GoApp/internal/database"
 	"context"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -255,7 +253,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		}
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: &server.Config{AppEnv: server.EnvTest, GinMode: gin.TestMode},
+			cfg: newTestAppConfig(),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -285,7 +283,7 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: &server.Config{AppEnv: server.EnvTest, GinMode: gin.TestMode},
+			cfg: newTestAppConfig(),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
