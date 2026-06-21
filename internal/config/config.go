@@ -88,7 +88,7 @@ func LoadAppConfig() (*Config, error) {
 		TLSPort:      getEnvOrDefaultInt("TLS_PORT", 8443),
 		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 8883),
 		MQTTUser:     getEnvOrDefaultStr("MQTT_USER", "esp32"),
-		MQTTPass:     getEnvOrDefaultStr("MQTT_PASS", "yourpassword"),
+		MQTTPass:     os.Getenv("MQTT_PASS"),
 		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
 		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
 		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3340),

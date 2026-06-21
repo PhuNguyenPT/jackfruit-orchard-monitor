@@ -1,7 +1,6 @@
 package broker
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"database/sql"
@@ -121,7 +120,7 @@ type authHook struct {
 func (h *authHook) ID() string { return "auth-ledger" }
 
 func (h *authHook) Provides(b byte) bool {
-	return bytes.Contains([]byte{mqtt.OnConnectAuthenticate, mqtt.OnACLCheck}, []byte{b})
+	return b == mqtt.OnConnectAuthenticate || b == mqtt.OnACLCheck
 }
 
 func (h *authHook) OnConnectAuthenticate(cl *mqtt.Client, pk packets.Packet) bool {
@@ -149,13 +148,20 @@ func (h *authHook) OnACLCheck(cl *mqtt.Client, topic string, write bool) bool {
 	return false
 }
 
-// mqttTopicMatch supports + (single level) and # (multi level) wildcards.
+// mqttTopicMatch supports + (single level) and # (multi level) wildcards,
+// per MQTT 3.1.1 spec section 4.7: '#' is only valid as the final level
+// of a pattern. A pattern where '#' appears anywhere else is malformed
+// and never matches.
 func mqttTopicMatch(pattern, topic string) bool {
 	pp := strings.Split(pattern, "/")
 	tp := strings.Split(topic, "/")
+
 	for i, p := range pp {
 		if p == "#" {
-			return true
+			if i != len(pp)-1 {
+				return false // malformed pattern — '#' not in last position
+			}
+			return true // matches this level and everything after
 		}
 		if i >= len(tp) {
 			return false
@@ -170,7 +176,7 @@ func mqttTopicMatch(pattern, topic string) bool {
 func (h *sensorHook) ID() string { return "sensor-hook" }
 
 func (h *sensorHook) Provides(b byte) bool {
-	return bytes.Contains([]byte{mqtt.OnPublish}, []byte{b})
+	return b == mqtt.OnPublish
 }
 
 func (h *sensorHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packet, error) {
