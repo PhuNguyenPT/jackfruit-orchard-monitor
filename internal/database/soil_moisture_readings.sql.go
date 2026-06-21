@@ -55,15 +55,17 @@ func (q *Queries) GetLatestSoilMoistureReadings(ctx context.Context) ([]GetLates
 }
 
 const insertSoilMoistureReading = `-- name: InsertSoilMoistureReading :exec
-INSERT INTO soil_moisture_readings (sensor_idx, raw) VALUES ($1, $2)
+INSERT INTO soil_moisture_readings (sensor_idx, raw, created_at)
+VALUES ($1, $2, $3)
 `
 
 type InsertSoilMoistureReadingParams struct {
 	SensorIdx int16
 	Raw       int16
+	CreatedAt time.Time
 }
 
 func (q *Queries) InsertSoilMoistureReading(ctx context.Context, arg InsertSoilMoistureReadingParams) error {
-	_, err := q.db.ExecContext(ctx, insertSoilMoistureReading, arg.SensorIdx, arg.Raw)
+	_, err := q.db.ExecContext(ctx, insertSoilMoistureReading, arg.SensorIdx, arg.Raw, arg.CreatedAt)
 	return err
 }

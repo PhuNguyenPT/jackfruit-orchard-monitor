@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var vietnamTZ = time.FixedZone("Asia/Ho_Chi_Minh", 7*60*60)
+
 func formatPrice(price string, currency string) string {
 	f, err := strconv.ParseFloat(strings.TrimSpace(price), 64)
 	if err != nil {
@@ -49,6 +51,7 @@ func FormatMonthYear(t time.Time, lang string) string {
 }
 
 func FormatDateTime(t time.Time, lang string) string {
+	t = t.In(vietnamTZ)
 	if lang == "vi" {
 		months := []string{
 			"Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",

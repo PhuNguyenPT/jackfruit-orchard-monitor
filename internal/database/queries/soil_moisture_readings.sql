@@ -1,5 +1,6 @@
 -- name: InsertSoilMoistureReading :exec
-INSERT INTO soil_moisture_readings (sensor_idx, raw) VALUES ($1, $2);
+INSERT INTO soil_moisture_readings (sensor_idx, raw, created_at)
+VALUES ($1, $2, $3);
 
 -- name: GetLatestSoilMoistureReadings :many
 SELECT DISTINCT ON (sensor_idx) sensor_idx, raw, created_at

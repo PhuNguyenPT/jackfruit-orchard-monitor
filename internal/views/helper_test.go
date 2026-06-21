@@ -41,12 +41,37 @@ func TestFormatMonthYear(t *testing.T) {
 }
 
 func TestFormatDateTime(t *testing.T) {
+	// 14:30 UTC = 21:30 UTC+7
 	ts := time.Date(2024, 3, 15, 14, 30, 0, 0, time.UTC)
-	if got := FormatDateTime(ts, "en"); got != "Mar 15, 2024 14:30" {
-		t.Errorf("expected 'Mar 15, 2024 14:30', got %q", got)
+	if got := FormatDateTime(ts, "en"); got != "Mar 15, 2024 21:30" {
+		t.Errorf("expected 'Mar 15, 2024 21:30', got %q", got)
 	}
-	if got := FormatDateTime(ts, "vi"); got != "15 Tháng 3, 2024 14:30" {
-		t.Errorf("expected '15 Tháng 3, 2024 14:30', got %q", got)
+	if got := FormatDateTime(ts, "vi"); got != "15 Tháng 3, 2024 21:30" {
+		t.Errorf("expected '15 Tháng 3, 2024 21:30', got %q", got)
+	}
+}
+
+func TestFormatDateTime_UTC7Conversion(t *testing.T) {
+	// 07:37 UTC = 14:37 UTC+7 — mirrors the actual sensor log
+	utc := time.Date(2026, 6, 21, 7, 37, 0, 0, time.UTC)
+	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 14:37" {
+		t.Errorf("got %q, want %q", got, "Jun 21, 2026 14:37")
+	}
+}
+
+func TestFormatDateTime_MidnightUTC(t *testing.T) {
+	// 00:00 UTC = 07:00 UTC+7, same day
+	utc := time.Date(2026, 6, 21, 0, 0, 0, 0, time.UTC)
+	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 07:00" {
+		t.Errorf("got %q, want %q", got, "Jun 21, 2026 07:00")
+	}
+}
+
+func TestFormatDateTime_DayRollover(t *testing.T) {
+	// 18:00 UTC = 01:00 UTC+7 next day
+	utc := time.Date(2026, 6, 21, 18, 0, 0, 0, time.UTC)
+	if got := FormatDateTime(utc, "en"); got != "Jun 22, 2026 01:00" {
+		t.Errorf("got %q, want %q", got, "Jun 22, 2026 01:00")
 	}
 }
 
@@ -82,4 +107,26 @@ func equalSlices(a, b []int) bool {
 		}
 	}
 	return true
+}
+
+func TestCalculateSoilPercentage(t *testing.T) {
+	tests := []struct {
+		raw  int16
+		dry  int
+		wet  int
+		want float32
+	}{
+		{3500, 3500, 1760, 0.0},   // at dry threshold
+		{3600, 3500, 1760, 0.0},   // above dry — clamp to 0
+		{1760, 3500, 1760, 100.0}, // at wet threshold
+		{1500, 3500, 1760, 100.0}, // below wet — clamp to 100
+		{2630, 3500, 1760, 50.0},  // midpoint
+	}
+	for _, tt := range tests {
+		got := calculateSoilPercentage(tt.raw, tt.dry, tt.wet)
+		if got != tt.want {
+			t.Errorf("calculateSoilPercentage(%d, %d, %d) = %.1f, want %.1f",
+				tt.raw, tt.dry, tt.wet, got, tt.want)
+		}
+	}
 }

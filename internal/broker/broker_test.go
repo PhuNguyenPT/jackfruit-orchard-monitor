@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	mqtt "github.com/mochi-mqtt/server/v2"
@@ -76,31 +77,30 @@ func (m *mockStorage) CreateMQTTACL(_ context.Context, arg database.CreateMQTTAC
 	return database.MqttAcl{CredentialID: arg.CredentialID, Topic: arg.Topic}, nil
 }
 
+type airTempHumidCall struct {
+	addr        string
+	temperature float32
+	humidity    float32
+	createdAt   time.Time
+}
+
+type soilCall struct {
+	addr      string
+	raw       int
+	createdAt time.Time
+}
+
 type mockNotifier struct {
-	airTempHumidCalls []struct {
-		addr        string
-		temperature float32
-		humidity    float32
-	}
-	soilCalls []struct {
-		addr string
-		raw  int
-	}
+	airTempHumidCalls []airTempHumidCall
+	soilCalls         []soilCall
 }
 
-func (m *mockNotifier) BroadcastAirTempHumid(addr string, temperature, humidity float32) {
-	m.airTempHumidCalls = append(m.airTempHumidCalls, struct {
-		addr        string
-		temperature float32
-		humidity    float32
-	}{addr, temperature, humidity})
+func (m *mockNotifier) BroadcastAirTempHumid(addr string, temperature, humidity float32, createdAt time.Time) {
+	m.airTempHumidCalls = append(m.airTempHumidCalls, airTempHumidCall{addr, temperature, humidity, createdAt})
 }
 
-func (m *mockNotifier) BroadcastSoilMoisture(addr string, raw int) {
-	m.soilCalls = append(m.soilCalls, struct {
-		addr string
-		raw  int
-	}{addr, raw})
+func (m *mockNotifier) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
+	m.soilCalls = append(m.soilCalls, soilCall{addr, raw, createdAt})
 }
 
 // ---------------------------------------------------------------------------
