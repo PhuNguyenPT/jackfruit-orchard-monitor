@@ -89,8 +89,7 @@ void poll(PubSubClient& mqttClient) {
     for (uint8_t boardIdx = 0U; boardIdx < SoilConfig::kNumBoards; boardIdx++) {
         for (uint8_t chanIdx = 0U; chanIdx < SoilConfig::kBoards.at(boardIdx).numCh; chanIdx++) {
             const uint16_t raw = readSensor(BoardIdx{boardIdx}, ChannelIdx{chanIdx});
-            float percentRaw = toPercent(raw);
-            const float percent = percentRaw;
+            const float percent = toPercent(raw);
 
             ESP_LOGI(TAG, "Soil Sensor %d (MUX%d CH%d): raw=%d -> %.1f %%", sensorId, boardIdx + 1U,
                      chanIdx, raw, percent);
