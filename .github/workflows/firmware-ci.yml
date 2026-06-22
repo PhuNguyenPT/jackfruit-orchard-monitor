@@ -7,7 +7,13 @@ on:
 jobs:
   firmware-validation:
     runs-on: ubuntu-latest
+    container: debian:bookworm
     steps:
+      - name: Install base tools
+        run: |
+          apt-get update
+          apt-get install -y git curl ca-certificates sudo build-essential python3 python3-pip python3-venv
+
       - uses: actions/checkout@v6
 
       - name: Install clang-format-14
@@ -20,20 +26,16 @@ jobs:
           find src include lib -name "*.cpp" -o -name "*.h" |
           xargs clang-format --dry-run --Werror
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: pio-${{ runner.os }}-v2-${{ hashFiles('platformio.ini') }}
-          restore-keys: pio-${{ runner.os }}-v2-
+          key: pio-${{ runner.os }}-debian-v1-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-debian-v1-
 
       - name: Install PlatformIO
-        run: pip install --upgrade platformio
+        run: pip install --upgrade platformio --break-system-packages
 
       - name: Generate config headers
         run: |
@@ -56,26 +58,6 @@ jobs:
 
       - name: Build
         run: platformio run --environment esp32dev
-
-      - name: Dump compile command for SHT40Poller.cpp
-        run: |
-          platformio run --environment esp32dev --target compiledb
-          python3 -c "
-          import json
-          data = json.load(open('compile_commands.json'))
-          for entry in data:
-              if 'SHT40Poller.cpp' in entry['file']:
-                  print(entry['command'])
-          "
-
-      - name: Hash source files
-        run: |
-          md5sum lib/SHT40Common/SHT40Common.h lib/SHT40Common/SHT40Common.cpp lib/SHT40Poller/SHT40Poller.cpp lib/SoilCommon/SoilCommon.h lib/SoilCommon/SoilCommon.cpp lib/SoilPoller/SoilPoller.cpp
-
-      - name: Debug clang-tidy version
-        run: |
-          cat ~/.platformio/packages/tool-clangtidy/package.json | grep -i version
-          ~/.platformio/packages/tool-clangtidy/clang-tidy --version
 
       - name: Clang-Tidy (static analysis)
         run: >
