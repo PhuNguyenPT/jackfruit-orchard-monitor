@@ -57,6 +57,11 @@ jobs:
       - name: Build
         run: platformio run --environment esp32dev
 
+      - name: Debug clang-tidy version
+        run: |
+          cat ~/.platformio/packages/tool-clangtidy/package.json | grep -i version
+          ~/.platformio/packages/tool-clangtidy/clang-tidy --version
+
       - name: Clang-Tidy (static analysis)
         run: >
           platformio check --environment esp32dev --fail-on-defect high
