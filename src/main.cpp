@@ -21,6 +21,7 @@ const uint32_t kWifiInitDelayMs = 100U;
 const uint32_t kWifiReconnectDelayMs = 500U;
 const uint32_t kSerialInitDelayMs = 10U;
 const uint32_t kSoilPollIntervalMs = 10000U;
+const char* TAG = "Main";
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -36,8 +37,8 @@ static uint32_t last_MKE_S13_Poll = 0U;
 // Wi-Fi
 // ---------------------------------------------------------------------------
 void setupWiFi() {
-    Logger::log(Logger::Level::INFO, "Initializing Wi-Fi interface...");
-    Logger::log(Logger::Level::INFO, "Connecting to SSID: %s", WIFI_SSID);
+    ESP_LOGI(TAG, "Initializing Wi-Fi interface...");
+    ESP_LOGI(TAG, "Connecting to SSID: %s", WIFI_SSID);
 
     WiFi.disconnect(true);
     delay(kWifiInitDelayMs);
@@ -49,8 +50,7 @@ void setupWiFi() {
         Serial.print('.');
     }
     Serial.println();
-    Logger::log(Logger::Level::SUCCESS, "Wi-Fi Connected! IP Assigned: %s",
-                WiFi.localIP().toString().c_str());
+    ESP_LOGI(TAG, "Wi-Fi Connected! IP Assigned: %s", WiFi.localIP().toString().c_str());
 }
 
 // ---------------------------------------------------------------------------
@@ -59,8 +59,10 @@ void setupWiFi() {
 void setup() {
     Serial.begin(1000000);
     delay(kSerialInitDelayMs);
+    Logger::setup();
 
-    SHT40Poller::init(XY485_RX, XY485_TX);
+    SHT40Poller::init(SHT40Poller::RxPin{XY485_RX}, SHT40Poller::TxPin{XY485_TX});
+
     SoilPoller::init();
 
     setupWiFi();
@@ -69,12 +71,12 @@ void setup() {
     MQTTManager::connect(client, MQTT_USER, MQTT_PASS);  // blocking — fine at boot
 
     lastSHT40 = millis();
-    Logger::log(Logger::Level::INFO, "System Pipeline Initialized. Commencing telemetry loops.");
+    ESP_LOGI(TAG, "System Pipeline Initialized. Commencing telemetry loops.");
 }
 
 void loop() {
     if (WiFi.status() != WL_CONNECTED) {
-        Logger::log(Logger::Level::WARN, "Link state dropped! Re-asserting Wi-Fi stack...");
+        ESP_LOGW(TAG, "Link state dropped! Re-asserting Wi-Fi stack...");
         setupWiFi();
     }
 
@@ -85,7 +87,8 @@ void loop() {
 
     if (millis() - lastSHT40 >= POLL_INTERVAL_MS) {
         lastSHT40 = millis();
-        Logger::log(Logger::Level::INFO, "Executing scheduled Modbus scan...");
+        ESP_LOGI(TAG, "Executing scheduled Modbus scan...");
+
         for (uint8_t i = 0; i < NUM_SENSORS; i++) {
             SHT40Poller::poll(SLAVE_ADDRS.at(i), client);
             if (i < NUM_SENSORS - 1U) {
@@ -96,7 +99,8 @@ void loop() {
 
     if (millis() - last_MKE_S13_Poll >= kSoilPollIntervalMs) {
         last_MKE_S13_Poll = millis();
-        Logger::log(Logger::Level::INFO, "Executing scheduled soil moisture scan...");
+        ESP_LOGI(TAG, "Executing scheduled soil moisture scan...");
+
         SoilPoller::poll(client);
     }
 }
