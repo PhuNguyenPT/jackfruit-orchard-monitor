@@ -10,16 +10,15 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # 1. Run the format check immediately on your raw repository code
       - name: Clang-Format check
         run: |-
-          find src include -name "*.cpp" -o -name "*.h" |
+          find src include lib -name "*.cpp" -o -name "*.h" |
           xargs clang-format --dry-run --Werror
 
-      # 2. Proceed with setting up dependencies and compilation
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - uses: actions/cache@v4
         with:
           path: |
@@ -27,23 +26,36 @@ jobs:
             ~/.platformio/.cache
           key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
           restore-keys: pio-${{ runner.os }}-
+
       - name: Install PlatformIO
         run: pip install --upgrade platformio
+
       - name: Generate config headers
         run: |
           cp include/broker_config.example.h include/broker_config.h
           cp include/config.example.h include/config.h
+          cp include/wifi.example.h include/wifi.h
+
       - name: Inject MQTT secrets
         env:
           MQTT_SERVER: ${{ secrets.MQTT_SERVER }}
           MQTT_USER: ${{ secrets.MQTT_USER }}
           MQTT_PASS: ${{ secrets.MQTT_PASS }}
         run: |
-          sed -i "s|const char\* const MQTT_SERVER.*=.*\"\";|const char* const MQTT_SERVER = \"${MQTT_SERVER}\";|" include/broker_config.h
-          sed -i "s|const char\* const MQTT_USER.*=.*\"\";|const char* const MQTT_USER = \"${MQTT_USER}\";|" include/broker_config.h
-          sed -i "s|const char\* const MQTT_PASS.*=.*\"\";|const char* const MQTT_PASS = \"${MQTT_PASS}\";|" include/broker_config.h
+          sed -i "s|inline constexpr char MQTT_SERVER\[\] = \"\";|inline constexpr char MQTT_SERVER[] = \"${MQTT_SERVER}\";|" include/broker_config.h
+          sed -i "s|inline constexpr char MQTT_USER\[\] = \"\";|inline constexpr char MQTT_USER[] = \"${MQTT_USER}\";|" include/broker_config.h
+          sed -i "s|inline constexpr char MQTT_PASS\[\] = \"\";|inline constexpr char MQTT_PASS[] = \"${MQTT_PASS}\";|" include/broker_config.h
+
+      - name: Native unit tests
+        run: platformio test --environment native
+
       - name: Build
         run: platformio run --environment esp32dev
+
       - name: Clang-Tidy (static analysis)
         run: >
           platformio check --environment esp32dev --fail-on-defect high
+
+      - name: Cppcheck (native)
+        run: >
+          platformio check --environment native --fail-on-defect high
