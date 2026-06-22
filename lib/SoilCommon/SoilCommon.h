@@ -13,13 +13,6 @@ static const char kTopicTemplate[] = "mke-s13/%d/data";
 static const uint16_t kDryValue = 3500U;
 static const uint16_t kWetValue = 1760U;
 
-inline float toPercent(uint16_t raw) {
-    if (raw >= kDryValue) return 0.0F;
-    if (raw <= kWetValue) return 100.0F;
-    return (1.0F -
-            static_cast<float>(raw - kWetValue) / static_cast<float>(kDryValue - kWetValue)) *
-           100.0F;
-}
-
+auto toPercent(uint16_t raw) -> float;
 }  // namespace SoilPoller
 #endif
