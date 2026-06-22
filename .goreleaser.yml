@@ -23,9 +23,11 @@ builds:
 release:
   prerelease: auto
   name_template: "Release {{.Version}}"
+  generate_release_notes: true
 
 universal_binaries:
-  - replace: true
+  - id: goapp
+    replace: true
 
 archives:
   - id: default
@@ -40,16 +42,8 @@ archives:
     files:
       - README.md
       - LICENSE*
-      - frontend-template/public/**
+      - frontend/public/**
 
 checksum:
   name_template: 'checksums.txt'
   algorithm: sha256
-
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-      - '^chore:'
