@@ -29,8 +29,8 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.platformio/.cache
-          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
-          restore-keys: pio-${{ runner.os }}-
+          key: pio-${{ runner.os }}-v2-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-v2-
 
       - name: Install PlatformIO
         run: pip install --upgrade platformio
