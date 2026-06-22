@@ -23,7 +23,15 @@ builds:
 release:
   prerelease: auto
   name_template: "Release {{.Version}}"
-  generate_release_notes: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
 
 universal_binaries:
   - id: goapp
