@@ -6,24 +6,25 @@
 namespace MQTTManager {
 
 namespace {
-static const uint32_t kRetryDelayMs = 5000U;
-static const size_t   kClientIdSize = 24U;
+const uint32_t kRetryDelayMs = 5000U;
+const size_t   kClientIdSize = 24U;
 uint32_t           lastAttemptMs = 0U;
+const char* TAG = "MQTT";
+
 
 // Single connection attempt — shared by connect() and maybeReconnect()
-bool attempt(PubSubClient& client, const char* user, const char* pass) {
-    char clientId[kClientIdSize];
+auto attempt(PubSubClient& client, const char* user, const char* pass) -> bool {
+    std::array<char, kClientIdSize> clientId{};
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-    snprintf(clientId, sizeof(clientId), "ESP32-Gateway-%04X",
+    snprintf(clientId.data(), clientId.size(), "ESP32-Gateway-%04X",
              static_cast<unsigned int>(random(0xffff)));
 
-    Logger::log(Logger::Level::INFO, "Attempting TLS encrypted MQTT handshake...");
-    if (client.connect(clientId, user, pass)) {
-        Logger::log(Logger::Level::SUCCESS, "TLS Session established. Connected to broker.");
+    ESP_LOGI(TAG, "Attempting TLS encrypted MQTT handshake...");
+    if (client.connect(clientId.data(), user, pass)) {
+        ESP_LOGI(TAG, "TLS Session established. Connected to broker.");
         return true;
     }
-    Logger::log(Logger::Level::ERROR,
-                "MQTT connection failure, rc=%d.", client.state());
+    ESP_LOGE(TAG, "MQTT connection failure, rc=%d.", client.state());
     return false;
 }
 }  // namespace
@@ -36,16 +37,16 @@ void setup(WiFiClientSecure& espClient, PubSubClient& client,
 
 void connect(PubSubClient& client, const char* user, const char* pass) {
     while (!client.connected() && WiFi.status() == WL_CONNECTED) {
-        if (attempt(client, user, pass)) return;
+        if (attempt(client, user, pass)) { return; }
         delay(kRetryDelayMs);
     }
 }
 
 void maybeReconnect(PubSubClient& client, const char* user, const char* pass) {
-    if (client.connected() || WiFi.status() != WL_CONNECTED) return;
+    if (client.connected() || WiFi.status() != WL_CONNECTED) { return; }
 
     const uint32_t now = millis();
-    if (now - lastAttemptMs < kRetryDelayMs) return;
+    if (now - lastAttemptMs < kRetryDelayMs) { return; }
     lastAttemptMs = now;
 
     attempt(client, user, pass);

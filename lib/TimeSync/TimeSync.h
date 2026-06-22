@@ -6,7 +6,7 @@
 namespace TimeSync {
     void setup();
     void maybeResync();
-    bool isSynced();
-    time_t now();
+    auto isSynced() -> bool;
+    auto now() -> time_t;
 }
 #endif

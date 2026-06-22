@@ -16,55 +16,52 @@ const time_t kMinPlausibleTs = 1735689600L;  // 2025-01-01T00:00:00Z
 const uint32_t kResyncIntervalMs = 6UL * 60UL * 60UL * 1000UL;  // 6 hours
 uint32_t       lastResyncMs      = 0U;
 bool           synced           = false;
+const char* TAG = "TimeSync";
 }  // namespace
 
 void setup() {
-    Logger::log(Logger::Level::INFO, "Querying NTP pools for network time sync...");
+    ESP_LOGI(TAG, "Querying NTP pools for network time sync...");
+
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC, no offset — see note below
 
-    time_t now = time(nullptr);
+    time_t currentTime = time(nullptr);
     const uint32_t startMs = millis();
 
-    while (now < kMinPlausibleTs) {
+    while (currentTime < kMinPlausibleTs) {
         if (millis() - startMs >= kSyncTimeoutMs) {
-            Logger::log(Logger::Level::WARN,
-                        "NTP sync timed out after %lu ms — proceeding without synced time.",
-                        static_cast<unsigned long>(kSyncTimeoutMs));
+            ESP_LOGW(TAG, "NTP sync timed out after %lu ms — proceeding without synced time.",
+                static_cast<unsigned long>(kSyncTimeoutMs));
             synced = false;
             return;
         }
         delay(kPollDelayMs);
-        now = time(nullptr);
+        currentTime = time(nullptr);
     }
-
     synced = true;
-    Logger::log(Logger::Level::SUCCESS, "NTP Time synchronized perfectly.");
+    ESP_LOGI(TAG, "NTP Time synchronized perfectly.");
 }
 
 void maybeResync() {
-    if (millis() - lastResyncMs < kResyncIntervalMs) return;
+    if (millis() - lastResyncMs < kResyncIntervalMs) { return; }
     lastResyncMs = millis();
 
-    Logger::log(Logger::Level::INFO, "Performing periodic NTP re-sync...");
+    ESP_LOGI(TAG, "Performing periodic NTP re-sync...");
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
-    // Non-blocking check — don't stall loop() if NTP is briefly unreachable;
-    // just try again next interval.
-    time_t now = time(nullptr);
-    if (now >= kMinPlausibleTs) {
+    time_t currentTime = time(nullptr);
+    if (currentTime >= kMinPlausibleTs) {
         synced = true;
-        Logger::log(Logger::Level::SUCCESS, "NTP re-sync successful.");
+        ESP_LOGI(TAG, "NTP re-sync successful.");
     } else {
-        Logger::log(Logger::Level::WARN, "NTP re-sync did not return valid time yet.");
+        ESP_LOGW(TAG, "NTP re-sync did not return valid time yet.");
     }
 }
 
-bool isSynced() {
+auto isSynced() -> bool {
     return synced;
 }
 
-time_t now() {
+auto now() -> time_t {
     return time(nullptr);
 }
-
 }  // namespace TimeSync
