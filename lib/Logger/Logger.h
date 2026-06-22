@@ -1,40 +1,33 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 #include <Arduino.h>
-#include <array>
+
+#include <cstdarg>
+#include <cstdio>
 #include <ctime>
+
+#include "esp_log.h"
 
 namespace Logger {
 
-enum class Level : unsigned char { INFO, SUCCESS, WARN, ERROR };
-
-namespace {
-static const size_t kTimeBufSize = 32U;
-static const size_t kLogBufSize  = 128U;
-static const std::array<const char*, 4> kLevelTags = {
-    "[INFO] ", "[SUCC] ", "[WARN] ", "[ERRO] "
-};
-}  // namespace
-
-template <typename... Args>
-void log(Level level, const char* format, Args... args) {
-    std::array<char, kTimeBufSize> timebuf{};
-    struct tm timeinfo{};
+inline int vprintf_handler(const char* format, va_list args) {
+    struct tm timeinfo {};
+    char timebuf[32];
 
     if (getLocalTime(&timeinfo)) {
-        strftime(timebuf.data(), timebuf.size(), "[%Y-%m-%d %H:%M:%S] ", &timeinfo);
+        strftime(timebuf, sizeof(timebuf), "[%Y-%m-%d %H:%M:%S] ", &timeinfo);
     } else {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-        snprintf(timebuf.data(), timebuf.size(), "[%10lu s] ", millis() / 1000UL);
+        snprintf(timebuf, sizeof(timebuf), "[%10lu s] ", millis() / 1000UL);
     }
-    Serial.print(timebuf.data());
-    Serial.print(kLevelTags.at(static_cast<size_t>(level)));
+    Serial.print(timebuf);
 
-    std::array<char, kLogBufSize> buffer{};
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-    snprintf(buffer.data(), buffer.size(), format, args...);
-    Serial.println(buffer.data());
+    char buf[256];
+    vsnprintf(buf, sizeof(buf), format, args);
+    Serial.print(buf);
+    return 0;
 }
+
+inline void setup() { esp_log_set_vprintf(vprintf_handler); }
 
 }  // namespace Logger
 #endif

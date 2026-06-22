@@ -3,7 +3,7 @@
 // ==========================================
 // WIFI CONFIGURATION
 // ==========================================
-static const char WIFI_SSID[] = "anhemsoc";
-static const char WIFI_PASSWORD[] = "Meocon1976";
+inline constexpr char WIFI_SSID[] = "anhemsoc";
+inline constexpr char WIFI_PASSWORD[] = "Meocon1976";
 
 #endif

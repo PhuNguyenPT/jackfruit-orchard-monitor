@@ -1,9 +1,7 @@
 #ifndef WIFI_H
 #define WIFI_H
-// ==========================================
-// WIFI CONFIGURATION
-// ==========================================
-static const char WIFI_SSID[] = "";
-static const char WIFI_PASSWORD[] = "";
+
+inline constexpr char WIFI_SSID[] = "";
+inline constexpr char WIFI_PASSWORD[] = "";
 
 #endif
