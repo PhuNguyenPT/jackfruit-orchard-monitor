@@ -1,7 +1,9 @@
 #ifndef SHT40_POLLER_H
 #define SHT40_POLLER_H
 #include <PubSubClient.h>
+
 #include <cstdint>
+
 #include "SHT40Common.h"
 
 namespace SHT40Poller {

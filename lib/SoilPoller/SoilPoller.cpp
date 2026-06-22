@@ -1,6 +1,9 @@
 #include "SoilPoller.h"
+
 #include <Arduino.h>
+
 #include <array>
+
 #include "Logger.h"
 #include "MKE_S13.h"
 #include "TimeSync.h"
@@ -8,11 +11,11 @@
 namespace SoilPoller {
 
 namespace {
-const uint8_t  kNumSamples    = 30U;
+const uint8_t kNumSamples = 30U;
 const uint32_t kSampleDelayMs = 10U;
 const char* TAG = "Soil";
 
-enum class BoardIdx   : uint8_t {};
+enum class BoardIdx : uint8_t {};
 enum class ChannelIdx : uint8_t {};
 // ---------------------------------------------------------------------------
 // MUX helpers
@@ -74,7 +77,7 @@ void init() {
     selectChannel(0U);
 
     for (const auto& board : SoilConfig::kBoards) {
-        pinMode(board.enPin,  OUTPUT);
+        pinMode(board.enPin, OUTPUT);
         pinMode(board.sigPin, INPUT);
     }
     disableAllBoards();
@@ -86,16 +89,17 @@ void poll(PubSubClient& mqttClient) {
     for (uint8_t boardIdx = 0U; boardIdx < SoilConfig::kNumBoards; boardIdx++) {
         for (uint8_t chanIdx = 0U; chanIdx < SoilConfig::kBoards.at(boardIdx).numCh; chanIdx++) {
             const uint16_t raw = readSensor(BoardIdx{boardIdx}, ChannelIdx{chanIdx});
-            const float    percent = toPercent(raw);
+            const float percent = toPercent(raw);
 
-            ESP_LOGI(TAG, "Soil Sensor %d (MUX%d CH%d): raw=%d -> %.1f %%", sensorId, boardIdx+1U, chanIdx, raw, percent);
+            ESP_LOGI(TAG, "Soil Sensor %d (MUX%d CH%d): raw=%d -> %.1f %%", sensorId, boardIdx + 1U,
+                     chanIdx, raw, percent);
 
             if (!mqttClient.connected()) {
                 sensorId++;
                 continue;
             }
 
-            std::array<char, kTopicBufSize>   topic{};
+            std::array<char, kTopicBufSize> topic{};
             std::array<char, kPayloadBufSize> payload{};
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
@@ -107,8 +111,8 @@ void poll(PubSubClient& mqttClient) {
                          static_cast<long>(TimeSync::now()));
             } else {
                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-                snprintf(payload.data(), payload.size(),
-                         R"({"moisture": %.1f, "raw": %d})", percent, raw);
+                snprintf(payload.data(), payload.size(), R"({"moisture": %.1f, "raw": %d})",
+                         percent, raw);
             }
             if (!mqttClient.publish(topic.data(), payload.data())) {
                 ESP_LOGE(TAG, "MQTT Frame dropped. Publish failed for soil sensor %d.", sensorId);

@@ -25,9 +25,12 @@ inline constexpr uint8_t kNumBoards = static_cast<uint8_t>(kBoards.size());
 
 inline constexpr uint8_t kNumSensors = []() constexpr {
     uint8_t n = 0U;
-    for (const auto& board : kBoards) { n += board.numCh; }
+    for (const auto& board : kBoards) {
+        n += board.numCh;
+    }
     return n;
-}();
+}
+();
 
 }  // namespace SoilConfig
 #endif

@@ -1,8 +1,11 @@
 #include "SHT40Poller.h"
+
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <ModbusMaster.h>
+
 #include <array>
+
 #include "Logger.h"
 #include "TimeSync.h"
 
@@ -10,7 +13,7 @@ namespace SHT40Poller {
 
 namespace {
 HardwareSerial modbusSerial(1);  // UART1
-ModbusMaster   node;
+ModbusMaster node;
 const char* TAG = "SHT40";
 }  // namespace
 
@@ -23,14 +26,13 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
     const uint8_t result = node.readHoldingRegisters(0x0000, 2);
 
     if (result == ModbusMaster::ku8MBSuccess) {
-        const float hum  = scaleHumidity(node.getResponseBuffer(0));
+        const float hum = scaleHumidity(node.getResponseBuffer(0));
         const float temp = scaleTemperature(node.getResponseBuffer(1));
 
         ESP_LOGI(TAG, "Sensor %d Readout: %.1f %%RH | %.1f C", slaveAddr, hum, temp);
 
-
         if (mqttClient.connected()) {
-            std::array<char, kTopicBufSize>   topic{};
+            std::array<char, kTopicBufSize> topic{};
             std::array<char, kPayloadBufSize> payload{};
 
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
