@@ -57,6 +57,17 @@ jobs:
       - name: Build
         run: platformio run --environment esp32dev
 
+      - name: Dump compile command for SHT40Poller.cpp
+        run: |
+          platformio run --environment esp32dev --target compiledb
+          python3 -c "
+          import json
+          data = json.load(open('compile_commands.json'))
+          for entry in data:
+              if 'SHT40Poller.cpp' in entry['file']:
+                  print(entry['command'])
+          "
+
       - name: Debug clang-tidy version
         run: |
           cat ~/.platformio/packages/tool-clangtidy/package.json | grep -i version
