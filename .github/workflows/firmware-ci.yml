@@ -68,6 +68,10 @@ jobs:
                   print(entry['command'])
           "
 
+      - name: Hash source files
+        run: |
+          md5sum lib/SHT40Common/SHT40Common.h lib/SHT40Common/SHT40Common.cpp lib/SHT40Poller/SHT40Poller.cpp lib/SoilCommon/SoilCommon.h lib/SoilCommon/SoilCommon.cpp lib/SoilPoller/SoilPoller.cpp
+
       - name: Debug clang-tidy version
         run: |
           cat ~/.platformio/packages/tool-clangtidy/package.json | grep -i version
