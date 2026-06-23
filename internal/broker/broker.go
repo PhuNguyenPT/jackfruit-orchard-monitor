@@ -277,7 +277,7 @@ func (h *sensorHook) OnPublish(_ *mqtt.Client, pk packets.Packet) (packets.Packe
 }
 
 // Start launches the embedded MQTT broker on the given TCP port.
-func Start(port int, db Storage, notifier Notifier, tlsCfg *tls.Config, user, pass string) (*mqtt.Server, error) {
+func Start(tlsPort int, plainPort int, db Storage, notifier Notifier, tlsCfg *tls.Config, user, pass string) (*mqtt.Server, error) {
 	if err := seedCredential(db, user, pass); err != nil {
 		return nil, fmt.Errorf("broker: seed credentials: %w", err)
 	}
@@ -291,13 +291,27 @@ func Start(port int, db Storage, notifier Notifier, tlsCfg *tls.Config, user, pa
 		return nil, fmt.Errorf("broker: sensor hook: %w", err)
 	}
 
-	tcp := listeners.NewTCP(listeners.Config{
-		ID:        "tcp8883",
-		Address:   fmt.Sprintf(":%d", port),
-		TLSConfig: tlsCfg, // nil = plain TCP (dev only)
+	// TLS listener — always added
+	tls := listeners.NewTCP(listeners.Config{
+		ID:        "tcp-tls",
+		Address:   fmt.Sprintf(":%d", tlsPort),
+		TLSConfig: tlsCfg,
 	})
-	if err := server.AddListener(tcp); err != nil {
-		return nil, fmt.Errorf("broker: TCP listener: %w", err)
+	if err := server.AddListener(tls); err != nil {
+		return nil, fmt.Errorf("broker: TLS listener: %w", err)
+	}
+	log.Printf("[MQTT] listening on :%d (TLS=%v)", tlsPort, tlsCfg != nil)
+
+	// Plain TCP listener — dev/test only; plainPort=0 disables it
+	if plainPort > 0 {
+		plain := listeners.NewTCP(listeners.Config{
+			ID:      "tcp-plain",
+			Address: fmt.Sprintf(":%d", plainPort),
+		})
+		if err := server.AddListener(plain); err != nil {
+			return nil, fmt.Errorf("broker: plain TCP listener: %w", err)
+		}
+		log.Printf("[MQTT] listening on :%d (plain TCP, dev/test only)", plainPort)
 	}
 
 	go func() {
@@ -306,6 +320,5 @@ func Start(port int, db Storage, notifier Notifier, tlsCfg *tls.Config, user, pa
 		}
 	}()
 
-	log.Printf("[MQTT] broker listening on :%d (TLS=%v)", port, tlsCfg != nil)
 	return server, nil
 }

@@ -5,10 +5,10 @@
 
 namespace SHT40Poller {
 
-static const float kSensorScale = 10.0F;
-static const size_t kTopicBufSize = 50U;
-static const size_t kPayloadBufSize = 100U;
-static const char kTopicTemplate[] = "sht40/%d/data";
+inline constexpr float kSensorScale = 10.0F;
+inline constexpr size_t kTopicBufSize = 50U;
+inline constexpr size_t kPayloadBufSize = 100U;
+inline constexpr char kTopicTemplate[] = "sht40/%d/data";
 
 auto scaleHumidity(uint16_t raw) -> float;
 auto scaleTemperature(uint16_t raw) -> float;

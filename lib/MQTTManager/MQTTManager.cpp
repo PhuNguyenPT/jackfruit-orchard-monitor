@@ -32,7 +32,14 @@ auto attempt(PubSubClient& client, const char* user, const char* pass) -> bool {
 
 void setup(WiFiClientSecure& espClient, PubSubClient& client, const char* server, uint16_t port,
            const char* caCert) {
+#ifdef MQTT_SECURE
+    ESP_LOGI(TAG, "TLS: verifying broker against CA cert.");
     espClient.setCACert(caCert);
+#else
+    ESP_LOGW(TAG, "TLS verification DISABLED — dev/test mode.");
+    espClient.setInsecure();
+    (void)caCert;
+#endif
     client.setServer(server, port);
 }
 

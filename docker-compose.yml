@@ -136,6 +136,7 @@ services:
       - "8443"
     ports:
       - "8883:8883"
+      - "1883:1883"
     build:
       context: .
       dockerfile: Dockerfile
