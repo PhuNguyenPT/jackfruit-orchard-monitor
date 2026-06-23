@@ -63,9 +63,9 @@ func (h *Hub) BroadcastAirTempHumid(addr string, temperature, humidity float32, 
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-
+	var buf bytes.Buffer
 	for c, lang := range h.clients {
-		var buf bytes.Buffer
+		buf.Reset()
 		if err := views.SensorCardOOB(row, lang).Render(context.Background(), &buf); err != nil {
 			log.Printf("[Hub] render error: %v", err)
 			continue
@@ -93,10 +93,9 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-
+	var buf bytes.Buffer
 	for c, lang := range h.clients {
-		var buf bytes.Buffer
-
+		buf.Reset()
 		// Render the SoilCardOOB, passing in h.cfg
 		if err := views.SoilCardOOB(row, lang, h.cfg.SoilDryValue, h.cfg.SoilWetValue).Render(context.Background(), &buf); err != nil {
 			log.Printf("[Hub] render error: %v", err)
@@ -119,9 +118,9 @@ func (h *Hub) BroadcastDeviceStatus(clientID string, connected bool) {
 
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-
+	var buf bytes.Buffer
 	for c, lang := range h.clients {
-		var buf bytes.Buffer
+		buf.Reset()
 		if err := views.DeviceStatusListOOB(devicesCopy, lang).Render(context.Background(), &buf); err != nil {
 			log.Printf("[Hub] render device status error: %v", err)
 			continue
