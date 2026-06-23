@@ -52,6 +52,7 @@ type soilMoisturePayload struct {
 type Notifier interface {
 	BroadcastAirTempHumid(addr string, temperature, humidity float32, createdAt time.Time)
 	BroadcastSoilMoisture(addr string, raw int, createdAt time.Time)
+	BroadcastDeviceStatus(clientID string, connected bool)
 }
 type sensorHook struct {
 	mqtt.HookBase
@@ -181,7 +182,21 @@ func mqttTopicMatch(pattern, topic string) bool {
 func (h *sensorHook) ID() string { return "sensor-hook" }
 
 func (h *sensorHook) Provides(b byte) bool {
-	return b == mqtt.OnPublish
+	return b == mqtt.OnPublish ||
+		b == mqtt.OnSessionEstablished ||
+		b == mqtt.OnDisconnect
+}
+
+func (h *sensorHook) OnSessionEstablished(cl *mqtt.Client, pk packets.Packet) {
+	if h.notifier != nil {
+		h.notifier.BroadcastDeviceStatus(string(cl.Properties.Username), true)
+	}
+}
+
+func (h *sensorHook) OnDisconnect(cl *mqtt.Client, err error, expire bool) {
+	if h.notifier != nil {
+		h.notifier.BroadcastDeviceStatus(string(cl.Properties.Username), false)
+	}
 }
 
 func resolveTime(ts *int64) time.Time {
