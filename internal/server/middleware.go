@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	appConfig "GoApp/internal/config"
+	config "GoApp/internal/config"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,7 +23,7 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 
 		session, err := s.db.GetSessionByToken(c.Request.Context(), token)
 		if err != nil {
-			secure := s.cfg.AppEnv == appConfig.EnvProduction
+			secure := s.cfg.AppEnv == config.EnvProduction
 			c.SetCookie("session_token", "", -1, "/", "", secure, true)
 			next := url.QueryEscape(c.Request.URL.RequestURI())
 			c.Redirect(http.StatusFound, "/login?next="+next)
