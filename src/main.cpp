@@ -3,7 +3,6 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-#include "Logger.h"
 #include "MQTTManager.h"
 #include "SHT40Poller.h"
 #include "SoilPoller.h"
@@ -59,7 +58,6 @@ void setupWiFi() {
 void setup() {
     Serial.begin(1000000);
     delay(kSerialInitDelayMs);
-    Logger::setup();
 
     SHT40Poller::init(SHT40Poller::RxPin{XY485_RX}, SHT40Poller::TxPin{XY485_TX});
 

@@ -4,8 +4,6 @@
 
 #include <ctime>
 
-#include "Logger.h"
-
 namespace TimeSync {
 
 namespace {

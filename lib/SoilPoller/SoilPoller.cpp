@@ -4,7 +4,6 @@
 
 #include <array>
 
-#include "Logger.h"
 #include "MKE_S13.h"
 #include "TimeSync.h"
 
