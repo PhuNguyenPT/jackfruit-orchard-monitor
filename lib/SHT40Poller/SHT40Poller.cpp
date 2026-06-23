@@ -6,7 +6,6 @@
 
 #include <array>
 
-#include "Logger.h"
 #include "TimeSync.h"
 
 namespace SHT40Poller {
