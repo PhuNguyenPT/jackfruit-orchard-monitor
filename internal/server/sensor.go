@@ -2,11 +2,10 @@ package server
 
 import (
 	"GoApp/internal/views"
-	"log"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"log"
+	"net/http"
 )
 
 func (s *Server) sensorsPageHandler(c *gin.Context) {
@@ -25,10 +24,11 @@ func (s *Server) sensorsPageHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	deviceStatuses := s.hub.GetDeviceStatuses()
 
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig(c), deviceStatuses).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
@@ -65,7 +65,7 @@ func (s *Server) sensorsWSHandler(c *gin.Context) {
 
 	s.hub.register(conn, lang)
 	defer s.hub.unregister(conn)
-
+	s.hub.pushDeviceStatusesToClient(conn, lang)
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
 			if websocket.IsUnexpectedCloseError(err,

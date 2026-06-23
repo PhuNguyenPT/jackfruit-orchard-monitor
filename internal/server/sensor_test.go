@@ -40,7 +40,7 @@ func newSensorTestContext(method, path string) (*gin.Context, *httptest.Response
 // ---------------------------------------------------------------------------
 
 func TestSensorsPageHandler_Success(t *testing.T) {
-	s := &Server{db: &mockDB{}, cfg: newTestConfig()}
+	s := newTestServer()
 	c, w := newSensorTestContext(http.MethodGet, "/sensors")
 
 	s.sensorsPageHandler(c)
@@ -60,7 +60,8 @@ func TestSensorsPageHandler_Success(t *testing.T) {
 }
 
 func TestSensorsPageHandler_DBError(t *testing.T) {
-	s := &Server{db: &erroringDB{&mockDB{}}, cfg: newTestConfig()}
+	s := newTestServer()
+	s.db = &erroringDB{&mockDB{}}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors")
 
 	s.sensorsPageHandler(c)
@@ -71,7 +72,7 @@ func TestSensorsPageHandler_DBError(t *testing.T) {
 }
 
 func TestSensorsGridHandler_WithReadings(t *testing.T) {
-	s := &Server{db: &mockDB{}, cfg: newTestConfig()}
+	s := newTestServer()
 	c, w := newSensorTestContext(http.MethodGet, "/sensors/readings")
 
 	s.sensorsGridHandler(c)
@@ -86,7 +87,8 @@ func TestSensorsGridHandler_WithReadings(t *testing.T) {
 }
 
 func TestSensorsGridHandler_DBError(t *testing.T) {
-	s := &Server{db: &erroringDB{&mockDB{}}, cfg: newTestConfig()}
+	s := newTestServer()
+	s.db = &erroringDB{&mockDB{}}
 	c, w := newSensorTestContext(http.MethodGet, "/sensors/readings")
 
 	s.sensorsGridHandler(c)
@@ -173,5 +175,154 @@ func TestSensorsWSHandler_BroadcastReachesClient(t *testing.T) {
 	}
 	if !strings.Contains(html, "27.3") || !strings.Contains(html, "55.5") {
 		t.Errorf("missing reading values, got: %s", html)
+	}
+}
+
+const (
+	deviceConnected    = true
+	deviceDisconnected = false
+)
+
+func TestSensorsWSHandler_DeviceStatus_Connected(t *testing.T) {
+	s, srv := newSensorWSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForClientCount(t, s.hub, 1)
+
+	s.hub.BroadcastDeviceStatus("esp32-nodemcu", deviceConnected)
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	html := string(msg)
+	if !strings.Contains(html, `id="device-status-list"`) || !strings.Contains(html, `hx-swap-oob="true"`) {
+		t.Errorf("expected full list container OOB swap, got: %s", html)
+	}
+	if !strings.Contains(html, "esp32-nodemcu") {
+		t.Errorf("missing device clientID, got: %s", html)
+	}
+	if !strings.Contains(html, "Connected</span>") {
+		t.Errorf("expected Connected status, got: %s", html)
+	}
+	if strings.Contains(html, "Disconnected</span>") {
+		t.Errorf("did not expect Disconnected status, got: %s", html)
+	}
+}
+
+func TestSensorsWSHandler_DeviceStatus_Disconnected(t *testing.T) {
+	s, srv := newSensorWSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForClientCount(t, s.hub, 1)
+
+	s.hub.BroadcastDeviceStatus("esp32-nodemcu", deviceDisconnected)
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	html := string(msg)
+	if !strings.Contains(html, `id="device-status-list"`) || !strings.Contains(html, `hx-swap-oob="true"`) {
+		t.Errorf("expected full list container OOB swap, got: %s", html)
+	}
+	if !strings.Contains(html, "esp32-nodemcu") {
+		t.Errorf("missing device clientID, got: %s", html)
+	}
+	if !strings.Contains(html, "Disconnected</span>") {
+		t.Errorf("expected Disconnected status, got: %s", html)
+	}
+}
+
+func TestSensorsWSHandler_DeviceStatus_FullCycle(t *testing.T) {
+	s, srv := newSensorWSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForClientCount(t, s.hub, 1)
+
+	const clientID = "esp32-nodemcu"
+
+	// The lifecycle under test: disconnected -> connected -> disconnected -> connected.
+	transitions := []struct {
+		name      string
+		connected bool
+	}{
+		{"disconnected_to_connected", deviceConnected},
+		{"connected_to_disconnected", deviceDisconnected},
+		{"disconnected_to_connected_again", deviceConnected},
+	}
+
+	for _, tr := range transitions {
+		t.Run(tr.name, func(t *testing.T) {
+			s.hub.BroadcastDeviceStatus(clientID, tr.connected)
+
+			if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+				t.Fatalf("SetReadDeadline: %v", err)
+			}
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				t.Fatalf("read: %v", err)
+			}
+			html := string(msg)
+
+			if !strings.Contains(html, `id="device-status-list"`) || !strings.Contains(html, `hx-swap-oob="true"`) {
+				t.Errorf("expected full list container OOB swap, got: %s", html)
+			}
+			if !strings.Contains(html, clientID) {
+				t.Errorf("missing device clientID, got: %s", html)
+			}
+
+			wantTag, dontWantTag := "Disconnected</span>", "Connected</span>"
+			if tr.connected {
+				wantTag, dontWantTag = "Connected</span>", "Disconnected</span>"
+			}
+			if !strings.Contains(html, wantTag) {
+				t.Errorf("expected %s, got: %s", wantTag, html)
+			}
+			if strings.Contains(html, dontWantTag) {
+				t.Errorf("did not expect %s, got: %s", dontWantTag, html)
+			}
+		})
+	}
+
+	// Verify the Hub's internal state matches the last transition.
+	s.hub.mu.RLock()
+	status, ok := s.hub.devices[clientID]
+	s.hub.mu.RUnlock()
+	if !ok {
+		t.Fatalf("expected device to be tracked in hub.devices")
+	}
+	want := transitions[len(transitions)-1].connected
+	if status.Connected != want {
+		t.Errorf("expected hub.devices to reflect Connected=%v after final transition, got %v", want, status.Connected)
 	}
 }

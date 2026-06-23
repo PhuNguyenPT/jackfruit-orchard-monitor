@@ -2,6 +2,7 @@ package views
 
 import (
 	"GoApp/internal/database"
+	"GoApp/internal/model"
 	"fmt"
 	"time"
 )
@@ -13,7 +14,7 @@ type SoilReadingView struct {
 	CreatedAt  time.Time
 }
 
-templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, soilDry int, soilWet int, site SiteConfig) {
+templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, soilDry int, soilWet int, site SiteConfig, devices map[string]model.DeviceStatus) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -35,6 +36,7 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 						</span>
 					</div>
 					<div hx-ext="ws" ws-connect="/sensors/ws">
+						@DeviceStatusList(devices)
 						@SensorGrid(shtReadings, soilReadings, lang, soilDry, soilWet)
 					</div>
 				</div>
@@ -139,4 +141,37 @@ templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soi
 		</div>
 	</div>
 	<p class="text-xs text-gray-400">{ T(lang).SensorLastUpdated } { FormatDateTime(r.CreatedAt, lang) }</p>
+}
+
+templ DeviceStatusList(devices map[string]model.DeviceStatus) {
+	<div id="device-status-list" class="space-y-2">
+		for clientID, status := range devices {
+			@DeviceStatusBadge(clientID, status.Connected)
+		}
+	</div>
+}
+
+templ DeviceStatusBadge(clientID string, connected bool) {
+	<div
+		id={ fmt.Sprintf("device-status-%s", clientID) }
+		class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border w-fit"
+	>
+		if connected {
+			<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+			<span class="text-green-700 font-medium">{ clientID }</span>
+			<span class="text-gray-400">Connected</span>
+		} else {
+			<span class="w-2 h-2 rounded-full bg-red-400"></span>
+			<span class="text-red-700 font-medium">{ clientID }</span>
+			<span class="text-gray-400">Disconnected</span>
+		}
+	</div>
+}
+
+templ DeviceStatusListOOB(devices map[string]model.DeviceStatus, lang string) {
+	<div id="device-status-list" hx-swap-oob="true" class="space-y-2">
+		for clientID, status := range devices {
+			@DeviceStatusBadge(clientID, status.Connected)
+		}
+	</div>
 }

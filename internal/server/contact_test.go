@@ -177,9 +177,11 @@ func TestContactFormHandler(t *testing.T) {
 	})
 
 	t.Run("db error renders fail view", func(t *testing.T) {
+		cfg := newTestConfig()
 		s := &Server{
 			db:  &mockDBWithContactError{},
-			cfg: newTestAppConfig(),
+			cfg: cfg,
+			hub: NewHub(cfg),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -206,9 +208,11 @@ func TestContactFormHandler(t *testing.T) {
 	})
 
 	t.Run("ip rate limited returns rate limit view", func(t *testing.T) {
+		cfg := newTestConfig()
 		s := &Server{
 			db:  &mockDBRateLimited{},
-			cfg: newTestAppConfig(),
+			cfg: cfg,
+			hub: NewHub(cfg),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -235,9 +239,12 @@ func TestContactFormHandler(t *testing.T) {
 	})
 
 	t.Run("email rate limited returns rate limit view", func(t *testing.T) {
+		cfg := newTestConfig()
+
 		s := &Server{
 			db:  &mockDBEmailRateLimited{},
-			cfg: newTestAppConfig(),
+			cfg: cfg,
+			hub: NewHub(cfg),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 

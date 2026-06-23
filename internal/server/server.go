@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"GoApp/internal/broker"
-	appConfig "GoApp/internal/config"
+	config "GoApp/internal/config"
 	"GoApp/internal/database"
 	"GoApp/internal/views"
 
@@ -166,12 +166,12 @@ func (s *sqlDB) DeleteOldSoilMoistureReadings(ctx context.Context, createdAt tim
 type Server struct {
 	port       int
 	db         DB
-	cfg        *appConfig.Config
+	cfg        *config.Config
 	hub        *Hub
 	wsUpgrader websocket.Upgrader
 }
 
-func NewServer(cfg *appConfig.Config) (*http.Server, *mqtt.Server, error) {
+func NewServer(cfg *config.Config) (*http.Server, *mqtt.Server, error) {
 	dbCfg := &database.DBConfig{
 		Host:     cfg.DBHost,
 		Port:     cfg.DBPort,

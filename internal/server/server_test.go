@@ -1,23 +1,33 @@
 package server
 
 import (
-	server "GoApp/internal/config"
-	"log"
+	config "GoApp/internal/config"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/gin-gonic/gin"
 )
 
 var testHandler http.Handler
 
-func newTestAppConfig() *server.Config {
-	return &server.Config{
-		AppEnv:   server.EnvTest,
-		GinMode:  gin.TestMode,
-		BaseURLs: []string{"http://localhost:8080"},
+func newTestConfig() *config.Config {
+	return &config.Config{
+		AppEnv:       config.EnvTest,
+		GinMode:      gin.TestMode,
+		BaseURLs:     []string{"http://localhost:8080"},
+		SoilDryValue: 3340,
+		SoilWetValue: 1805,
+	}
+}
+func newTestServer() *Server {
+	cfg := newTestConfig()
+	return &Server{
+		db:  &mockDB{},
+		cfg: cfg,
+		hub: NewHub(cfg),
 	}
 }
 
@@ -25,10 +35,7 @@ func TestMain(m *testing.M) {
 	if err := os.Chdir("../../"); err != nil {
 		log.Fatalf("failed to change directory: %v", err)
 	}
-	s := &Server{
-		db:  &mockDB{},
-		cfg: newTestAppConfig(),
-	}
+	s := newTestServer()
 	testHandler = s.RegisterRoutes(s.cfg)
 	os.Exit(m.Run())
 }

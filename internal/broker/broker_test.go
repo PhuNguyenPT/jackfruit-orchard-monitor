@@ -90,9 +90,15 @@ type soilCall struct {
 	createdAt time.Time
 }
 
+type deviceStatusCall struct {
+	clientID  string
+	connected bool
+}
+
 type mockNotifier struct {
 	airTempHumidCalls []airTempHumidCall
 	soilCalls         []soilCall
+	deviceStatusCalls []deviceStatusCall
 }
 
 func (m *mockNotifier) BroadcastAirTempHumid(addr string, temperature, humidity float32, createdAt time.Time) {
@@ -101,6 +107,10 @@ func (m *mockNotifier) BroadcastAirTempHumid(addr string, temperature, humidity 
 
 func (m *mockNotifier) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 	m.soilCalls = append(m.soilCalls, soilCall{addr, raw, createdAt})
+}
+
+func (m *mockNotifier) BroadcastDeviceStatus(clientID string, connected bool) { // ← add
+	m.deviceStatusCalls = append(m.deviceStatusCalls, deviceStatusCall{clientID, connected})
 }
 
 // ---------------------------------------------------------------------------
@@ -139,13 +149,13 @@ func TestSensorHook_Provides(t *testing.T) {
 	t.Parallel()
 	h := newTestHook(nil, nil)
 
-	if !h.Provides(mqtt.OnPublish) {
-		t.Error("Provides(mqtt.OnPublish) = false, want true")
-	}
-	for _, b := range []byte{mqtt.OnPublish - 1, mqtt.OnPublish + 1} {
-		if h.Provides(b) {
-			t.Errorf("Provides(%d) = true, want false", b)
+	for _, b := range []byte{mqtt.OnPublish, mqtt.OnSessionEstablished, mqtt.OnDisconnect} {
+		if !h.Provides(b) {
+			t.Errorf("Provides(%d) = false, want true", b)
 		}
+	}
+	if h.Provides(mqtt.OnACLCheck) {
+		t.Errorf("Provides(OnACLCheck) = true, want false")
 	}
 }
 
@@ -389,7 +399,7 @@ func TestAuthHook_Provides(t *testing.T) {
 			t.Errorf("Provides(%d) = false, want true", b)
 		}
 	}
-	for _, b := range []byte{mqtt.OnPublish, mqtt.OnConnectAuthenticate - 1} {
+	for _, b := range []byte{mqtt.OnPublish, mqtt.OnDisconnect, mqtt.OnSessionEstablished} {
 		if h.Provides(b) {
 			t.Errorf("Provides(%d) = true, want false", b)
 		}
@@ -499,4 +509,65 @@ func TestAuthHook_OnACLCheck(t *testing.T) {
 			t.Error("OnACLCheck() = true, want false when credential lookup fails")
 		}
 	})
+}
+
+// ---------------------------------------------------------------------------
+// sensorHook.OnSessionEstablished / OnDisconnect
+// ---------------------------------------------------------------------------
+
+func makeClient(username string) *mqtt.Client {
+	cl := &mqtt.Client{}
+	cl.Properties.Username = []byte(username)
+	return cl
+}
+
+func TestSensorHook_OnSessionEstablished_NotifiesConnected(t *testing.T) {
+	t.Parallel()
+	notifier := &mockNotifier{}
+	h := newTestHook(nil, notifier)
+
+	h.OnSessionEstablished(makeClient("esp32"), packets.Packet{})
+
+	if len(notifier.deviceStatusCalls) != 1 {
+		t.Fatalf("expected 1 status call, got %d", len(notifier.deviceStatusCalls))
+	}
+	call := notifier.deviceStatusCalls[0]
+	if call.clientID != "esp32" {
+		t.Errorf("clientID = %q, want %q", call.clientID, "esp32")
+	}
+	if !call.connected {
+		t.Error("connected = false, want true")
+	}
+}
+
+func TestSensorHook_OnDisconnect_NotifiesDisconnected(t *testing.T) {
+	t.Parallel()
+	notifier := &mockNotifier{}
+	h := newTestHook(nil, notifier)
+
+	h.OnDisconnect(makeClient("esp32"), nil, false)
+
+	if len(notifier.deviceStatusCalls) != 1 {
+		t.Fatalf("expected 1 status call, got %d", len(notifier.deviceStatusCalls))
+	}
+	call := notifier.deviceStatusCalls[0]
+	if call.clientID != "esp32" {
+		t.Errorf("clientID = %q, want %q", call.clientID, "esp32")
+	}
+	if call.connected {
+		t.Error("connected = true, want false")
+	}
+}
+
+func TestSensorHook_OnDisconnect_NilNotifier_NoPanic(t *testing.T) {
+	t.Parallel()
+	h := newTestHook(nil, nil) // notifier is nil
+	// Must not panic
+	h.OnDisconnect(makeClient("esp32"), nil, false)
+}
+
+func TestSensorHook_OnSessionEstablished_NilNotifier_NoPanic(t *testing.T) {
+	t.Parallel()
+	h := newTestHook(nil, nil)
+	h.OnSessionEstablished(makeClient("esp32"), packets.Packet{})
 }

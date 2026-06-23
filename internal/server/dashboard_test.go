@@ -251,9 +251,11 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to generate password hash: %v", err)
 		}
+		cfg := newTestConfig()
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: newTestAppConfig(),
+			cfg: cfg,
+			hub: NewHub(cfg),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
@@ -281,9 +283,10 @@ func TestUpdateUserPasswordHandler(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		hash, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		cfg := newTestConfig()
 		s := &Server{
 			db:  &mockDBWithPassword{passwordHash: string(hash)},
-			cfg: newTestAppConfig(),
+			cfg: cfg, hub: NewHub(cfg),
 		}
 		handler := s.RegisterRoutes(s.cfg)
 
