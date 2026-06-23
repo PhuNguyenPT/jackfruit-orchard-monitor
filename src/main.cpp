@@ -14,24 +14,24 @@
 #include "sht40.h"
 #include "wifi.h"
 // ---------------------------------------------------------------------------
-// Compile-time constants
+// File-private state
 // ---------------------------------------------------------------------------
 namespace {
+// Timing constants
 const uint32_t kWifiInitDelayMs = 100U;
 const uint32_t kWifiReconnectDelayMs = 500U;
 const uint32_t kSerialInitDelayMs = 10U;
 const uint32_t kSoilPollIntervalMs = 10000U;
 const char* TAG = "Main";
-}  // namespace
 
-// ---------------------------------------------------------------------------
-// Global objects — main.cpp is the composition root
-// ---------------------------------------------------------------------------
+// Mutable loop state
+uint32_t lastSHT40 = 0U;
+uint32_t lastMKES13Poll = 0U;
+
+// Composition root objects
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
-
-static uint32_t lastSHT40 = 0U;
-static uint32_t last_MKE_S13_Poll = 0U;
+}  // namespace
 
 // ---------------------------------------------------------------------------
 // Wi-Fi
@@ -97,8 +97,8 @@ void loop() {
         }
     }
 
-    if (millis() - last_MKE_S13_Poll >= kSoilPollIntervalMs) {
-        last_MKE_S13_Poll = millis();
+    if (millis() - lastMKES13Poll >= kSoilPollIntervalMs) {
+        lastMKES13Poll = millis();
         ESP_LOGI(TAG, "Executing scheduled soil moisture scan...");
 
         SoilPoller::poll(client);
