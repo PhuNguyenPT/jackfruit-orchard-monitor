@@ -7,18 +7,8 @@ import (
 	"testing"
 	"time"
 
-	appConfig "GoApp/internal/config"
-
 	"github.com/gorilla/websocket"
 )
-
-// Helper to create a base config for testing soil thresholds
-func newTestConfig() *appConfig.Config {
-	return &appConfig.Config{
-		SoilDryValue: 3340,
-		SoilWetValue: 1805,
-	}
-}
 
 // newTestConn spins up a server that upgrades and registers the *server-side*
 // connection with h, then dials a client conn against it. BroadcastAirTempHumid sent to

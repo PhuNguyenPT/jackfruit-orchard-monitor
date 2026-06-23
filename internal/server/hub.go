@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"maps"
 	"math"
 	"strconv"
 	"sync"
@@ -12,19 +13,23 @@ import (
 	"GoApp/internal/database"
 	"GoApp/internal/views"
 
-	appConfig "GoApp/internal/config"
+	config "GoApp/internal/config"
+	"GoApp/internal/model"
+
 	"github.com/gorilla/websocket"
 )
 
 type Hub struct {
 	mu      sync.RWMutex
-	clients map[*websocket.Conn]string // conn -> lang
-	cfg     *appConfig.Config
+	clients map[*websocket.Conn]string    // conn -> lang
+	devices map[string]model.DeviceStatus // clientID (MQTT username) → status
+	cfg     *config.Config
 }
 
-func NewHub(cfg *appConfig.Config) *Hub {
+func NewHub(cfg *config.Config) *Hub {
 	return &Hub{
 		clients: make(map[*websocket.Conn]string),
+		devices: make(map[string]model.DeviceStatus),
 		cfg:     cfg,
 	}
 }
@@ -103,4 +108,53 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 			go h.unregister(c)
 		}
 	}
+}
+
+func (h *Hub) BroadcastDeviceStatus(clientID string, connected bool) {
+	h.mu.Lock()
+	h.devices[clientID] = model.DeviceStatus{Connected: connected, UpdatedAt: time.Now()}
+	devicesCopy := make(map[string]model.DeviceStatus, len(h.devices))
+	maps.Copy(devicesCopy, h.devices)
+	h.mu.Unlock()
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for c, lang := range h.clients {
+		var buf bytes.Buffer
+		if err := views.DeviceStatusListOOB(devicesCopy, lang).Render(context.Background(), &buf); err != nil {
+			log.Printf("[Hub] render device status error: %v", err)
+			continue
+		}
+		if err := c.WriteMessage(websocket.TextMessage, buf.Bytes()); err != nil {
+			log.Printf("[Hub] write error, dropping client: %v", err)
+			go h.unregister(c)
+		}
+	}
+}
+
+func (h *Hub) GetDeviceStatuses() map[string]model.DeviceStatus {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make(map[string]model.DeviceStatus, len(h.devices))
+	maps.Copy(out, h.devices)
+	return out
+}
+
+func (h *Hub) pushDeviceStatusesToClient(conn *websocket.Conn, lang string) {
+	h.mu.RLock()
+	if len(h.devices) == 0 {
+		h.mu.RUnlock()
+		return
+	}
+	devicesCopy := make(map[string]model.DeviceStatus, len(h.devices))
+	maps.Copy(devicesCopy, h.devices)
+	h.mu.RUnlock()
+
+	var buf bytes.Buffer
+	if err := views.DeviceStatusListOOB(devicesCopy, lang).Render(context.Background(), &buf); err != nil {
+		log.Printf("[Hub] render device status list error: %v", err)
+		return
+	}
+	_ = conn.WriteMessage(websocket.TextMessage, buf.Bytes())
 }
