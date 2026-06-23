@@ -207,7 +207,8 @@ func NewServer(cfg *config.Config) (*http.Server, *mqtt.Server, error) {
 	// Use Let's Encrypt overrides if provided; otherwise fallback to internal mTLS certs
 	mqttCertPath := cfg.MQTTCertPath
 	mqttKeyPath := cfg.MQTTKeyPath
-	if mqttCertPath == "" {
+	if mqttCertPath == "" && cfg.AppEnv == config.EnvProduction {
+		// prod only: fall back to mTLS certs if no dedicated MQTT cert
 		mqttCertPath = cfg.TLSCertPath
 		mqttKeyPath = cfg.TLSKeyPath
 	}
@@ -223,7 +224,8 @@ func NewServer(cfg *config.Config) (*http.Server, *mqtt.Server, error) {
 		}
 	}
 
-	mqttSrv, err := broker.Start(cfg.MQTTPort, s.db, s.hub, mqttTLS, cfg.MQTTUser, cfg.MQTTPass)
+	mqttSrv, err := broker.Start(cfg.MQTTTLSPort, cfg.MQTTPort, s.db, s.hub, mqttTLS, cfg.MQTTUser, cfg.MQTTPass)
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to start MQTT broker: %w", err)
 	}

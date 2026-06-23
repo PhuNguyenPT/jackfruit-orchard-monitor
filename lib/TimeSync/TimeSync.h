@@ -1,6 +1,5 @@
 #ifndef TIME_SYNC_H
 #define TIME_SYNC_H
-#pragma once
 #include <ctime>
 
 namespace TimeSync {

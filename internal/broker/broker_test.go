@@ -287,7 +287,7 @@ func TestSensorHook_OnPublish_Soil(t *testing.T) {
 func TestStart_PlainTCP(t *testing.T) {
 	t.Parallel()
 	store := &mockStorage{}
-	srv, err := Start(18883, store, nil, nil, "testuser", "testpassword")
+	srv, err := Start(18883, 0, store, nil, nil, "testuser", "testpassword")
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -300,7 +300,7 @@ func TestStart_PlainTCP(t *testing.T) {
 func TestStart_DifferentPort(t *testing.T) {
 	t.Parallel()
 	store := &mockStorage{}
-	srv, err := Start(18884, store, nil, nil, "testuser", "testpassword")
+	srv, err := Start(18884, 0, store, nil, nil, "testuser", "testpassword")
 	if err != nil {
 		t.Fatalf("Start() on alt port error = %v", err)
 	}

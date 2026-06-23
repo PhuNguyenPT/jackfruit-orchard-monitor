@@ -36,7 +36,8 @@ type Config struct {
 	TLSCAPath   string
 	TLSPort     int `validate:"required,gt=0"`
 	// MQTT
-	MQTTPort     int    `validate:"required,gt=0"`
+	MQTTTLSPort  int    `validate:"required,gt=0"`
+	MQTTPort     int    // plain TCP; 0 = disabled (prod)
 	MQTTUser     string `validate:"required"`
 	MQTTPass     string `validate:"required,min=8"`
 	MQTTCertPath string
@@ -107,13 +108,14 @@ func LoadAppConfig() (*Config, error) {
 		TLSKeyPath:   getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
 		TLSCAPath:    getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
 		TLSPort:      getEnvOrDefaultInt("TLS_PORT", 8443),
-		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 8883),
+		MQTTTLSPort:  getEnvOrDefaultInt("MQTT_TLS_PORT", 8883),
+		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 0), // 0 = disabled by default
 		MQTTUser:     getEnvOrDefaultStr("MQTT_USER", "esp32"),
 		MQTTPass:     os.Getenv("MQTT_PASS"),
 		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
 		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
-		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3340),
-		SoilWetValue: getEnvOrDefaultInt("SOIL_WET_VALUE", 1805),
+		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3500),
+		SoilWetValue: getEnvOrDefaultInt("SOIL_WET_VALUE", 1760),
 		ContactEmail: getEnvOrDefaultStr("CONTACT_EMAIL", "info@yourdomain.com"),
 		ContactPhone: getEnvOrDefaultStr("CONTACT_PHONE", ""),
 	}

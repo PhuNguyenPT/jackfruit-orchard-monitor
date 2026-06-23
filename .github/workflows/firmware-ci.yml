@@ -56,13 +56,17 @@ jobs:
       - name: Native unit tests
         run: platformio test --environment native
 
-      - name: Build
+      - name: Build (esp32dev)
         run: platformio run --environment esp32dev
 
-      - name: Clang-Tidy (static analysis)
-        run: >
-          platformio check --environment esp32dev --fail-on-defect high
+      - name: Build (esp32prod)
+        run: platformio run --environment esp32prod
+
+      - name: Clang-Tidy (esp32dev)
+        run: platformio check --environment esp32dev --fail-on-defect high
+
+      - name: Clang-Tidy (esp32prod)
+        run: platformio check --environment esp32prod --fail-on-defect high
 
       - name: Cppcheck (native)
-        run: >
-          platformio check --environment native --fail-on-defect high
+        run: platformio check --environment native --fail-on-defect high
