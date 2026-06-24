@@ -1,8 +1,12 @@
 import Chart from 'chart.js/auto';
+import { sensorChartOptions, paddedRange } from './chart-utils.js';
 
 const dataEl = document.getElementById('chart-data');
 const rows = JSON.parse(dataEl.dataset.points);
 const nonce = dataEl.dataset.nonce;
+
+const tempLabel = dataEl.dataset.labelTemp;
+const humidLabel = dataEl.dataset.labelHumid;
 const labels = rows.map(function (r) {
     return r.t;
 });
@@ -37,16 +41,18 @@ if (rows.length > 0) {
     updateTempMarker(rows[rows.length - 1].temp);
 }
 
+const temps = rows.map(function (r) {
+    return r.temp;
+});
+
 new Chart(document.getElementById('temp-chart'), {
     type: 'line',
     data: {
         labels,
         datasets: [
             {
-                label: 'Temperature (°C)',
-                data: rows.map(function (r) {
-                    return r.temp;
-                }),
+                label: tempLabel,
+                data: temps,
                 borderColor: '#f97316',
                 backgroundColor: 'rgba(249,115,22,0.08)',
                 borderWidth: 2,
@@ -56,7 +62,12 @@ new Chart(document.getElementById('temp-chart'), {
             },
         ],
     },
-    options: sensorChartOptions({ suffix: '°C' }),
+    options: sensorChartOptions({
+        suffix: '°C',
+        // Soft range: padded ±2 °C around actual data so small fluctuations
+        // don't look like dramatic spikes, while still showing the real scale.
+        ...paddedRange(temps, 2),
+    }),
 });
 
 new Chart(document.getElementById('humid-chart'), {
@@ -65,7 +76,7 @@ new Chart(document.getElementById('humid-chart'), {
         labels,
         datasets: [
             {
-                label: 'Humidity (%)',
+                label: humidLabel,
                 data: rows.map(function (r) {
                     return r.humid;
                 }),
@@ -80,42 +91,3 @@ new Chart(document.getElementById('humid-chart'), {
     },
     options: sensorChartOptions({ suffix: '%', min: 0, max: 100 }),
 });
-
-function sensorChartOptions(opts) {
-    return {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-            legend: { display: true },
-            tooltip: {
-                callbacks: {
-                    label: function (ctx) {
-                        return (
-                            ctx.dataset.label +
-                            ': ' +
-                            ctx.parsed.y +
-                            opts.suffix
-                        );
-                    },
-                },
-            },
-        },
-        scales: {
-            x: {
-                ticks: {
-                    maxTicksLimit: 8,
-                    font: { size: 11 },
-                    color: '#9ca3af',
-                },
-                grid: { display: false },
-            },
-            y: {
-                min: opts.min,
-                max: opts.max,
-                ticks: { font: { size: 11 }, color: '#6b7280' },
-                grid: { color: 'rgba(0,0,0,0.04)' },
-            },
-        },
-    };
-}

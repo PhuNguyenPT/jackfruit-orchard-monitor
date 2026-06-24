@@ -1,10 +1,13 @@
 import Chart from 'chart.js/auto';
+import { sensorChartOptions } from './chart-utils.js';
 
 const dataEl = document.getElementById('chart-data');
 const rows = JSON.parse(dataEl.dataset.points);
+const soilLabel = dataEl.dataset.labelSoil;
 const labels = rows.map(function (r) {
     return r.t;
 });
+
 const marker = document.getElementById('soil-marker');
 const label = document.getElementById('soil-current-label');
 const bar = document.querySelector('.soil-gradient-bar');
@@ -27,7 +30,7 @@ new Chart(document.getElementById('soil-chart'), {
         labels,
         datasets: [
             {
-                label: 'Soil Moisture (%)',
+                label: soilLabel,
                 data: rows.map(function (r) {
                     return r.pct;
                 }),
@@ -40,35 +43,5 @@ new Chart(document.getElementById('soil-chart'), {
             },
         ],
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-            legend: { display: true },
-            tooltip: {
-                callbacks: {
-                    label: function (ctx) {
-                        return ctx.dataset.label + ': ' + ctx.parsed.y + '%';
-                    },
-                },
-            },
-        },
-        scales: {
-            x: {
-                ticks: {
-                    maxTicksLimit: 8,
-                    font: { size: 11 },
-                    color: '#9ca3af',
-                },
-                grid: { display: false },
-            },
-            y: {
-                min: 0,
-                max: 100,
-                ticks: { font: { size: 11 }, color: '#6b7280' },
-                grid: { color: 'rgba(0,0,0,0.04)' },
-            },
-        },
-    },
+    options: sensorChartOptions({ suffix: '%', min: 0, max: 100 }),
 });
