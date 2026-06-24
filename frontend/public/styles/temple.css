@@ -38,3 +38,14 @@
 		#6b0001 100%
 	);
 }
+
+.soil-gradient-bar {
+    background: linear-gradient(
+        to right,
+        #c0392b,   /* 0%   — dry, red */
+        #e67e22,   /* 25%  — orange */
+        #f1c40f,   /* 50%  — yellow, transitional */
+        #27ae60,   /* 75%  — green, moist */
+        #2980b9    /* 100% — blue, saturated */
+    );
+}
