@@ -62,6 +62,8 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 		protected.GET("/sensors", s.sensorsPageHandler)
 		protected.GET("/sensors/readings", s.sensorsGridHandler)
 		protected.GET("/sensors/ws", s.sensorsWSHandler)
+		protected.GET("/sensors/sht40/:addr/history", s.sht40HistoryHandler)
+		protected.GET("/sensors/soil/:idx/history", s.soilHistoryHandler)
 	}
 	return r
 }

@@ -1,11 +1,14 @@
 package server
 
 import (
+	"GoApp/internal/database"
 	"GoApp/internal/views"
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 func (s *Server) sensorsPageHandler(c *gin.Context) {
@@ -76,5 +79,51 @@ func (s *Server) sensorsWSHandler(c *gin.Context) {
 			}
 			break
 		}
+	}
+}
+
+func (s *Server) sht40HistoryHandler(c *gin.Context) {
+	lang := getLangStr(c)
+	addr, err := strconv.ParseInt(c.Param("addr"), 10, 16)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	rows, err := s.db.GetAirTempHumidReadingsByAddr(c.Request.Context(),
+		database.GetAirTempHumidReadingsByAddrParams{
+			Addr:  int16(addr),
+			Limit: 100,
+		})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := views.SHT40HistoryPage(rows, int16(addr), lang, s.siteConfig(c)).
+		Render(c.Request.Context(), c.Writer); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+}
+
+func (s *Server) soilHistoryHandler(c *gin.Context) {
+	lang := getLangStr(c)
+	idx, err := strconv.ParseInt(c.Param("idx"), 10, 16)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	rows, err := s.db.GetSoilMoistureReadingsBySensorIdx(c.Request.Context(),
+		database.GetSoilMoistureReadingsBySensorIdxParams{
+			SensorIdx: int16(idx),
+			Limit:     100,
+		})
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := views.SoilHistoryPage(rows, int16(idx), lang, s.siteConfig(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue).
+		Render(c.Request.Context(), c.Writer); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }

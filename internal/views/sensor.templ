@@ -80,9 +80,11 @@ templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilRe
 }
 
 templ SensorCard(r database.GetLatestAirTempHumidReadingsRow, lang string) {
-	<div id={ fmt.Sprintf("sensor-%d", r.Addr) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-		@sensorCardBody(r, lang)
-	</div>
+	<a href={ templ.SafeURL(fmt.Sprintf("/sensors/sht40/%d/history", r.Addr)) } class="block group">
+		<div id={ fmt.Sprintf("sensor-%d", r.Addr) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 group-hover:border-orange-300 group-hover:shadow-md transition-all cursor-pointer">
+			@sensorCardBody(r, lang)
+		</div>
+	</a>
 }
 
 templ SensorCardOOB(r database.GetLatestAirTempHumidReadingsRow, lang string) {
@@ -115,9 +117,11 @@ templ sensorCardBody(r database.GetLatestAirTempHumidReadingsRow, lang string) {
 }
 
 templ SoilCard(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
-	<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-		@soilCardBody(r, lang, soilDry, soilWet)
-	</div>
+	<a href={ templ.SafeURL(fmt.Sprintf("/sensors/soil/%d/history", r.SensorIdx)) } class="block group">
+		<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 group-hover:border-emerald-300 group-hover:shadow-md transition-all cursor-pointer">
+			@soilCardBody(r, lang, soilDry, soilWet)
+		</div>
+	</a>
 }
 
 templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {

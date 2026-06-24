@@ -1,0 +1,71 @@
+package views
+
+import (
+	"GoApp/internal/ctxutil"
+	"GoApp/internal/database"
+	"fmt"
+)
+
+templ SHT40HistoryPage(
+	rows []database.GetAirTempHumidReadingsByAddrRow,
+	addr int16,
+	lang string,
+	site SiteConfig,
+) {
+	<!DOCTYPE html>
+	<html lang={ lang }>
+		@Head(SEOMeta{Title: fmt.Sprintf("SHT40 %d — History", addr)})
+		<body class="min-h-screen bg-gray-50 flex flex-col">
+			@Header("sensors", "", lang)
+			<main class="flex-1">
+				<div class="max-w-4xl mx-auto px-8 py-12 space-y-6">
+					<div class="flex items-center gap-3">
+						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← Back</a>
+						<h1 class="text-2xl font-bold">SHT40 — Addr { fmt.Sprintf("%d", addr) }</h1>
+					</div>
+					<!-- Data carrier — JS reads this, user never sees it -->
+					<div id="chart-data" data-points={ marshalSHT40Rows(rows) } class="hidden"></div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+						<canvas id="temp-chart" class="w-full h-full"></canvas>
+					</div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+						<canvas id="humid-chart" class="w-full h-full"></canvas>
+					</div>
+				</div>
+			</main>
+			@Footer(lang, site)
+			<script type="module" nonce={ ctxutil.GetNonce(ctx) } src="/public/sht40-history.min.js"></script>
+		</body>
+	</html>
+}
+
+templ SoilHistoryPage(
+	rows []database.GetSoilMoistureReadingsBySensorIdxRow,
+	idx int16,
+	lang string,
+	site SiteConfig,
+	soilDry int,
+	soilWet int,
+) {
+	<!DOCTYPE html>
+	<html lang={ lang }>
+		@Head(SEOMeta{Title: fmt.Sprintf("Soil %d — History", idx)})
+		<body class="min-h-screen bg-gray-50 flex flex-col">
+			@Header("sensors", "", lang)
+			<main class="flex-1">
+				<div class="max-w-4xl mx-auto px-8 py-12 space-y-6">
+					<div class="flex items-center gap-3">
+						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← Back</a>
+						<h1 class="text-2xl font-bold">MKE-S13 — Sensor { fmt.Sprintf("%d", idx) }</h1>
+					</div>
+					<div id="chart-data" data-points={ marshalSoilRows(rows, soilDry, soilWet) } class="hidden"></div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+						<canvas id="soil-chart" class="w-full h-full"></canvas>
+					</div>
+				</div>
+			</main>
+			@Footer(lang, site)
+			<script type="module" nonce={ ctxutil.GetNonce(ctx) } src="/public/soil-history.min.js"></script>
+		</body>
+	</html>
+}
