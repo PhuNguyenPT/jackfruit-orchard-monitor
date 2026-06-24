@@ -24,7 +24,26 @@ templ SHT40HistoryPage(
 						<h1 class="text-2xl font-bold">SHT40 — Addr { fmt.Sprintf("%d", addr) }</h1>
 					</div>
 					<!-- Data carrier — JS reads this, user never sees it -->
-					<div id="chart-data" data-points={ marshalSHT40Rows(rows) } class="hidden"></div>
+					<div id="chart-data" data-points={ marshalSHT40Rows(rows) } data-nonce={ ctxutil.GetNonce(ctx) } class="hidden"></div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+						<div class="flex justify-between items-center mb-2">
+							<span class="text-sm font-medium text-gray-500">Temperature Scale</span>
+							<span id="temp-current-label" class="text-sm font-semibold text-gray-700">—</span>
+						</div>
+						<div class="relative pt-2">
+							<div id="temp-marker" class="absolute top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-gray-800"></div>
+							<div class="h-4 rounded-full overflow-hidden temp-gradient-bar"></div>
+						</div>
+						<div class="flex justify-between text-xs text-gray-400 mt-1">
+							<span>-40°C</span>
+							<span>-20°C</span>
+							<span>0°C</span>
+							<span>20°C</span>
+							<span>40°C</span>
+							<span>60°C</span>
+							<span>100°C</span>
+						</div>
+					</div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
 						<canvas id="temp-chart" class="w-full h-full"></canvas>
 					</div>
@@ -58,7 +77,7 @@ templ SoilHistoryPage(
 						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← Back</a>
 						<h1 class="text-2xl font-bold">MKE-S13 — Sensor { fmt.Sprintf("%d", idx) }</h1>
 					</div>
-					<div id="chart-data" data-points={ marshalSoilRows(rows, soilDry, soilWet) } class="hidden"></div>
+					<div id="chart-data" data-points={ marshalSoilRows(rows, soilDry, soilWet) } data-nonce={ ctxutil.GetNonce(ctx) } class="hidden"></div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
 						<canvas id="soil-chart" class="w-full h-full"></canvas>
 					</div>
