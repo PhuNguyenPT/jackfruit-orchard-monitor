@@ -54,6 +54,48 @@ func (q *Queries) GetLatestSoilMoistureReadings(ctx context.Context) ([]GetLates
 	return items, nil
 }
 
+const getSoilMoistureReadingsBySensorIdx = `-- name: GetSoilMoistureReadingsBySensorIdx :many
+SELECT sensor_idx, raw, created_at
+FROM soil_moisture_readings
+WHERE sensor_idx = $1
+ORDER BY created_at DESC
+LIMIT $2
+`
+
+type GetSoilMoistureReadingsBySensorIdxParams struct {
+	SensorIdx int16
+	Limit     int32
+}
+
+type GetSoilMoistureReadingsBySensorIdxRow struct {
+	SensorIdx int16
+	Raw       int16
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg GetSoilMoistureReadingsBySensorIdxParams) ([]GetSoilMoistureReadingsBySensorIdxRow, error) {
+	rows, err := q.db.QueryContext(ctx, getSoilMoistureReadingsBySensorIdx, arg.SensorIdx, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSoilMoistureReadingsBySensorIdxRow
+	for rows.Next() {
+		var i GetSoilMoistureReadingsBySensorIdxRow
+		if err := rows.Scan(&i.SensorIdx, &i.Raw, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertSoilMoistureReading = `-- name: InsertSoilMoistureReading :exec
 INSERT INTO soil_moisture_readings (sensor_idx, raw, created_at)
 VALUES ($1, $2, $3)

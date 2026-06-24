@@ -1,7 +1,10 @@
 package views
 
 import (
+	"GoApp/internal/database"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -117,4 +120,48 @@ func calculateSoilPercentage(raw int16, dry, wet int) float32 {
 		return 100.0
 	}
 	return float32(dryVal-raw) / float32(dryVal-wetVal) * 100.0
+}
+
+func marshalSHT40Rows(rows []database.GetAirTempHumidReadingsByAddrRow) string {
+	type point struct {
+		T     string  `json:"t"`
+		Temp  float32 `json:"temp"`
+		Humid float32 `json:"humid"`
+	}
+	pts := make([]point, len(rows))
+	for i, r := range rows {
+		pts[len(rows)-1-i] = point{
+			T:     r.CreatedAt.In(vietnamTZ).Format("01-02 15:04"),
+			Temp:  float32(r.Temperature) / 10,
+			Humid: float32(r.Humidity) / 10,
+		}
+	}
+	b, err := json.Marshal(pts)
+	if err != nil {
+		log.Printf("[views] marshalSHT40Rows: %v", err)
+		return "[]"
+	}
+	return string(b)
+}
+
+func marshalSoilRows(rows []database.GetSoilMoistureReadingsBySensorIdxRow, soilDry, soilWet int) string {
+	type point struct {
+		T   string  `json:"t"`
+		Pct float32 `json:"pct"`
+		Raw int16   `json:"raw"`
+	}
+	pts := make([]point, len(rows))
+	for i, r := range rows {
+		pts[len(rows)-1-i] = point{
+			T:   r.CreatedAt.In(vietnamTZ).Format("01-02 15:04"),
+			Pct: calculateSoilPercentage(r.Raw, soilDry, soilWet),
+			Raw: r.Raw,
+		}
+	}
+	b, err := json.Marshal(pts)
+	if err != nil {
+		log.Printf("[views] marshalSoilRows: %v", err)
+		return "[]"
+	}
+	return string(b)
 }

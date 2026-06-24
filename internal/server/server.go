@@ -55,6 +55,7 @@ type DB interface {
 	InsertSoilMoistureReading(ctx context.Context, arg database.InsertSoilMoistureReadingParams) error
 	GetLatestSoilMoistureReadings(ctx context.Context) ([]database.GetLatestSoilMoistureReadingsRow, error)
 	DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error
+	GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error)
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -161,6 +162,9 @@ func (s *sqlDB) GetLatestSoilMoistureReadings(ctx context.Context) ([]database.G
 }
 func (s *sqlDB) DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error {
 	return s.queries.DeleteOldSoilMoistureReadings(ctx, createdAt)
+}
+func (s *sqlDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error) {
+	return s.queries.GetSoilMoistureReadingsBySensorIdx(ctx, arg)
 }
 
 type Server struct {

@@ -46,6 +46,7 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 	r.GET("/robots.txt", s.robotsHandler)
 	r.HEAD("/robots.txt", s.robotsHandler)
 	r.GET("/site.webmanifest", s.webmanifestHandler)
+	r.HEAD("/site.webmanifest", s.webmanifestHandler)
 	r.GET("/register", s.registerPageHandler)
 	r.POST("/register", s.registerHandler)
 	r.GET("/login", s.loginPageHandler)
@@ -62,6 +63,8 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 		protected.GET("/sensors", s.sensorsPageHandler)
 		protected.GET("/sensors/readings", s.sensorsGridHandler)
 		protected.GET("/sensors/ws", s.sensorsWSHandler)
+		protected.GET("/sensors/sht40/:addr/history", s.sht40HistoryHandler)
+		protected.GET("/sensors/soil/:idx/history", s.soilHistoryHandler)
 	}
 	return r
 }

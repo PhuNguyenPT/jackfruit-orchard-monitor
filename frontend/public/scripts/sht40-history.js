@@ -1,0 +1,90 @@
+import Chart from 'chart.js/auto';
+
+const dataEl = document.getElementById('chart-data');
+const rows = JSON.parse(dataEl.dataset.points);
+const labels = rows.map(function (r) {
+    return r.t;
+});
+
+new Chart(document.getElementById('temp-chart'), {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [
+            {
+                label: 'Temperature (°C)',
+                data: rows.map(function (r) {
+                    return r.temp;
+                }),
+                borderColor: '#f97316',
+                backgroundColor: 'rgba(249,115,22,0.08)',
+                borderWidth: 2,
+                pointRadius: 2,
+                tension: 0.3,
+                fill: true,
+            },
+        ],
+    },
+    options: sensorChartOptions({ suffix: '°C' }),
+});
+
+new Chart(document.getElementById('humid-chart'), {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [
+            {
+                label: 'Humidity (%)',
+                data: rows.map(function (r) {
+                    return r.humid;
+                }),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,0.08)',
+                borderWidth: 2,
+                pointRadius: 2,
+                tension: 0.3,
+                fill: true,
+            },
+        ],
+    },
+    options: sensorChartOptions({ suffix: '%', min: 0, max: 100 }),
+});
+
+function sensorChartOptions(opts) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: true },
+            tooltip: {
+                callbacks: {
+                    label: function (ctx) {
+                        return (
+                            ctx.dataset.label +
+                            ': ' +
+                            ctx.parsed.y +
+                            opts.suffix
+                        );
+                    },
+                },
+            },
+        },
+        scales: {
+            x: {
+                ticks: {
+                    maxTicksLimit: 8,
+                    font: { size: 11 },
+                    color: '#9ca3af',
+                },
+                grid: { display: false },
+            },
+            y: {
+                min: opts.min,
+                max: opts.max,
+                ticks: { font: { size: 11 }, color: '#6b7280' },
+                grid: { color: 'rgba(0,0,0,0.04)' },
+            },
+        },
+    };
+}
