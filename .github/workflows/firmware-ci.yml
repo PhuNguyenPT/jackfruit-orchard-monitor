@@ -1,9 +1,9 @@
 name: Firmware CI
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "dev"]
   pull_request:
-    branches: [main, dev]
+    branches: ["main", "dev"]
 jobs:
   firmware-validation:
     runs-on: ubuntu-latest
