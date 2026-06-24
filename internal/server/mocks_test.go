@@ -202,3 +202,11 @@ func (m *mockDB) CreateMQTTACL(ctx context.Context, arg database.CreateMQTTACLPa
 		Permission:   perm,
 	}, nil
 }
+
+func (m *mockDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error) {
+	return []database.GetSoilMoistureReadingsBySensorIdxRow{
+		{SensorIdx: arg.SensorIdx, Raw: 1700, CreatedAt: time.Now()},
+		{SensorIdx: arg.SensorIdx, Raw: 1820, CreatedAt: time.Now().Add(-1 * time.Minute)},
+		{SensorIdx: arg.SensorIdx, Raw: 2080, CreatedAt: time.Now().Add(-2 * time.Minute)},
+	}, nil
+}
