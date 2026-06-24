@@ -36,7 +36,7 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 						</span>
 					</div>
 					<div hx-ext="ws" ws-connect="/sensors/ws">
-						@DeviceStatusList(devices)
+						@DeviceStatusList(devices, lang)
 						@SensorGrid(shtReadings, soilReadings, lang, soilDry, soilWet)
 					</div>
 				</div>
@@ -49,7 +49,7 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div id="sensor-grid" class="space-y-10">
 		<div class="space-y-4">
-			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">SHT40 — Atmosphere</h2>
+			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">{ T(lang).SHT40SectionHeading }</h2>
 			if len(shtReadings) == 0 {
 				<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">
 					<p class="text-sm">{ T(lang).SensorNoData }</p>
@@ -63,7 +63,7 @@ templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilRe
 			}
 		</div>
 		<div class="space-y-4">
-			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">MKE-S13 — Soil Moisture</h2>
+			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">{ T(lang).SoilSectionHeading }</h2>
 			if len(soilReadings) == 0 {
 				<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">
 					<p class="text-sm">{ T(lang).SensorNoData }</p>
@@ -133,11 +133,11 @@ templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, soil
 templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-semibold text-gray-700">{ T(lang).SensorAddr } { fmt.Sprintf("%d", r.SensorIdx) }</span>
-		<span class="text-xs text-gray-400">Raw: { fmt.Sprintf("%d", r.Raw) }</span>
+		<span class="text-xs text-gray-400">{ T(lang).SensorRaw }: { fmt.Sprintf("%d", r.Raw) }</span>
 	</div>
 	<div class="grid grid-cols-1">
 		<div class="bg-emerald-50 rounded-lg p-3 space-y-1">
-			<p class="text-xs font-medium text-emerald-600">Soil Moisture</p>
+			<p class="text-xs font-medium text-emerald-600">{ T(lang).SoilMoistureLabel }</p>
 			<p class="text-2xl font-bold text-gray-800">
 				{ fmt.Sprintf("%.1f", calculateSoilPercentage(r.Raw, soilDry, soilWet)) }
 				<span class="text-sm font-normal text-gray-500 ml-0.5">%</span>
@@ -147,15 +147,15 @@ templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soi
 	<p class="text-xs text-gray-400">{ T(lang).SensorLastUpdated } { FormatDateTime(r.CreatedAt, lang) }</p>
 }
 
-templ DeviceStatusList(devices map[string]model.DeviceStatus) {
+templ DeviceStatusList(devices map[string]model.DeviceStatus, lang string) {
 	<div id="device-status-list" class="space-y-2">
 		for clientID, status := range devices {
-			@DeviceStatusBadge(clientID, status.Connected)
+			@DeviceStatusBadge(clientID, status.Connected, lang)
 		}
 	</div>
 }
 
-templ DeviceStatusBadge(clientID string, connected bool) {
+templ DeviceStatusBadge(clientID string, connected bool, lang string) {
 	<div
 		id={ fmt.Sprintf("device-status-%s", clientID) }
 		class="flex items-center gap-2 text-sm px-3 py-1.5 rounded-full border w-fit"
@@ -163,11 +163,11 @@ templ DeviceStatusBadge(clientID string, connected bool) {
 		if connected {
 			<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
 			<span class="text-green-700 font-medium">{ clientID }</span>
-			<span class="text-gray-400">Connected</span>
+			<span class="text-gray-400">{ T(lang).DeviceConnected }</span>
 		} else {
 			<span class="w-2 h-2 rounded-full bg-red-400"></span>
 			<span class="text-red-700 font-medium">{ clientID }</span>
-			<span class="text-gray-400">Disconnected</span>
+			<span class="text-gray-400">{ T(lang).DeviceDisconnected }</span>
 		}
 	</div>
 }
@@ -175,7 +175,7 @@ templ DeviceStatusBadge(clientID string, connected bool) {
 templ DeviceStatusListOOB(devices map[string]model.DeviceStatus, lang string) {
 	<div id="device-status-list" hx-swap-oob="true" class="space-y-2">
 		for clientID, status := range devices {
-			@DeviceStatusBadge(clientID, status.Connected)
+			@DeviceStatusBadge(clientID, status.Connected, lang)
 		}
 	</div>
 }

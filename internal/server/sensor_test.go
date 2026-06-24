@@ -25,6 +25,14 @@ func (e *erroringDB) GetLatestAirTempHumidReadings(ctx context.Context) ([]datab
 	return nil, errors.New("db down")
 }
 
+func (e *erroringDB) GetAirTempHumidReadingsByAddr(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrParams) ([]database.GetAirTempHumidReadingsByAddrRow, error) {
+	return nil, errors.New("db down")
+}
+
+func (e *erroringDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error) {
+	return nil, errors.New("db down")
+}
+
 func newSensorTestContext(method, path string) (*gin.Context, *httptest.ResponseRecorder) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -324,5 +332,94 @@ func TestSensorsWSHandler_DeviceStatus_FullCycle(t *testing.T) {
 	want := transitions[len(transitions)-1].connected
 	if status.Connected != want {
 		t.Errorf("expected hub.devices to reflect Connected=%v after final transition, got %v", want, status.Connected)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SHT40HistoryPage / sht40HistoryHandler
+// ---------------------------------------------------------------------------
+
+func TestSHT40HistoryHandler_Success(t *testing.T) {
+	s := newTestServer()
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/sht40/1")
+
+	// Inject the path parameter expected by the handler
+	c.Params = []gin.Param{{Key: "addr", Value: "1"}}
+
+	s.sht40HistoryHandler(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+
+	body := w.Body.String()
+
+	// Assert the script bundle and data container exist
+	if !strings.Contains(body, `src="/public/sht40-history.min.js"`) {
+		t.Errorf("missing script entry point for sht40 history chart")
+	}
+	if !strings.Contains(body, `id="chart-data"`) {
+		t.Errorf("missing chart data element carrier")
+	}
+
+	// Verify the newly introduced localization attributes are present
+	if !strings.Contains(body, "data-label-temp=") || !strings.Contains(body, "data-label-humid=") {
+		t.Errorf("missing localized data attributes for SHT40 charts, got: %s", body)
+	}
+}
+
+func TestSHT40HistoryHandler_DBError(t *testing.T) {
+	s := newTestServer()
+	s.db = &erroringDB{&mockDB{}}
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/sht40/1")
+	c.Params = []gin.Param{{Key: "addr", Value: "1"}}
+
+	s.sht40HistoryHandler(c)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SoilHistoryPage / soilHistoryHandler
+// ---------------------------------------------------------------------------
+
+func TestSoilHistoryHandler_Success(t *testing.T) {
+	s := newTestServer()
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/soil/0")
+
+	// Inject the path parameter expected by the handler
+	c.Params = []gin.Param{{Key: "idx", Value: "0"}}
+
+	s.soilHistoryHandler(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusOK)
+	}
+
+	body := w.Body.String()
+
+	// Assert the script bundle and data container exist
+	if !strings.Contains(body, `src="/public/soil-history.min.js"`) {
+		t.Errorf("missing script entry point for soil history chart")
+	}
+
+	// Verify the newly introduced soil localization attribute is present
+	if !strings.Contains(body, "data-label-soil=") {
+		t.Errorf("missing localized data-label-soil attribute for soil chart, got: %s", body)
+	}
+}
+
+func TestSoilHistoryHandler_DBError(t *testing.T) {
+	s := newTestServer()
+	s.db = &erroringDB{&mockDB{}}
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/soil/0")
+	c.Params = []gin.Param{{Key: "idx", Value: "0"}}
+
+	s.soilHistoryHandler(c)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
 	}
 }
