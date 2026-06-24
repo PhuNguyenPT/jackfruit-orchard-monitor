@@ -46,6 +46,7 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 	r.GET("/robots.txt", s.robotsHandler)
 	r.HEAD("/robots.txt", s.robotsHandler)
 	r.GET("/site.webmanifest", s.webmanifestHandler)
+	r.HEAD("/site.webmanifest", s.webmanifestHandler)
 	r.GET("/register", s.registerPageHandler)
 	r.POST("/register", s.registerHandler)
 	r.GET("/login", s.loginPageHandler)
