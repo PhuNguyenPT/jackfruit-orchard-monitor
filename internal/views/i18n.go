@@ -93,16 +93,28 @@ type Translations struct {
 	HomeLatestProducts string
 	HomeViewAll        string
 	// Sensors
-	SensorsTitle       string
-	SensorsDescription string
-	SensorsHeading     string
-	SensorsSubtitle    string
-	SensorAddr         string
-	SensorTemperature  string
-	SensorHumidity     string
-	SensorLastUpdated  string
-	SensorNoData       string
-	SensorAutoRefresh  string
+	SensorsTitle        string
+	SensorsDescription  string
+	SensorsHeading      string
+	SensorsSubtitle     string
+	SensorAddr          string
+	SensorTemperature   string
+	SensorHumidity      string
+	SensorLastUpdated   string
+	SensorNoData        string
+	SensorAutoRefresh   string
+	SHT40SectionHeading string
+	SoilSectionHeading  string
+	SoilMoistureLabel   string
+	SensorRaw           string
+	DeviceConnected     string
+	DeviceDisconnected  string
+	// Sensor History
+	HistoryBack            string
+	SHT40HistoryTitle      string
+	SoilHistoryTitle       string
+	TemperatureScaleLabel  string
+	SoilMoistureScaleLabel string
 }
 
 const (
@@ -205,16 +217,28 @@ func T(lang string) Translations {
 			HomeLatestProducts: "Sản phẩm mới nhất",
 			HomeViewAll:        "Xem tất cả →",
 			// Sensors
-			SensorsTitle:       "Cảm biến",
-			SensorsDescription: "Dữ liệu thời gian thực từ các cảm biến",
-			SensorsHeading:     "Dữ liệu cảm biến",
-			SensorsSubtitle:    "Tự động cập nhật mỗi 10 giây",
-			SensorAddr:         "Cảm biến",
-			SensorTemperature:  "Nhiệt độ",
-			SensorHumidity:     "Độ ẩm",
-			SensorLastUpdated:  "Cập nhật lúc",
-			SensorNoData:       "Chưa có dữ liệu từ cảm biến.",
-			SensorAutoRefresh:  "Tự động cập nhật",
+			SensorsTitle:        "Cảm biến",
+			SensorsDescription:  "Dữ liệu thời gian thực từ các cảm biến",
+			SensorsHeading:      "Dữ liệu cảm biến",
+			SensorsSubtitle:     "Tự động cập nhật mỗi 10 giây",
+			SensorAddr:          "Cảm biến",
+			SensorTemperature:   "Nhiệt độ",
+			SensorHumidity:      "Độ ẩm",
+			SensorLastUpdated:   "Cập nhật lúc",
+			SensorNoData:        "Chưa có dữ liệu từ cảm biến.",
+			SHT40SectionHeading: "SHT40 — Nhiệt độ & Độ ẩm không khí",
+			SoilSectionHeading:  "MKE-S13 — Độ ẩm đất",
+			SoilMoistureLabel:   "Độ ẩm đất",
+			SensorRaw:           "Giá trị gốc",
+			DeviceConnected:     "Đã kết nối",
+			DeviceDisconnected:  "Mất kết nối",
+			// Sensor History
+			SensorAutoRefresh:      "Tự động cập nhật",
+			HistoryBack:            "Quay lại",
+			SHT40HistoryTitle:      "SHT40 — Cảm biến",
+			SoilHistoryTitle:       "MKE-S13 — Cảm biến",
+			TemperatureScaleLabel:  "Thang nhiệt độ",
+			SoilMoistureScaleLabel: "Thang độ ẩm đất",
 		}
 	}
 	return Translations{
@@ -310,15 +334,27 @@ func T(lang string) Translations {
 		HomeLatestProducts: "Latest Products",
 		HomeViewAll:        "View all →",
 		// Sensors
-		SensorsTitle:       "Sensors",
-		SensorsDescription: "Live readings from all sensors",
-		SensorsHeading:     "Sensor Readings",
-		SensorsSubtitle:    "Auto-refreshes every 10 seconds",
-		SensorAddr:         "Sensor",
-		SensorTemperature:  "Temperature",
-		SensorHumidity:     "Humidity",
-		SensorLastUpdated:  "Updated",
-		SensorNoData:       "No sensor data available yet.",
-		SensorAutoRefresh:  "Auto-refresh",
+		SensorsTitle:        "Sensors",
+		SensorsDescription:  "Live readings from all sensors",
+		SensorsHeading:      "Sensor Readings",
+		SensorsSubtitle:     "Auto-refreshes every 10 seconds",
+		SensorAddr:          "Sensor",
+		SensorTemperature:   "Temperature",
+		SensorHumidity:      "Humidity",
+		SensorLastUpdated:   "Updated",
+		SensorNoData:        "No sensor data available yet.",
+		SensorAutoRefresh:   "Auto-refresh",
+		SHT40SectionHeading: "SHT40 — Temperature & Air Humidity",
+		SoilSectionHeading:  "MKE-S13 — Soil Moisture",
+		SoilMoistureLabel:   "Soil Moisture",
+		SensorRaw:           "Raw",
+		DeviceConnected:     "Connected",
+		DeviceDisconnected:  "Disconnected",
+		// Sensor History
+		HistoryBack:            "Back",
+		SHT40HistoryTitle:      "SHT40 — Sensor",
+		SoilHistoryTitle:       "MKE-S13 — Sensor",
+		TemperatureScaleLabel:  "Temperature Scale",
+		SoilMoistureScaleLabel: "Soil Moisture Scale",
 	}
 }

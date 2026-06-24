@@ -12,19 +12,46 @@ templ SHT40HistoryPage(
 	lang string,
 	site SiteConfig,
 ) {
+	{{ t := T(lang) }}
 	<!DOCTYPE html>
 	<html lang={ lang }>
-		@Head(SEOMeta{Title: fmt.Sprintf("SHT40 %d — History", addr)})
+		@Head(SEOMeta{Title: fmt.Sprintf("%s %d", t.SHT40HistoryTitle, addr)})
 		<body class="min-h-screen bg-gray-50 flex flex-col">
 			@Header("sensors", "", lang)
 			<main class="flex-1">
 				<div class="max-w-4xl mx-auto px-8 py-12 space-y-6">
 					<div class="flex items-center gap-3">
-						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← Back</a>
-						<h1 class="text-2xl font-bold">SHT40 — Addr { fmt.Sprintf("%d", addr) }</h1>
+						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← { t.HistoryBack }</a>
+						<h1 class="text-2xl font-bold">{ t.SHT40HistoryTitle } { fmt.Sprintf("%d", addr) }</h1>
 					</div>
 					<!-- Data carrier — JS reads this, user never sees it -->
-					<div id="chart-data" data-points={ marshalSHT40Rows(rows) } class="hidden"></div>
+					<div
+						id="chart-data"
+						data-points={ marshalSHT40Rows(rows) }
+						data-nonce={ ctxutil.GetNonce(ctx) }
+						data-label-temp={ t.SensorTemperature + " (°C)" }
+						data-label-humid={ t.SensorHumidity + " (%)" }
+						class="hidden"
+					></div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+						<div class="flex justify-between items-center mb-2">
+							<span class="text-sm font-medium text-gray-500">{ t.TemperatureScaleLabel }</span>
+							<span id="temp-current-label" class="text-sm font-semibold text-gray-700">—</span>
+						</div>
+						<div class="relative pt-2">
+							<div id="temp-marker" class="absolute top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-gray-800"></div>
+							<div class="h-4 rounded-full overflow-hidden temp-gradient-bar"></div>
+						</div>
+						<div class="flex justify-between text-xs text-gray-400 mt-1">
+							<span>-40°C</span>
+							<span>-20°C</span>
+							<span>0°C</span>
+							<span>20°C</span>
+							<span>40°C</span>
+							<span>60°C</span>
+							<span>100°C</span>
+						</div>
+					</div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
 						<canvas id="temp-chart" class="w-full h-full"></canvas>
 					</div>
@@ -47,18 +74,42 @@ templ SoilHistoryPage(
 	soilDry int,
 	soilWet int,
 ) {
+	{{ t := T(lang) }}
 	<!DOCTYPE html>
 	<html lang={ lang }>
-		@Head(SEOMeta{Title: fmt.Sprintf("Soil %d — History", idx)})
+		@Head(SEOMeta{Title: fmt.Sprintf("%s %d", t.SoilHistoryTitle, idx)})
 		<body class="min-h-screen bg-gray-50 flex flex-col">
 			@Header("sensors", "", lang)
 			<main class="flex-1">
 				<div class="max-w-4xl mx-auto px-8 py-12 space-y-6">
 					<div class="flex items-center gap-3">
-						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← Back</a>
-						<h1 class="text-2xl font-bold">MKE-S13 — Sensor { fmt.Sprintf("%d", idx) }</h1>
+						<a href="/sensors" class="text-sm text-gray-400 hover:text-gray-600">← { t.HistoryBack }</a>
+						<h1 class="text-2xl font-bold">{ t.SoilHistoryTitle } { fmt.Sprintf("%d", idx) }</h1>
 					</div>
-					<div id="chart-data" data-points={ marshalSoilRows(rows, soilDry, soilWet) } class="hidden"></div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+						<div class="flex justify-between items-center mb-2">
+							<span class="text-sm font-medium text-gray-500">{ t.SoilMoistureScaleLabel }</span>
+							<span id="soil-current-label" class="text-sm font-semibold text-gray-700">—</span>
+						</div>
+						<div class="relative pt-2">
+							<div id="soil-marker" class="absolute top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-gray-800"></div>
+							<div class="h-4 rounded-full overflow-hidden soil-gradient-bar"></div>
+						</div>
+						<div class="flex justify-between text-xs text-gray-400 mt-1">
+							<span>0%</span>
+							<span>25%</span>
+							<span>50%</span>
+							<span>75%</span>
+							<span>100%</span>
+						</div>
+					</div>
+					<div
+						id="chart-data"
+						data-points={ marshalSoilRows(rows, soilDry, soilWet) }
+						data-nonce={ ctxutil.GetNonce(ctx) }
+						data-label-soil={ t.SoilMoistureLabel + " (%)" }
+						class="hidden"
+					></div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
 						<canvas id="soil-chart" class="w-full h-full"></canvas>
 					</div>
