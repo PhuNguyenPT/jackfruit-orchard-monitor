@@ -20,6 +20,7 @@ func newTestConfig() *config.Config {
 	lv.Set(slog.LevelError)
 	return &config.Config{
 		AppEnv:       config.EnvTest,
+		AppVersion:   "dev",
 		GinMode:      gin.TestMode,
 		LogLevel:     lv,
 		BaseURLs:     []string{"http://localhost:8080"},

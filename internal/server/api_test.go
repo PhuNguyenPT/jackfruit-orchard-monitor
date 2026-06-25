@@ -28,8 +28,8 @@ func TestApiInfoHandler(t *testing.T) {
 		t.Errorf("unexpected message: %v", body["message"])
 	}
 
-	if body["version"] != "0.0" {
-		t.Errorf("unexpected version: %v", body["version"])
+	if body["version"] != "dev" {
+		t.Errorf("expected version dev, got %v", body["version"])
 	}
 }
 
