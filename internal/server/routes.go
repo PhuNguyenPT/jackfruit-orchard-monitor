@@ -37,8 +37,9 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 		c.File("./frontend/public/favicon.ico")
 	})
 	r.GET("/", s.homePageHandler)
-
+	r.HEAD("/", s.homePageHandler)
 	r.GET("/contact", s.contactPageHandler)
+	r.HEAD("/contact", s.contactPageHandler)
 	r.POST("/contact", s.contactFormHandler)
 	r.GET("/sitemap.xml", s.sitemapHandler)
 	r.HEAD("/sitemap.xml", s.sitemapHandler)
