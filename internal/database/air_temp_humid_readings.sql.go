@@ -67,6 +67,53 @@ func (q *Queries) GetAirTempHumidReadingsByAddr(ctx context.Context, arg GetAirT
 	return items, nil
 }
 
+const getAirTempHumidReadingsByAddrSince = `-- name: GetAirTempHumidReadingsByAddrSince :many
+SELECT addr, temperature, humidity, created_at
+FROM air_temp_humid_readings
+WHERE addr = $1 AND created_at > $2
+ORDER BY created_at ASC
+`
+
+type GetAirTempHumidReadingsByAddrSinceParams struct {
+	Addr      int16
+	CreatedAt time.Time
+}
+
+type GetAirTempHumidReadingsByAddrSinceRow struct {
+	Addr        int16
+	Temperature int16
+	Humidity    int16
+	CreatedAt   time.Time
+}
+
+func (q *Queries) GetAirTempHumidReadingsByAddrSince(ctx context.Context, arg GetAirTempHumidReadingsByAddrSinceParams) ([]GetAirTempHumidReadingsByAddrSinceRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAirTempHumidReadingsByAddrSince, arg.Addr, arg.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAirTempHumidReadingsByAddrSinceRow
+	for rows.Next() {
+		var i GetAirTempHumidReadingsByAddrSinceRow
+		if err := rows.Scan(
+			&i.Addr,
+			&i.Temperature,
+			&i.Humidity,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLatestAirTempHumidReadings = `-- name: GetLatestAirTempHumidReadings :many
 SELECT DISTINCT ON (addr)
     addr, temperature, humidity, created_at

@@ -16,3 +16,9 @@ LIMIT $2;
 
 -- name: DeleteOldAirTempHumidReadings :exec
 DELETE FROM air_temp_humid_readings WHERE created_at < $1;
+
+-- name: GetAirTempHumidReadingsByAddrSince :many
+SELECT addr, temperature, humidity, created_at
+FROM air_temp_humid_readings
+WHERE addr = $1 AND created_at > $2
+ORDER BY created_at ASC;
