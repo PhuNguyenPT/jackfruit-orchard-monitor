@@ -17,5 +17,23 @@ func (s *Server) apiInfoHandler(c *gin.Context) {
 }
 
 func (s *Server) healthHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, s.db.Health())
+	health := s.db.Health()
+
+	resp := gin.H{
+		"status":  health["status"],
+		"message": health["message"],
+		"version": s.cfg.AppVersion,
+		"env":     s.cfg.AppEnv,
+	}
+
+	switch health["status"] {
+	case "up":
+		c.JSON(http.StatusOK, resp)
+	case "degraded":
+		c.JSON(http.StatusOK, resp) // alive but warn
+	case "down":
+		c.JSON(http.StatusServiceUnavailable, resp)
+	default:
+		c.JSON(http.StatusServiceUnavailable, resp)
+	}
 }
