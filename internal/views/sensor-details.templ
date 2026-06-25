@@ -27,10 +27,11 @@ templ SHT40HistoryPage(
 					<!-- Data carrier — JS reads this, user never sees it -->
 					<div
 						id="chart-data"
-						data-points={ marshalSHT40Rows(rows) }
+						data-points={ marshalSHT40Rows(rows, lang) }
 						data-nonce={ ctxutil.GetNonce(ctx) }
 						data-label-temp={ t.SensorTemperature + " (°C)" }
 						data-label-humid={ t.SensorHumidity + " (%)" }
+						data-ws-url={ fmt.Sprintf("/sensors/sht40/%d/ws", addr) }
 						class="hidden"
 					></div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -52,10 +53,10 @@ templ SHT40HistoryPage(
 							<span>100°C</span>
 						</div>
 					</div>
-					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-80">
 						<canvas id="temp-chart" class="w-full h-full"></canvas>
 					</div>
-					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-80">
 						<canvas id="humid-chart" class="w-full h-full"></canvas>
 					</div>
 				</div>
@@ -105,12 +106,13 @@ templ SoilHistoryPage(
 					</div>
 					<div
 						id="chart-data"
-						data-points={ marshalSoilRows(rows, soilDry, soilWet) }
+						data-points={ marshalSoilRows(rows, soilDry, soilWet, lang) }
 						data-nonce={ ctxutil.GetNonce(ctx) }
 						data-label-soil={ t.SoilMoistureLabel + " (%)" }
+						data-ws-url={ fmt.Sprintf("/sensors/soil/%d/ws", idx) }
 						class="hidden"
 					></div>
-					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-64">
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-80">
 						<canvas id="soil-chart" class="w-full h-full"></canvas>
 					</div>
 				</div>

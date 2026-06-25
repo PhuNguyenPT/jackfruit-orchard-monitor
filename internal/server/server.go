@@ -43,6 +43,7 @@ type DB interface {
 	InsertAirTempHumidReading(ctx context.Context, arg database.InsertAirTempHumidReadingParams) error
 	GetLatestAirTempHumidReadings(ctx context.Context) ([]database.GetLatestAirTempHumidReadingsRow, error)
 	GetAirTempHumidReadingsByAddr(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrParams) ([]database.GetAirTempHumidReadingsByAddrRow, error)
+	GetAirTempHumidReadingsByAddrSince(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrSinceParams) ([]database.GetAirTempHumidReadingsByAddrSinceRow, error)
 	DeleteOldAirTempHumidReadings(ctx context.Context, createdAt time.Time) error
 
 	// MQTT credentials
@@ -56,6 +57,7 @@ type DB interface {
 	GetLatestSoilMoistureReadings(ctx context.Context) ([]database.GetLatestSoilMoistureReadingsRow, error)
 	DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error
 	GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error)
+	GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxSinceParams) ([]database.GetSoilMoistureReadingsBySensorIdxSinceRow, error)
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -137,7 +139,9 @@ func (s *sqlDB) GetLatestAirTempHumidReadings(ctx context.Context) ([]database.G
 func (s *sqlDB) GetAirTempHumidReadingsByAddr(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrParams) ([]database.GetAirTempHumidReadingsByAddrRow, error) {
 	return s.queries.GetAirTempHumidReadingsByAddr(ctx, arg)
 }
-
+func (s *sqlDB) GetAirTempHumidReadingsByAddrSince(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrSinceParams) ([]database.GetAirTempHumidReadingsByAddrSinceRow, error) {
+	return s.queries.GetAirTempHumidReadingsByAddrSince(ctx, arg)
+}
 func (s *sqlDB) DeleteOldAirTempHumidReadings(ctx context.Context, createdAt time.Time) error {
 	return s.queries.DeleteOldAirTempHumidReadings(ctx, createdAt)
 }
@@ -165,6 +169,9 @@ func (s *sqlDB) DeleteOldSoilMoistureReadings(ctx context.Context, createdAt tim
 }
 func (s *sqlDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error) {
 	return s.queries.GetSoilMoistureReadingsBySensorIdx(ctx, arg)
+}
+func (s *sqlDB) GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxSinceParams) ([]database.GetSoilMoistureReadingsBySensorIdxSinceRow, error) {
+	return s.queries.GetSoilMoistureReadingsBySensorIdxSince(ctx, arg)
 }
 
 type Server struct {
