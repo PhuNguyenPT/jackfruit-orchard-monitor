@@ -30,7 +30,6 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 	{
 		apiGroup.GET("/", s.apiInfoHandler)
 		apiGroup.GET("/health", s.healthHandler)
-		apiGroup.GET("/websocket", s.websocketHandler)
 	}
 
 	r.Static("/public", "./frontend/public")
