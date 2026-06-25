@@ -43,35 +43,35 @@ func TestFormatMonthYear(t *testing.T) {
 func TestFormatDateTime(t *testing.T) {
 	// 14:30 UTC = 21:30 UTC+7
 	ts := time.Date(2024, 3, 15, 14, 30, 0, 0, time.UTC)
-	if got := FormatDateTime(ts, "en"); got != "Mar 15, 2024 21:30" {
-		t.Errorf("expected 'Mar 15, 2024 21:30', got %q", got)
+	if got := FormatDateTime(ts, "en"); got != "Mar 15, 2024 21:30:00" {
+		t.Errorf("expected 'Mar 15, 2024 21:30:00', got %q", got)
 	}
-	if got := FormatDateTime(ts, "vi"); got != "15 Tháng 3, 2024 21:30" {
-		t.Errorf("expected '15 Tháng 3, 2024 21:30', got %q", got)
+	if got := FormatDateTime(ts, "vi"); got != "15 Tháng 3, 2024 21:30:00" {
+		t.Errorf("expected '15 Tháng 3, 2024 21:30:00', got %q", got)
 	}
 }
 
 func TestFormatDateTime_UTC7Conversion(t *testing.T) {
 	// 07:37 UTC = 14:37 UTC+7 — mirrors the actual sensor log
 	utc := time.Date(2026, 6, 21, 7, 37, 0, 0, time.UTC)
-	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 14:37" {
-		t.Errorf("got %q, want %q", got, "Jun 21, 2026 14:37")
+	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 14:37:00" {
+		t.Errorf("got %q, want %q", got, "Jun 21, 2026 14:37:00")
 	}
 }
 
 func TestFormatDateTime_MidnightUTC(t *testing.T) {
 	// 00:00 UTC = 07:00 UTC+7, same day
 	utc := time.Date(2026, 6, 21, 0, 0, 0, 0, time.UTC)
-	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 07:00" {
-		t.Errorf("got %q, want %q", got, "Jun 21, 2026 07:00")
+	if got := FormatDateTime(utc, "en"); got != "Jun 21, 2026 07:00:00" {
+		t.Errorf("got %q, want %q", got, "Jun 21, 2026 07:00:00")
 	}
 }
 
 func TestFormatDateTime_DayRollover(t *testing.T) {
 	// 18:00 UTC = 01:00 UTC+7 next day
 	utc := time.Date(2026, 6, 21, 18, 0, 0, 0, time.UTC)
-	if got := FormatDateTime(utc, "en"); got != "Jun 22, 2026 01:00" {
-		t.Errorf("got %q, want %q", got, "Jun 22, 2026 01:00")
+	if got := FormatDateTime(utc, "en"); got != "Jun 22, 2026 01:00:00" {
+		t.Errorf("got %q, want %q", got, "Jun 22, 2026 01:00:00")
 	}
 }
 

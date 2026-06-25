@@ -37,8 +37,16 @@ export function sensorChartOptions({
             x: {
                 ticks: {
                     maxTicksLimit: 8,
+                    maxRotation: 45,
+                    minRotation: 45,
                     font: { size: 11 },
                     color: '#9ca3af',
+                    // Strip ":SS" for axis display; tooltip still uses the full label.
+                    callback(value) {
+                        const label = this.getLabelForValue(value);
+                        // "06-25 12:05:01" → "06-25 12:05"  (drop last 3 chars)
+                        return label ? label.slice(0, -3) : label;
+                    },
                 },
                 grid: { display: false },
             },

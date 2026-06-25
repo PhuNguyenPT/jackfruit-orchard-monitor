@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -421,5 +423,327 @@ func TestSoilHistoryHandler_DBError(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// sht40HistoryWSHandler
+// ---------------------------------------------------------------------------
+
+func waitForSHT40ChartCount(t *testing.T, h *Hub, want int) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		h.mu.RLock()
+		got := len(h.sht40Charts)
+		h.mu.RUnlock()
+		if got == want {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %d sht40 chart subscriber(s)", want)
+}
+
+func newSHT40WSServer() (*Server, *httptest.Server) {
+	gin.SetMode(gin.TestMode)
+	s := newTestServer()
+	r := gin.New()
+	r.GET("/sensors/sht40/:addr/ws", func(c *gin.Context) {
+		c.Set("lang", "en")
+		s.sht40HistoryWSHandler(c)
+	})
+	return s, httptest.NewServer(r)
+}
+
+func TestSHT40HistoryWSHandler_BadAddr(t *testing.T) {
+	s := newTestServer()
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/sht40/bad/ws")
+	c.Params = []gin.Param{{Key: "addr", Value: "bad"}}
+
+	s.sht40HistoryWSHandler(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestSHT40HistoryWSHandler_RegisterAndUnregister(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/sht40/1/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+	conn.Close()
+	waitForSHT40ChartCount(t, s.hub, 0)
+}
+
+func TestSHT40HistoryWSHandler_ReceivesLivePoint(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/sht40/1/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+
+	s.hub.BroadcastAirTempHumid("1", 32.5, 64.0, time.Now())
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	body := string(msg)
+	if !strings.Contains(body, `"temp"`) || !strings.Contains(body, `"humid"`) {
+		t.Errorf("expected JSON chart point with temp/humid fields, got: %s", body)
+	}
+	if !strings.Contains(body, "32.5") {
+		t.Errorf("expected temp value 32.5 in payload, got: %s", body)
+	}
+}
+
+func TestSHT40HistoryWSHandler_FiltersOtherAddr(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	// Subscribed to addr=1, broadcast is for addr=2 — nothing should arrive.
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/sht40/1/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+
+	s.hub.BroadcastAirTempHumid("2", 28.0, 55.0, time.Now())
+
+	if err := conn.SetReadDeadline(time.Now().Add(300 * time.Millisecond)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, _, err = conn.ReadMessage()
+	if err == nil {
+		t.Errorf("expected read timeout for mismatched addr, but received a message — addr filter broken")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// soilHistoryWSHandler
+// ---------------------------------------------------------------------------
+
+func waitForSoilChartCount(t *testing.T, h *Hub, want int) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		h.mu.RLock()
+		got := len(h.soilCharts)
+		h.mu.RUnlock()
+		if got == want {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for %d soil chart subscriber(s)", want)
+}
+
+func newSoilWSServer() (*Server, *httptest.Server) {
+	gin.SetMode(gin.TestMode)
+	s := newTestServer()
+	r := gin.New()
+	r.GET("/sensors/soil/:idx/ws", func(c *gin.Context) {
+		c.Set("lang", "en")
+		s.soilHistoryWSHandler(c)
+	})
+	return s, httptest.NewServer(r)
+}
+
+func TestSoilHistoryWSHandler_BadIdx(t *testing.T) {
+	s := newTestServer()
+	c, w := newSensorTestContext(http.MethodGet, "/sensors/soil/bad/ws")
+	c.Params = []gin.Param{{Key: "idx", Value: "bad"}}
+
+	s.soilHistoryWSHandler(c)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestSoilHistoryWSHandler_RegisterAndUnregister(t *testing.T) {
+	s, srv := newSoilWSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/soil/0/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+
+	waitForSoilChartCount(t, s.hub, 1)
+	conn.Close()
+	waitForSoilChartCount(t, s.hub, 0)
+}
+
+func TestSoilHistoryWSHandler_ReceivesLivePoint(t *testing.T) {
+	s, srv := newSoilWSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/soil/0/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSoilChartCount(t, s.hub, 1)
+
+	s.hub.BroadcastSoilMoisture("0", 2630, time.Now())
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+
+	body := string(msg)
+	if !strings.Contains(body, `"pct"`) || !strings.Contains(body, `"t"`) {
+		t.Errorf("expected JSON chart point with pct/t fields, got: %s", body)
+	}
+}
+
+func TestSoilHistoryWSHandler_FiltersOtherIdx(t *testing.T) {
+	s, srv := newSoilWSServer()
+	defer srv.Close()
+
+	// Subscribed to idx=0, broadcast is for idx=1 — nothing should arrive.
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/soil/0/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSoilChartCount(t, s.hub, 1)
+
+	s.hub.BroadcastSoilMoisture("1", 2000, time.Now())
+
+	if err := conn.SetReadDeadline(time.Now().Add(300 * time.Millisecond)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, _, err = conn.ReadMessage()
+	if err == nil {
+		t.Errorf("expected read timeout for mismatched idx, but received a message — idx filter broken")
+	}
+}
+
+func TestSHT40HistoryWSHandler_BackfillOnReconnect(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	since := time.Now().Add(-90 * time.Second).Format("01-02 15:04:05")
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") +
+		"/sensors/sht40/1/ws?since=" + url.QueryEscape(since)
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("expected backfill batch on connect, got read error: %v", err)
+	}
+
+	var batch struct {
+		Batch  bool `json:"batch"`
+		Points []struct {
+			T     string  `json:"t"`
+			Temp  float32 `json:"temp"`
+			Humid float32 `json:"humid"`
+		} `json:"points"`
+	}
+	if err := json.Unmarshal(msg, &batch); err != nil {
+		t.Fatalf("expected JSON batch on connect, got: %s", msg)
+	}
+	if !batch.Batch {
+		t.Errorf("expected first message to be a backfill batch, got: %s", msg)
+	}
+	if len(batch.Points) == 0 {
+		t.Errorf("expected at least one backfilled point")
+	}
+}
+
+func TestSHT40HistoryWSHandler_NoSinceParam_NoBackfill(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "/sensors/sht40/1/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+
+	// No `since` param means no backfill push — confirm nothing arrives
+	// until we explicitly broadcast a live point.
+	if err := conn.SetReadDeadline(time.Now().Add(300 * time.Millisecond)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, _, err = conn.ReadMessage()
+	if err == nil {
+		t.Errorf("expected no message without a since param, but got one")
+	}
+}
+
+func TestSHT40HistoryWSHandler_InvalidSinceParam_IgnoredGracefully(t *testing.T) {
+	s, srv := newSHT40WSServer()
+	defer srv.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") +
+		"/sensors/sht40/1/ws?since=not-a-real-timestamp"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	waitForSHT40ChartCount(t, s.hub, 1)
+
+	// A malformed since should be logged and skipped, not crash the handler
+	// or block the read loop — confirm a subsequent live broadcast still works.
+	s.hub.BroadcastAirTempHumid("1", 30.0, 60.0, time.Now())
+
+	if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatalf("SetReadDeadline: %v", err)
+	}
+	_, msg, err := conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("expected live point after invalid since param, got error: %v", err)
+	}
+	if !strings.Contains(string(msg), `"temp"`) {
+		t.Errorf("expected live temp point, got: %s", msg)
 	}
 }
