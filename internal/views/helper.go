@@ -61,9 +61,9 @@ func FormatDateTime(t time.Time, lang string) string {
 			"Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
 			"Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
 		}
-		return strconv.Itoa(t.Day()) + " " + months[t.Month()-1] + ", " + strconv.Itoa(t.Year()) + " " + t.Format("15:04")
+		return strconv.Itoa(t.Day()) + " " + months[t.Month()-1] + ", " + strconv.Itoa(t.Year()) + " " + t.Format("15:04:05")
 	}
-	return t.Format("Jan 2, 2006 15:04")
+	return t.Format("Jan 2, 2006 15:04:05")
 }
 
 func paginationPages(current, total int) []int {
@@ -122,16 +122,20 @@ func calculateSoilPercentage(raw int16, dry, wet int) float32 {
 	return float32(dryVal-raw) / float32(dryVal-wetVal) * 100.0
 }
 
-func marshalSHT40Rows(rows []database.GetAirTempHumidReadingsByAddrRow) string {
+func marshalSHT40Rows(rows []database.GetAirTempHumidReadingsByAddrRow, lang string) string {
 	type point struct {
 		T     string  `json:"t"`
 		Temp  float32 `json:"temp"`
 		Humid float32 `json:"humid"`
 	}
+	format := "02-01 15:04:05" // DD-MM for VI
+	if lang != "vi" {
+		format = "01-02 15:04:05" // MM-DD for EN
+	}
 	pts := make([]point, len(rows))
 	for i, r := range rows {
 		pts[len(rows)-1-i] = point{
-			T:     r.CreatedAt.In(vietnamTZ).Format("01-02 15:04"),
+			T:     r.CreatedAt.In(vietnamTZ).Format(format),
 			Temp:  float32(r.Temperature) / 10,
 			Humid: float32(r.Humidity) / 10,
 		}
@@ -144,16 +148,20 @@ func marshalSHT40Rows(rows []database.GetAirTempHumidReadingsByAddrRow) string {
 	return string(b)
 }
 
-func marshalSoilRows(rows []database.GetSoilMoistureReadingsBySensorIdxRow, soilDry, soilWet int) string {
+func marshalSoilRows(rows []database.GetSoilMoistureReadingsBySensorIdxRow, soilDry, soilWet int, lang string) string {
 	type point struct {
 		T   string  `json:"t"`
 		Pct float32 `json:"pct"`
 		Raw int16   `json:"raw"`
 	}
+	format := "02-01 15:04:05"
+	if lang != "vi" {
+		format = "01-02 15:04:05"
+	}
 	pts := make([]point, len(rows))
 	for i, r := range rows {
 		pts[len(rows)-1-i] = point{
-			T:   r.CreatedAt.In(vietnamTZ).Format("01-02 15:04"),
+			T:   r.CreatedAt.In(vietnamTZ).Format(format),
 			Pct: calculateSoilPercentage(r.Raw, soilDry, soilWet),
 			Raw: r.Raw,
 		}
