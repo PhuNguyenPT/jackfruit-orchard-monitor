@@ -138,7 +138,20 @@ func (m *mockDB) GetAirTempHumidReadingsByAddr(ctx context.Context, arg database
 		{Addr: arg.Addr, Temperature: 279, Humidity: 751, CreatedAt: time.Now().Add(-2 * time.Minute)},
 	}, nil
 }
-
+func (m *mockDB) GetAirTempHumidReadingsByAddrSince(ctx context.Context, arg database.GetAirTempHumidReadingsByAddrSinceParams) ([]database.GetAirTempHumidReadingsByAddrSinceRow, error) {
+	all := []database.GetAirTempHumidReadingsByAddrSinceRow{
+		{Addr: arg.Addr, Temperature: 279, Humidity: 751, CreatedAt: time.Now().Add(-2 * time.Minute)},
+		{Addr: arg.Addr, Temperature: 281, Humidity: 748, CreatedAt: time.Now().Add(-1 * time.Minute)},
+		{Addr: arg.Addr, Temperature: 286, Humidity: 739, CreatedAt: time.Now()},
+	}
+	var out []database.GetAirTempHumidReadingsByAddrSinceRow
+	for _, r := range all {
+		if r.CreatedAt.After(arg.CreatedAt) {
+			out = append(out, r)
+		}
+	}
+	return out, nil
+}
 func (m *mockDB) DeleteOldAirTempHumidReadings(ctx context.Context, createdAt time.Time) error {
 	return nil
 }
@@ -209,4 +222,18 @@ func (m *mockDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg dat
 		{SensorIdx: arg.SensorIdx, Raw: 1820, CreatedAt: time.Now().Add(-1 * time.Minute)},
 		{SensorIdx: arg.SensorIdx, Raw: 2080, CreatedAt: time.Now().Add(-2 * time.Minute)},
 	}, nil
+}
+func (m *mockDB) GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxSinceParams) ([]database.GetSoilMoistureReadingsBySensorIdxSinceRow, error) {
+	all := []database.GetSoilMoistureReadingsBySensorIdxSinceRow{
+		{SensorIdx: arg.SensorIdx, Raw: 2080, CreatedAt: time.Now().Add(-2 * time.Minute)},
+		{SensorIdx: arg.SensorIdx, Raw: 1820, CreatedAt: time.Now().Add(-1 * time.Minute)},
+		{SensorIdx: arg.SensorIdx, Raw: 1700, CreatedAt: time.Now()},
+	}
+	var out []database.GetSoilMoistureReadingsBySensorIdxSinceRow
+	for _, r := range all {
+		if r.CreatedAt.After(arg.CreatedAt) {
+			out = append(out, r)
+		}
+	}
+	return out, nil
 }

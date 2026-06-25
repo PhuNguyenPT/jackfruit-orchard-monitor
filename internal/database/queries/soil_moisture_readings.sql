@@ -16,3 +16,9 @@ FROM soil_moisture_readings
 WHERE sensor_idx = $1
 ORDER BY created_at DESC
 LIMIT $2;
+
+-- name: GetSoilMoistureReadingsBySensorIdxSince :many
+SELECT sensor_idx, raw, created_at
+FROM soil_moisture_readings
+WHERE sensor_idx = $1 AND created_at > $2
+ORDER BY created_at ASC;
