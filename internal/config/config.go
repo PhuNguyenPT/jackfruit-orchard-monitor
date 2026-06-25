@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 
@@ -16,10 +17,12 @@ const (
 )
 
 type Config struct {
-	Port    int    `validate:"required,gt=0"`
-	AppEnv  string `validate:"required,oneof=dev production test"`
-	AppName string `validate:"required"`
-	GinMode string `validate:"required,oneof=debug release test"`
+	Port       int    `validate:"required,gt=0"`
+	AppEnv     string `validate:"required,oneof=dev production test"`
+	AppName    string `validate:"required"`
+	AppVersion string
+	GinMode    string `validate:"required,oneof=debug release test"`
+	LogLevel   *slog.LevelVar
 	// Database
 	DBHost     string `validate:"required"`
 	DBPort     int    `validate:"required,gt=0"`
@@ -53,6 +56,14 @@ type Config struct {
 	// Contact Config
 	ContactEmail string `validate:"required,email"`
 	ContactPhone string
+}
+
+func parseLogLevel(s string) (slog.Level, error) {
+	var l slog.Level
+	if err := l.UnmarshalText([]byte(s)); err != nil {
+		return slog.LevelInfo, fmt.Errorf("LOG_LEVEL %q: must be debug|info|warn|error", s)
+	}
+	return l, nil
 }
 
 func getEnvOrDefaultJSONList(key string, defaultVal []string) ([]string, error) {
@@ -90,12 +101,19 @@ func LoadAppConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	logLevel, err := parseLogLevel(getEnvOrDefaultStr("LOG_LEVEL", "info"))
+	if err != nil {
+		return nil, err
+	}
+	lv := &slog.LevelVar{}
+	lv.Set(logLevel)
 	cfg := &Config{
 		Port:         getEnvOrDefaultInt("PORT", 8080),
 		AppEnv:       os.Getenv("APP_ENV"),
 		AppName:      getEnvOrDefaultStr("APP_NAME", "Prizm"),
 		BaseURLs:     baseURLs,
 		GinMode:      os.Getenv("GIN_MODE"),
+		LogLevel:     lv,
 		DBHost:       os.Getenv("POSTGRES_HOST"),
 		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),
 		DBDatabase:   os.Getenv("POSTGRES_DATABASE"),

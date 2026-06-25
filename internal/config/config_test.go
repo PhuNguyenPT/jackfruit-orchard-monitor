@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"maps"
 	"os"
 	"testing"
@@ -107,5 +108,38 @@ func TestLoadAppConfig_MissingMQTTPass(t *testing.T) {
 	_, err := LoadAppConfig()
 	if err == nil {
 		t.Error("expected error for missing MQTT_PASS, got nil")
+	}
+}
+
+func TestParseLogLevel(t *testing.T) {
+	for _, tc := range []struct {
+		input string
+		want  slog.Level
+		isErr bool
+	}{
+		{"debug", slog.LevelDebug, false},
+		{"info", slog.LevelInfo, false},
+		{"warn", slog.LevelWarn, false},
+		{"error", slog.LevelError, false},
+		{"invalid", slog.LevelInfo, true},
+	} {
+		got, err := parseLogLevel(tc.input)
+		if tc.isErr != (err != nil) {
+			t.Errorf("parseLogLevel(%q): err=%v", tc.input, err)
+		}
+		if !tc.isErr && got != tc.want {
+			t.Errorf("parseLogLevel(%q): got %v, want %v", tc.input, got, tc.want)
+		}
+	}
+}
+
+func TestLoadAppConfig_DefaultLogLevel(t *testing.T) {
+	setEnv(t, validEnv) // no LOG_LEVEL set
+	cfg, err := LoadAppConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LogLevel.Level() != slog.LevelInfo {
+		t.Errorf("expected default log level INFO, got %v", cfg.LogLevel.Level())
 	}
 }
