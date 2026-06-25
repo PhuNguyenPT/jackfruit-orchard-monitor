@@ -14,7 +14,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY --from=generate /app .
 COPY --from=frontend-build /app/frontend/public ./frontend/public
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main cmd/api/main.go
+ARG APP_VERSION=dev
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-w -s -X main.AppVersion=${APP_VERSION}" \
+    -o main cmd/api/main.go
 
 FROM golang:1.26.2-alpine AS watch
 WORKDIR /app
