@@ -2,21 +2,26 @@ package server
 
 import (
 	config "GoApp/internal/config"
+	"log/slog"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 var testHandler http.Handler
 
 func newTestConfig() *config.Config {
+	lv := &slog.LevelVar{}
+	lv.Set(slog.LevelError)
 	return &config.Config{
 		AppEnv:       config.EnvTest,
 		GinMode:      gin.TestMode,
+		LogLevel:     lv,
 		BaseURLs:     []string{"http://localhost:8080"},
 		SoilDryValue: 3340,
 		SoilWetValue: 1805,

@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +17,19 @@ import (
 
 	mqtt "github.com/mochi-mqtt/server/v2"
 )
+
+var AppVersion = "dev" // overridden by -ldflags in CI/CD
+
+func initLogger(cfg *config.Config) {
+	var handler slog.Handler
+	opts := &slog.HandlerOptions{Level: cfg.LogLevel}
+	if cfg.AppEnv == config.EnvProduction {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		handler = slog.NewTextHandler(os.Stdout, opts)
+	}
+	slog.SetDefault(slog.New(handler))
+}
 
 func loadMTLSConfig(cfg *config.Config) (*tls.Config, error) {
 	caCert, err := os.ReadFile(cfg.TLSCAPath)
@@ -37,36 +50,24 @@ func loadMTLSConfig(cfg *config.Config) (*tls.Config, error) {
 	}, nil
 }
 
-func gracefulShutdown(httpSrv *http.Server, mqttSrv *mqtt.Server, done chan bool) {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-	<-ctx.Done()
-	log.Println("shutting down gracefully, press Ctrl+C again to force")
-	stop()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := httpSrv.Shutdown(ctx); err != nil {
-		log.Printf("HTTP server forced to shutdown: %v", err)
-	}
-	if err := mqttSrv.Close(); err != nil {
-		log.Printf("MQTT broker forced to shutdown: %v", err)
-	}
-
-	log.Println("Server exiting")
-	done <- true
-}
-
 func main() {
 	cfg, err := config.LoadAppConfig()
 	if err != nil {
-		log.Fatalf("invalid config: %v", err)
+		log.Fatalf("invalid config: %v", err) // slog not up yet
 	}
+	initLogger(cfg)
+	cfg.AppVersion = AppVersion
+	slog.Info("starting",
+		"app", cfg.AppName,
+		"version", cfg.AppVersion,
+		"env", cfg.AppEnv,
+		"log_level", cfg.LogLevel.Level(),
+	)
 
 	httpSrv, mqttSrv, err := server.NewServer(cfg)
 	if err != nil {
-		log.Fatalf("failed to start server: %v", err)
+		slog.Error("failed to start server", "err", err)
+		os.Exit(1)
 	}
 
 	done := make(chan bool, 1)
@@ -75,19 +76,42 @@ func main() {
 	if cfg.TLSCertPath != "" {
 		tlsCfg, tlsErr := loadMTLSConfig(cfg)
 		if tlsErr != nil {
-			log.Fatalf("failed to load mTLS config: %v", tlsErr)
+			slog.Error("failed to load mTLS config", "err", tlsErr)
+			os.Exit(1)
 		}
 		httpSrv.TLSConfig = tlsCfg
-		log.Printf("mTLS configured, starting HTTPS on %d", cfg.TLSPort)
+		slog.Info("mTLS configured, starting HTTPS", "port", cfg.TLSPort)
 		err = httpSrv.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath)
 	} else {
-		log.Printf("starting HTTP on %d", cfg.Port)
+		slog.Info("starting HTTP", "port", cfg.Port)
 		err = httpSrv.ListenAndServe()
 	}
 
 	if err != nil && err != http.ErrServerClosed {
-		panic(fmt.Sprintf("http server error: %s", err))
+		slog.Error("http server error", "err", err)
+		os.Exit(1)
 	}
 	<-done
-	log.Println("Graceful shutdown complete.")
+	slog.Info("graceful shutdown complete")
+}
+
+func gracefulShutdown(httpSrv *http.Server, mqttSrv *mqtt.Server, done chan bool) {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+	slog.Info("shutting down gracefully, press Ctrl+C again to force")
+	stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		slog.Error("HTTP server forced to shutdown", "err", err)
+	}
+	if err := mqttSrv.Close(); err != nil {
+		slog.Error("MQTT broker forced to shutdown", "err", err)
+	}
+
+	slog.Info("server exiting")
+	done <- true
 }
