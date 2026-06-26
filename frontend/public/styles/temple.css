@@ -39,7 +39,8 @@
 	);
 }
 
-.soil-gradient-bar {
+.soil-gradient-bar,
+.humid-gradient-bar {
     background: linear-gradient(
         to right,
         #c0392b,   /* 0%   — dry, red */
