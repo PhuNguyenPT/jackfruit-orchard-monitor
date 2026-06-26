@@ -12,13 +12,22 @@ templ LoginPage(userName string, lang string, next string, site SiteConfig) {
 			<main class="flex-1 flex items-center justify-center py-12">
 				<div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
 					<h2 class="text-2xl font-bold mb-6 text-center">{ T(lang).LoginHeading }</h2>
-					<form hx-post="/login" hx-target="#form-result" hx-swap="innerHTML" class="space-y-4">
-						<input type="hidden" name="next" value={ next }/>
+					<form
+						hx-post="/login"
+						hx-target="#form-result"
+						hx-swap="innerHTML"
+						hx-indicator="#login-indicator"
+						hx-disabled-elt="find button[type='submit']"
+						class="space-y-4"
+					>
+						<input for="login-email" type="hidden" name="next" value={ next }/>
 						<div>
 							<label class="block text-sm font-medium text-gray-700 mb-1">{ T(lang).EmailLabel }</label>
 							<input
+								id="login-email"
 								type="email"
 								name="email"
+								autocomplete="email"
 								maxlength="254"
 								required
 								class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -26,17 +35,23 @@ templ LoginPage(userName string, lang string, next string, site SiteConfig) {
 							/>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">{ T(lang).PasswordLabel }</label>
+							<label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">{ T(lang).PasswordLabel }</label>
 							<input
+								id="login-password"
 								type="password"
 								name="password"
+								autocomplete="current-password"
 								maxlength="72"
 								required
 								class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
 								placeholder={ T(lang).PlaceholderPassword }
 							/>
 						</div>
-						<button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+						<button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2">
+							<svg id="login-indicator" class="htmx-indicator animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+							</svg>
 							{ T(lang).LoginButton }
 						</button>
 					</form>

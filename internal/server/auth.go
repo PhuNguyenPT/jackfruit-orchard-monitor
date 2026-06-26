@@ -123,12 +123,9 @@ func (s *Server) registerHandler(c *gin.Context) {
 	}
 	secure := s.cfg.AppEnv == config.EnvProduction
 	c.SetCookie("session_token", token.String(), 86400, "/", "", secure, true)
-	c.Status(http.StatusOK)
-	c.Header("Content-Type", "text/html; charset=utf-8")
 	next := safeNext(c.DefaultPostForm("next", "/"))
-	if err := views.RegisterSuccess(input.Name, getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
-		log.Printf("error rendering register success: %v", err)
-	}
+	c.Header("HX-Redirect", next)
+	c.Status(http.StatusOK)
 }
 
 type LoginInput struct {
@@ -193,12 +190,9 @@ func (s *Server) loginHandler(c *gin.Context) {
 	secure := s.cfg.AppEnv == config.EnvProduction
 
 	c.SetCookie("session_token", token, 86400, "/", "", secure, true)
-	c.Status(http.StatusOK)
-	c.Header("Content-Type", "text/html; charset=utf-8")
 	next := safeNext(c.DefaultPostForm("next", "/"))
-	if err := views.LoginSuccess(user.Name, getLangStr(c), next).Render(c.Request.Context(), c.Writer); err != nil {
-		log.Printf("error rendering login success: %v", err)
-	}
+	c.Header("HX-Redirect", next)
+	c.Status(http.StatusOK)
 }
 
 func (s *Server) logoutHandler(c *gin.Context) {

@@ -108,8 +108,8 @@ func TestRegisterHandler(t *testing.T) {
 			t.Errorf("expected session_token cookie to be set")
 		}
 
-		if !strings.Contains(rr.Body.String(), `hx-get="/sensors"`) {
-			t.Errorf("expected hx-get redirect to /sensors in success response")
+		if got := rr.Header().Get("HX-Redirect"); got != "/sensors" {
+			t.Errorf("expected HX-Redirect header to be %q, got %q", "/sensors", got)
 		}
 	})
 
@@ -240,9 +240,9 @@ func TestLoginHandler(t *testing.T) {
 			t.Errorf("expected session_token cookie to be set")
 		}
 
-		// Check success response renders dashboard link
-		if !strings.Contains(rr.Body.String(), `hx-get="/sensors"`) {
-			t.Errorf("expected hx-get redirect to /sensors in success response")
+		// Check success response Header dashboard link
+		if got := rr.Header().Get("HX-Redirect"); got != "/sensors" {
+			t.Errorf("expected HX-Redirect header to be %q, got %q", "/sensors", got)
 		}
 	})
 
