@@ -115,6 +115,18 @@ type Translations struct {
 	SoilHistoryTitle       string
 	TemperatureScaleLabel  string
 	SoilMoistureScaleLabel string
+	// About
+	AboutNav         string
+	AboutTitle       string
+	AboutDescription string
+	AboutHeading     string
+	AboutSubtitle    string
+	AboutMission     string
+	AboutMissionText string
+	AboutStack       string
+	AboutHardware    string
+	AboutWhy         string
+	AboutWhyText     string
 }
 
 const (
@@ -239,6 +251,18 @@ func T(lang string) Translations {
 			SoilHistoryTitle:       "MKE-S13 — Cảm biến",
 			TemperatureScaleLabel:  "Thang nhiệt độ",
 			SoilMoistureScaleLabel: "Thang độ ẩm đất",
+			// About
+			AboutNav:         "Giới thiệu",
+			AboutTitle:       "Giới thiệu — Prizm",
+			AboutDescription: "Giám sát IoT thời gian thực bằng Go, WebSocket, PostgreSQL, HTMX và Templ.",
+			AboutHeading:     "Giới thiệu",
+			AboutSubtitle:    "Hệ thống giám sát IoT thời gian thực",
+			AboutMission:     "Sứ mệnh",
+			AboutMissionText: "Prizm cung cấp dữ liệu môi trường thời gian thực từ các cảm biến IoT triển khai ngoài thực địa — bắt đầu từ vườn mít ở Việt Nam.",
+			AboutStack:       "Công nghệ",
+			AboutHardware:    "Phần cứng",
+			AboutWhy:         "Lý do xây dựng",
+			AboutWhyText:     "Prizm được xây dựng như một dự án IoT giáo dục nhằm học lập trình Go full-stack với phần cứng thực tế — kết hợp firmware nhúng trên ESP32 và backend web hiện đại.",
 		}
 	}
 	return Translations{
@@ -356,5 +380,17 @@ func T(lang string) Translations {
 		SoilHistoryTitle:       "MKE-S13 — Sensor",
 		TemperatureScaleLabel:  "Temperature Scale",
 		SoilMoistureScaleLabel: "Soil Moisture Scale",
+		// About
+		AboutNav:         "About",
+		AboutTitle:       "About — Prizm",
+		AboutDescription: "Real-time IoT monitoring built with Go, WebSocket, PostgreSQL, HTMX and Templ.",
+		AboutHeading:     "About Prizm",
+		AboutSubtitle:    "Real-time IoT monitoring platform",
+		AboutMission:     "Mission",
+		AboutMissionText: "Prizm delivers real-time environmental data from IoT sensors deployed in the field — starting with a jackfruit orchard in Vietnam.",
+		AboutStack:       "Tech Stack",
+		AboutHardware:    "Hardware",
+		AboutWhy:         "Why We Built This",
+		AboutWhyText:     "Prizm started as an educational IoT project to learn full-stack Go with real hardware — combining ESP32 embedded firmware with a modern Go web backend.",
 	}
 }

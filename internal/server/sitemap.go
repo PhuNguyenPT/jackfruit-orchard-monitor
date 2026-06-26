@@ -23,7 +23,13 @@ func (s *Server) sitemapHandler(c *gin.Context) {
         <changefreq>monthly</changefreq>
         <priority>0.8</priority>
     </url>
-</urlset>`, base, s.cfg.BuildDate, base, s.cfg.BuildDate)
+    <url>
+        <loc>%s/about</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+</urlset>`, base, s.cfg.BuildDate, base, s.cfg.BuildDate, base, s.cfg.BuildDate)
 	c.Data(http.StatusOK, "application/xml; charset=utf-8", []byte(body))
 }
 
@@ -55,6 +61,5 @@ func (s *Server) webmanifestHandler(c *gin.Context) {
     "background_color": "#ffffff",
     "display": "standalone"
 }`, s.cfg.AppName, s.cfg.AppName)
-
 	c.Data(http.StatusOK, "application/manifest+json; charset=utf-8", []byte(body))
 }

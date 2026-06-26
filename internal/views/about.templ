@@ -1,0 +1,66 @@
+package views
+
+templ AboutPage(userName string, lang string, site SiteConfig) {
+	<!DOCTYPE html>
+	<html lang={ lang }>
+		@Head(SEOMeta{
+			Title:        T(lang).AboutTitle,
+			Description:  T(lang).AboutDescription,
+			Keywords:     "go, golang, iot, websocket, postgresql, htmx, templ, esp32",
+			CanonicalURL: site.BaseURL + "/about",
+			OGImage:      site.BaseURL + "/public/og-image.png",
+		})
+		<body class="min-h-screen bg-gray-50 flex flex-col">
+			@Header("about", userName, lang)
+			<main class="flex-1">
+				<div class="max-w-3xl mx-auto px-8 py-12">
+					<div class="text-center mb-12">
+						<h1 class="text-4xl font-bold mb-4">{ T(lang).AboutHeading }</h1>
+						<p class="text-xl text-gray-600">{ T(lang).AboutSubtitle }</p>
+					</div>
+					<div class="space-y-8">
+						<section class="bg-white p-8 rounded-lg shadow-md">
+							<h2 class="text-2xl font-semibold mb-4 text-blue-600">{ T(lang).AboutMission }</h2>
+							<p class="text-gray-600 leading-relaxed">{ T(lang).AboutMissionText }</p>
+						</section>
+						<section class="bg-white p-8 rounded-lg shadow-md">
+							<h2 class="text-2xl font-semibold mb-4 text-blue-600">{ T(lang).AboutStack }</h2>
+							<ul class="grid grid-cols-2 gap-3 text-gray-600">
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>Go + Gin</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>WebSocket</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>PostgreSQL + sqlc</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>HTMX</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>Templ</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>Mochi MQTT</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>Docker + GitHub Actions</li>
+								<li class="flex items-center gap-2"><span class="w-2 h-2 bg-blue-600 rounded-full shrink-0"></span>JavaScript</li>
+							</ul>
+						</section>
+						<section class="bg-white p-8 rounded-lg shadow-md">
+							<h2 class="text-2xl font-semibold mb-4 text-blue-600">{ T(lang).AboutHardware }</h2>
+							<ul class="space-y-3 text-gray-600">
+								<li class="flex items-start gap-2">
+									<span class="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-2"></span>
+									<span><strong>ESP32 NodeMCU</strong> — WiFi microcontroller, MQTT over TLS</span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span class="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-2"></span>
+									<span><strong>SHT40-PVC-RS485</strong> — Temperature &amp; humidity via Modbus RTU</span>
+								</li>
+								<li class="flex items-start gap-2">
+									<span class="w-2 h-2 bg-blue-600 rounded-full shrink-0 mt-2"></span>
+									<span><strong>MKE-S13</strong> — Capacitive soil moisture via 74HC4067 MUX</span>
+								</li>
+							</ul>
+						</section>
+						<section class="bg-white p-8 rounded-lg shadow-md">
+							<h2 class="text-2xl font-semibold mb-4 text-blue-600">{ T(lang).AboutWhy }</h2>
+							<p class="text-gray-600 leading-relaxed">{ T(lang).AboutWhyText }</p>
+						</section>
+					</div>
+				</div>
+			</main>
+			@Footer(lang, site)
+		</body>
+	</html>
+}
