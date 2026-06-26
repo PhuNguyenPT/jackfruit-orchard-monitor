@@ -115,6 +115,25 @@ type Translations struct {
 	SoilHistoryTitle       string
 	TemperatureScaleLabel  string
 	SoilMoistureScaleLabel string
+	// About
+	AboutNav               string
+	AboutTitle             string
+	AboutDescription       string
+	AboutHeading           string
+	AboutSubtitle          string
+	AboutMission           string
+	AboutMissionText       string
+	AboutStack             string
+	AboutHardware          string
+	AboutWhy               string
+	AboutWhyText           string
+	AboutStackPostgresDesc string
+	AboutStackHtmxDesc     string
+	AboutStackMqttDesc     string
+	AboutHardwareDesc      string
+	AboutHardwareEsp32Desc string
+	AboutHardwareSht40Desc string
+	AboutHardwareSoilDesc  string
 }
 
 const (
@@ -195,9 +214,9 @@ func T(lang string) Translations {
 			Page: "Trang",
 			Of:   "của",
 			// Footer
-			FooterDesc:        "Giám sát thời gian thực với cảm biến IoT.",
+			FooterDesc:        "Hệ thống giám sát thông số môi trường thời gian thực qua IoT.",
 			QuickLinks:        "Liên kết nhanh",
-			AllRightsReserved: "Bảo lưu mọi quyền.",
+			AllRightsReserved: "Mọi quyền được bảo lưu.",
 			FooterEmail:       "Email",
 			FooterPhone:       "Điện thoại",
 			// Error message
@@ -239,6 +258,25 @@ func T(lang string) Translations {
 			SoilHistoryTitle:       "MKE-S13 — Cảm biến",
 			TemperatureScaleLabel:  "Thang nhiệt độ",
 			SoilMoistureScaleLabel: "Thang độ ẩm đất",
+			// About
+			AboutNav:               "Giới thiệu",
+			AboutTitle:             "Giới thiệu — Prizm",
+			AboutDescription:       "Giám sát IoT thời gian thực bằng Go, WebSocket, PostgreSQL, HTMX và Templ.",
+			AboutHeading:           "Về dự án Prizm",
+			AboutSubtitle:          "Nền tảng IoT kết nối phần cứng thực tế với kiến trúc Go hiện đại.",
+			AboutMission:           "Sứ mệnh",
+			AboutMissionText:       "Prizm cung cấp dữ liệu môi trường thời gian thực từ các cảm biến IoT triển khai ngoài thực địa — bắt đầu từ vườn mít ở Việt Nam.",
+			AboutStack:             "Công nghệ",
+			AboutHardware:          "Phần cứng",
+			AboutWhy:               "Mục tiêu ra đời",
+			AboutWhyText:           "Prizm ra đời như một dự án thực chiến nhằm ứng dụng lập trình Go Full-stack vào thiết bị thực tế — cầu nối giữa lập trình nhúng (Firmware ESP32) và kiến trúc Backend hiện đại.",
+			AboutStackPostgresDesc: "Truy vấn Type-safe với sqlc",
+			AboutStackHtmxDesc:     "SSR & Giao diện tương tác tức thì",
+			AboutStackMqttDesc:     "Truyền dữ liệu thời gian thực qua WebSocket",
+			AboutHardwareDesc:      "Sự kết hợp giữa vi điều khiển hiệu năng cao và các cảm biến tiêu chuẩn công nghiệp giúp theo dõi chính xác môi trường nhà vườn theo thời gian thực, đồng thời gửi dữ liệu trực tiếp về hệ thống Backend Go.",
+			AboutHardwareEsp32Desc: "Bộ vi điều khiển trung tâm tích hợp Wi-Fi, chịu trách nhiệm tổng hợp dữ liệu và truyền tải an toàn qua giao thức MQTT/TLS.",
+			AboutHardwareSht40Desc: "Cảm biến đo nhiệt độ và độ ẩm với độ chính xác cao, sử dụng chuẩn giao tiếp Modbus RTU.",
+			AboutHardwareSoilDesc:  "Cảm biến điện dung đo độ ẩm đất, được mở rộng kênh đọc tín hiệu thông qua IC 74HC4067.",
 		}
 	}
 	return Translations{
@@ -356,5 +394,24 @@ func T(lang string) Translations {
 		SoilHistoryTitle:       "MKE-S13 — Sensor",
 		TemperatureScaleLabel:  "Temperature Scale",
 		SoilMoistureScaleLabel: "Soil Moisture Scale",
+		// About
+		AboutNav:               "About",
+		AboutTitle:             "About — Prizm",
+		AboutDescription:       "Real-time IoT monitoring built with Go, WebSocket, PostgreSQL, HTMX and Templ.",
+		AboutHeading:           "About Prizm",
+		AboutSubtitle:          "Real-time IoT monitoring platform",
+		AboutMission:           "Mission",
+		AboutMissionText:       "Prizm delivers real-time environmental data from IoT sensors deployed in the field — starting with a jackfruit orchard in Vietnam.",
+		AboutStack:             "Tech Stack",
+		AboutHardware:          "Hardware",
+		AboutWhy:               "Why We Built This",
+		AboutWhyText:           "Prizm started as an educational IoT project to learn full-stack Go with real hardware — combining ESP32 embedded firmware with a modern Go web backend.",
+		AboutStackPostgresDesc: "sqlc generated",
+		AboutStackHtmxDesc:     "SSR + Dynamic UI",
+		AboutStackMqttDesc:     "WebSocket real-time",
+		AboutHardwareDesc:      "Industrial-grade sensors paired with robust microcontrollers ensure accurate, real-time monitoring of the orchard's environment, directly feeding into our Go backend.",
+		AboutHardwareEsp32Desc: "The core WiFi microcontroller handling data aggregation and secure MQTT transmission over TLS.",
+		AboutHardwareSht40Desc: "High-precision temperature and humidity tracking communicated via Modbus RTU protocol.",
+		AboutHardwareSoilDesc:  "Capacitive soil moisture monitoring multiplexed securely via a 74HC4067 component.",
 	}
 }

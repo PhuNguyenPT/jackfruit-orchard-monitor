@@ -12,6 +12,7 @@ templ Header(currentPage string, userName string, lang string) {
 					<div class="hidden md:flex items-center gap-4">
 						<a href="/" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "home"), templ.KV("text-gray-600", currentPage != "home") }>{ T(lang).Home }</a>
 						<a href="/contact" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "contact"), templ.KV("text-gray-600", currentPage != "contact") }>{ T(lang).Contact }</a>
+						<a href="/about" class={ "text-sm hover:text-blue-600", templ.KV("text-blue-600 font-semibold", currentPage == "about"), templ.KV("text-gray-600", currentPage != "about") }>{ T(lang).AboutNav }</a>
 						if userName != "" {
 							<a href="/dashboard" class="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600">
 								<div class="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center uppercase">
@@ -58,6 +59,7 @@ templ Header(currentPage string, userName string, lang string) {
 				<div class="flex flex-col gap-1">
 					<a href="/" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "home"), templ.KV("text-gray-600", currentPage != "home") }>{ T(lang).Home }</a>
 					<a href="/contact" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "contact"), templ.KV("text-gray-600", currentPage != "contact") }>{ T(lang).Contact }</a>
+					<a href="/about" class={ "px-2 py-2 rounded-lg text-sm hover:bg-gray-50", templ.KV("text-blue-600 font-semibold", currentPage == "about"), templ.KV("text-gray-600", currentPage != "about") }>{ T(lang).AboutNav }</a>
 					if userName != "" {
 						<a href="/dashboard" class="px-2 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 flex items-center gap-2">
 							<div class="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center uppercase">
@@ -87,6 +89,7 @@ templ Footer(lang string, site SiteConfig) {
 					<h3 class="text-lg font-semibold mb-3">{ T(lang).QuickLinks }</h3>
 					<ul class="space-y-2">
 						<li><a href="/" class="text-gray-400 hover:text-white">{ T(lang).Home }</a></li>
+						<li><a href="/about" class="text-gray-400 hover:text-white">{ T(lang).AboutNav }</a></li>
 						<li><a href="/contact" class="text-gray-400 hover:text-white">{ T(lang).Contact }</a></li>
 						<li><a href="/api/" class="text-gray-400 hover:text-white">API</a></li>
 					</ul>

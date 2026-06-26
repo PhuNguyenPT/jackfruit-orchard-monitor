@@ -1,0 +1,126 @@
+package views
+
+templ AboutPage(userName string, lang string, site SiteConfig) {
+	<!DOCTYPE html>
+	<html lang={ lang }>
+		@Head(SEOMeta{
+			Title:        T(lang).AboutTitle,
+			Description:  T(lang).AboutDescription,
+			Keywords:     "go, golang, iot, websocket, postgresql, htmx, templ, esp32",
+			CanonicalURL: site.BaseURL + "/about",
+			OGImage:      site.BaseURL + "/public/og-image.png",
+		})
+		<body class="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
+			@Header("about", userName, lang)
+			<main class="flex-1">
+				<section class="bg-white border-b border-gray-200">
+					<div class="max-w-5xl mx-auto px-6 py-20 md:py-28 text-center">
+						<h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-6 text-gray-900">
+							{ T(lang).AboutHeading }
+						</h1>
+						<p class="text-xl md:text-2xl text-gray-500 max-w-3xl mx-auto leading-relaxed">
+							{ T(lang).AboutSubtitle }
+						</p>
+					</div>
+				</section>
+				<section class="max-w-4xl mx-auto px-6 py-16">
+					<div class="bg-gradient-to-br from-blue-50 to-slate-50 border-l-4 border-blue-500 rounded-r-xl p-8 md:p-12 shadow-sm">
+						<h2 class="text-sm font-bold text-blue-600 uppercase tracking-widest mb-4">{ T(lang).AboutMission }</h2>
+						<p class="text-xl md:text-2xl font-medium text-gray-800 leading-relaxed">
+							{ T(lang).AboutMissionText }
+						</p>
+					</div>
+				</section>
+				<section class="bg-white py-20 border-y border-gray-200 shadow-sm">
+					<div class="max-w-6xl mx-auto px-6">
+						<div class="text-center mb-12">
+							<h2 class="text-3xl font-bold text-gray-900">{ T(lang).AboutStack }</h2>
+							<div class="w-16 h-1 bg-blue-600 mx-auto mt-4 rounded-full"></div>
+						</div>
+						<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+							<div class="bg-gray-50 rounded-2xl p-6 text-center hover:shadow-md transition-shadow border border-gray-100 group">
+								<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl mx-auto flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+									<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+								</div>
+								<h3 class="font-bold text-gray-900 mb-1">Go + Gin</h3>
+							</div>
+							<div class="bg-gray-50 rounded-2xl p-6 text-center hover:shadow-md transition-shadow border border-gray-100 group">
+								<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl mx-auto flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+									<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+								</div>
+								<!-- PostgreSQL -->
+								<h3 class="font-bold text-gray-900 mb-1">PostgreSQL</h3>
+								<p class="text-xs text-gray-500">{ T(lang).AboutStackPostgresDesc }</p>
+							</div>
+							<div class="bg-gray-50 rounded-2xl p-6 text-center hover:shadow-md transition-shadow border border-gray-100 group">
+								<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl mx-auto flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+									<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+								</div>
+								<!-- HTMX -->
+								<h3 class="font-bold text-gray-900 mb-1">HTMX + Templ</h3>
+								<p class="text-xs text-gray-500">{ T(lang).AboutStackHtmxDesc }</p>
+							</div>
+							<div class="bg-gray-50 rounded-2xl p-6 text-center hover:shadow-md transition-shadow border border-gray-100 group">
+								<div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl mx-auto flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+									<svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+								</div>
+								<!-- MQTT -->
+								<h3 class="font-bold text-gray-900 mb-1">Mochi MQTT</h3>
+								<p class="text-xs text-gray-500">{ T(lang).AboutStackMqttDesc }</p>
+							</div>
+						</div>
+					</div>
+				</section>
+				<section class="max-w-3xl mx-auto px-6 py-20 text-center">
+					<h2 class="text-3xl font-bold text-gray-900 mb-6">{ T(lang).AboutHardware }</h2>
+					<p class="text-lg text-gray-600 mb-12 leading-relaxed">
+						{ T(lang).AboutHardwareDesc }
+					</p>
+					<div class="space-y-8 text-left inline-block">
+						<div class="flex items-start gap-4">
+							<div class="shrink-0 mt-1 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
+							</div>
+							<div>
+								<h3 class="text-xl font-bold text-gray-900">ESP32 NodeMCU</h3>
+								<p class="text-gray-600 mt-1">{ T(lang).AboutHardwareEsp32Desc }</p>
+							</div>
+						</div>
+						<div class="flex items-start gap-4">
+							<div class="shrink-0 mt-1 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+							</div>
+							<div>
+								<h3 class="text-xl font-bold text-gray-900">SHT40-PVC-RS485</h3>
+								<p class="text-gray-600 mt-1">{ T(lang).AboutHardwareSht40Desc }</p>
+							</div>
+						</div>
+						<div class="flex items-start gap-4">
+							<div class="shrink-0 mt-1 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+								<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+							</div>
+							<div>
+								<h3 class="text-xl font-bold text-gray-900">MKE-S13 Sensor</h3>
+								<p class="text-gray-600 mt-1">{ T(lang).AboutHardwareSoilDesc }</p>
+							</div>
+						</div>
+					</div>
+				</section>
+				<section class="max-w-4xl mx-auto px-6 py-16 mb-12">
+					<div class="bg-blue-600 rounded-3xl p-10 md:p-14 shadow-xl text-white relative overflow-hidden">
+						<div class="absolute top-0 right-0 -mr-20 -mt-20 opacity-10">
+							<svg width="404" height="404" fill="none" viewBox="0 0 404 404"><defs><pattern id="85737c0e-0916-41d7-917f-596dc7edfa27" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="4" height="4" fill="currentColor"></rect></pattern></defs><rect width="404" height="404" fill="url(#85737c0e-0916-41d7-917f-596dc7edfa27)"></rect></svg>
+						</div>
+						<div class="relative z-10">
+							<h2 class="text-3xl font-bold mb-6">{ T(lang).AboutWhy }</h2>
+							<p class="text-blue-100 text-lg leading-relaxed">
+								{ T(lang).AboutWhyText }
+							</p>
+						</div>
+					</div>
+				</section>
+			</main>
+			@Footer(lang, site)
+		</body>
+	</html>
+}
