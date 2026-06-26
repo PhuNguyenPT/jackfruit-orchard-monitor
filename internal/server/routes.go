@@ -41,6 +41,8 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 	r.GET("/contact", s.contactPageHandler)
 	r.HEAD("/contact", s.contactPageHandler)
 	r.POST("/contact", s.contactFormHandler)
+	r.GET("/about", s.aboutPageHandler)
+	r.HEAD("/about", s.aboutPageHandler)
 	r.GET("/sitemap.xml", s.sitemapHandler)
 	r.HEAD("/sitemap.xml", s.sitemapHandler)
 	r.GET("/robots.txt", s.robotsHandler)
