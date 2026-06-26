@@ -109,6 +109,7 @@ type Translations struct {
 	SensorRaw           string
 	DeviceConnected     string
 	DeviceDisconnected  string
+	HumidityScaleLabel  string
 	// Sensor History
 	HistoryBack            string
 	SHT40HistoryTitle      string
@@ -248,6 +249,7 @@ func T(lang string) Translations {
 			SHT40SectionHeading: "SHT40 — Nhiệt độ & Độ ẩm không khí",
 			SoilSectionHeading:  "MKE-S13 — Độ ẩm đất",
 			SoilMoistureLabel:   "Độ ẩm đất",
+			HumidityScaleLabel:  "Độ ẩm không khí",
 			SensorRaw:           "Giá trị gốc",
 			DeviceConnected:     "Đã kết nối",
 			DeviceDisconnected:  "Mất kết nối",
@@ -385,6 +387,7 @@ func T(lang string) Translations {
 		SHT40SectionHeading: "SHT40 — Temperature & Air Humidity",
 		SoilSectionHeading:  "MKE-S13 — Soil Moisture",
 		SoilMoistureLabel:   "Soil Moisture",
+		HumidityScaleLabel:  "Air Humidity",
 		SensorRaw:           "Raw",
 		DeviceConnected:     "Connected",
 		DeviceDisconnected:  "Disconnected",
