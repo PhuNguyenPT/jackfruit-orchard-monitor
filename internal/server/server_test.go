@@ -4,6 +4,7 @@ import (
 	config "GoApp/internal/config"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"log"
 	"net/http/httptest"
@@ -21,6 +22,7 @@ func newTestConfig() *config.Config {
 	return &config.Config{
 		AppEnv:       config.EnvTest,
 		AppVersion:   "dev",
+		BuildDate:    "2026-01-01",
 		GinMode:      gin.TestMode,
 		LogLevel:     lv,
 		BaseURLs:     []string{"http://localhost:8080"},
@@ -53,5 +55,26 @@ func TestHomePageHandler(t *testing.T) {
 
 	if rr.Code != http.StatusOK {
 		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
+	}
+}
+
+func TestSitemapHandler(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/sitemap.xml", nil)
+	rr := httptest.NewRecorder()
+	testHandler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected status %v, got %v", http.StatusOK, rr.Code)
+	}
+	ct := rr.Header().Get("Content-Type")
+	if ct != "application/xml; charset=utf-8" {
+		t.Errorf("expected application/xml content-type, got %q", ct)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "2026-01-01") {
+		t.Errorf("expected BuildDate in sitemap lastmod, got:\n%s", body)
+	}
+	if !strings.Contains(body, "http://localhost:8080/") {
+		t.Errorf("expected base URL in sitemap, got:\n%s", body)
 	}
 }

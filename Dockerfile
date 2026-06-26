@@ -15,9 +15,12 @@ RUN go mod download
 COPY --from=generate /app .
 COPY --from=frontend-build /app/frontend/public ./frontend/public
 ARG APP_VERSION=dev
-RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s -X main.AppVersion=${APP_VERSION}" \
-    -o main cmd/api/main.go
+RUN BUILD_DATE=$(date -u +%Y-%m-%d) && \
+    CGO_ENABLED=0 GOOS=linux go build \
+        -ldflags="-w -s \
+          -X main.AppVersion=${APP_VERSION} \
+          -X main.BuildDate=${BUILD_DATE}" \
+        -o main cmd/api/main.go
 
 FROM golang:1.26.2-alpine AS watch
 WORKDIR /app
