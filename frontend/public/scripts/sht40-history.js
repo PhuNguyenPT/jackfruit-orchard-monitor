@@ -80,8 +80,28 @@ function updateTempMarker(latestTemp) {
     styleTag.textContent = `#temp-marker { left: calc(${pct}% - ${halfWidthPx}px) !important; }`;
     if (label) label.textContent = latestTemp.toFixed(1) + '°C';
 }
+// ── Humidity Marker ───────────────────────────────────────────────────────
+const humidMarkerEl = document.getElementById('humid-marker');
+const humidCurrentLabel = document.getElementById('humid-current-label');
+const humidBar = document.querySelector('.humid-gradient-bar');
+
+function updateHumidMarker(pct) {
+    if (!humidMarkerEl) return;
+    const clamped = Math.min(100, Math.max(0, pct));
+    let styleTag = document.getElementById('humid-marker-style');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'humid-marker-style';
+        styleTag.nonce = nonce;
+        document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `#humid-marker { left: calc(${clamped}% - 6px) !important; }`;
+    if (humidCurrentLabel)
+        humidCurrentLabel.textContent = `${clamped.toFixed(1)}%`;
+}
 
 if (rows.length > 0) updateTempMarker(rows[rows.length - 1].temp);
+if (rows.length > 0) updateHumidMarker(rows[rows.length - 1].humid);
 
 const temps = rows.map((r) => r.temp);
 
@@ -158,6 +178,7 @@ function onMessage(event) {
         humidChart.update('none');
         if (msg.points.length > 0) {
             updateTempMarker(msg.points[msg.points.length - 1].temp);
+            updateHumidMarker(msg.points[msg.points.length - 1].humid);
         }
         return;
     }
@@ -165,6 +186,7 @@ function onMessage(event) {
     tempChart.update('none');
     humidChart.update('none');
     updateTempMarker(msg.temp);
+    updateHumidMarker(msg.humid);
 }
 
 function connect() {
