@@ -18,7 +18,10 @@ import (
 	mqtt "github.com/mochi-mqtt/server/v2"
 )
 
-var AppVersion = "dev" // overridden by -ldflags in CI/CD
+var (
+	AppVersion = "dev"
+	BuildDate  = "unknown"
+) // overridden by -ldflags in CI/CD
 
 func initLogger(cfg *config.Config) {
 	var handler slog.Handler
@@ -57,9 +60,14 @@ func main() {
 	}
 	initLogger(cfg)
 	cfg.AppVersion = AppVersion
+	cfg.BuildDate = BuildDate
+	if BuildDate == "unknown" {
+		slog.Warn("BuildDate not set — binary was not built via CI/CD")
+	}
 	slog.Info("starting",
 		"app", cfg.AppName,
 		"version", cfg.AppVersion,
+		"build_date", cfg.BuildDate,
 		"env", cfg.AppEnv,
 		"log_level", cfg.LogLevel.Level(),
 	)

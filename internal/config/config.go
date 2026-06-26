@@ -1,4 +1,4 @@
-package server
+package config
 
 import (
 	"encoding/json"
@@ -21,6 +21,7 @@ type Config struct {
 	AppEnv     string `validate:"required,oneof=dev production test"`
 	AppName    string `validate:"required"`
 	AppVersion string
+	BuildDate  string
 	GinMode    string `validate:"required,oneof=debug release test"`
 	LogLevel   *slog.LevelVar
 	// Database
