@@ -56,6 +56,23 @@ templ SHT40HistoryPage(
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-80">
 						<canvas id="temp-chart" class="w-full h-full"></canvas>
 					</div>
+					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+						<div class="flex justify-between items-center mb-2">
+							<span class="text-sm font-medium text-gray-500">{ t.HumidityScaleLabel }</span>
+							<span id="humid-current-label" class="text-sm font-semibold text-gray-700">—</span>
+						</div>
+						<div class="relative pt-2">
+							<div id="humid-marker" class="absolute top-0 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-gray-800"></div>
+							<div class="h-4 rounded-full overflow-hidden humid-gradient-bar"></div>
+						</div>
+						<div class="flex justify-between text-xs text-gray-400 mt-1">
+							<span>0%</span>
+							<span>25%</span>
+							<span>50%</span>
+							<span>75%</span>
+							<span>100%</span>
+						</div>
+					</div>
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-80">
 						<canvas id="humid-chart" class="w-full h-full"></canvas>
 					</div>
