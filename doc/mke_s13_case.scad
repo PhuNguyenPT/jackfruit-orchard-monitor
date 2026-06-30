@@ -60,11 +60,8 @@ module bottom_shell() {
                 outer_h
             ]);
 
-        // Pin alignment holes through the floor
-        for (y_off = [-hole_sp/2, hole_sp/2]) {
-            translate([hole_x, hole_cy + y_off, -0.01])
-                cylinder(d = hole_d, h = floor_t + 1);
-        }
+        // NOTE: The "Pin alignment holes through the floor" block
+        // was removed here to make the bottom shell 100% waterproof!
 
         // Alignment nub dimples on rim
         translate([nub_x, -wall*0.5 - pcb_gap, outer_h - nub_h]) cylinder(d = nub_d + nub_clearance, h = nub_h + 0.1);
@@ -72,13 +69,18 @@ module bottom_shell() {
     }
 
     // PCB mounting standoffs (Pins from the lid will seat inside here)
+    // Updated to dynamically calculate height based on z_pcb_seat
+    // to properly include the solder_z_tol buffer.
+    standoff_h = z_pcb_seat - floor_t;
+
     translate([0, 0, floor_t]) {
         for (y_off = [-hole_sp/2, hole_sp/2]) {
             translate([hole_x, hole_cy + y_off, 0])
             difference() {
-                cylinder(d = pcb_boss_d, h = pcb_t + 0.2);
+                cylinder(d = pcb_boss_d, h = standoff_h);
+                // The bore hole for the lid pin now stops at the solid floor (blind hole)
                 translate([0, 0, -0.01])
-                    cylinder(d = hole_d, h = pcb_t + 1);
+                    cylinder(d = hole_d, h = standoff_h + 1);
             }
         }
     }
