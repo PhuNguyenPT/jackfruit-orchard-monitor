@@ -16,8 +16,9 @@ module pcb_2d() {
         translate([0,        pcb_w/2])         circle(r=0.1);
         translate([chev_l,   0])                circle(r=0.1);
         translate([chev_l,   pcb_w])           circle(r=0.1);
-        translate([pcb_l - corner_r, corner_r])           circle(r=corner_r);
-        translate([pcb_l - corner_r, pcb_w - corner_r])   circle(r=corner_r);
+        // X-axis extended to ensure rapid-fab PCBs don't crash into the wall
+        translate([pcb_l - corner_r + fab_x_tol, corner_r])           circle(r=corner_r);
+        translate([pcb_l - corner_r + fab_x_tol, pcb_w - corner_r])   circle(r=corner_r);
     }
 }
 
@@ -81,6 +82,23 @@ module bottom_shell() {
             }
         }
     }
+
+    // --- CONNECTOR / PCB PARTITION BULKHEAD (LOWER HALF) ---
+    // Matching lower half of the bulkhead in lid() -- rooted in the floor
+    // (z=0) and rising up to exactly z_pcb_seat, the SAME level the PCB
+    // mounting standoffs above present as their top face. This is a flush,
+    // zero-clearance support surface (not a sealing gap) so the PCB rests
+    // level across both the standoffs and this wall, with no rocking or
+    // height mismatch. The lid's upper half of the bulkhead meets this
+    // piece's top at the PCB's underside, with the PCB itself (thickness
+    // pcb_t) plus a slot_gap clearance occupying the open band in between
+    // (see lid()'s partition_drop_h calculation).
+    intersection() {
+        translate([partition_x1, -1000, 0])
+            cube([partition_t, 2000, z_pcb_seat]);
+        linear_extrude(z_pcb_seat)
+            offset(r = pcb_gap) pcb_box_section_2d();
+    }
 }
 
 // =====================================================
@@ -103,16 +121,45 @@ module lid() {
                 -baffle_h
             ])
                 cube([wall, baffle_w, baffle_h]);
+
+            // --- CONNECTOR / PCB PARTITION BULKHEAD (UPPER HALF) ---
+            // Splash/dust barrier between the connector cavity (x > partition_x2,
+            // open to outside air via the ROTATED CONNECTOR SLOT below) and the
+            // main PCB cavity (x < partition_x1). The PCB + male connector are
+            // pre-soldered into one rigid unit before assembly, so the bottom
+            // shell must stay a clean unobstructed box for that unit to drop
+            // straight into -- so this wall only covers the space ABOVE the
+            // PCB, hanging from the lid down to just shy of the board's top
+            // face (slot_gap clearance, purely a sealing gap, not load-bearing).
+            // It never needs to clear the connector either, since the connector
+            // sits entirely at x > partition_x2, outside this wall's footprint.
+            // The matching LOWER half (floor up to the PCB's underside) is a
+            // separate piece rooted in bottom_shell() -- see pcb_seat level
+            // there, which this wall's bottom edge is calculated to meet
+            // exactly flush, with zero gap, so the PCB has continuous level
+            // support across the standoffs and this bulkhead alike.
+            partition_drop_h = outer_h - (z_pcb_seat + pcb_t + slot_gap);
+            partition_w      = pcb_w + 2*pcb_gap - baffle_clearance;
+
+            translate([
+                partition_x1,
+                pcb_w/2 - partition_w/2,
+                -partition_drop_h
+            ])
+                cube([partition_t, partition_w, partition_drop_h]);
         }
 
         // ROTATED CONNECTOR SLOT (Wide along Y axis to fit the plug)
+        // Inner (tip-side) edge is pinned flush to partition_x2 -- the
+        // connector-side face of the new bulkhead -- so this opening only
+        // ever exposes the connector cavity, never the sealed main cavity.
         translate([
-            pcb_l - conn_d - cable_clear,
+            partition_x2,
             pcb_w/2 - (conn_l / 2) - cable_clear,
             -0.01
         ])
             cube([
-                conn_d + 2*cable_clear,
+                (pcb_l + cable_clear) - partition_x2,
                 conn_l + 2*cable_clear,
                 lid_t + 0.1
             ]);
@@ -127,14 +174,17 @@ module lid() {
     for (y_off = [-hole_sp/2, hole_sp/2]) {
         translate([hole_x, hole_cy + y_off, 0]) {
 
-            // 1. Upper Wide Shoulder: Clamps onto the top face of the PCB substrate
-            shoulder_h = inner_h - (floor_t + 2 * pcb_t + 0.2);
-                    translate([0, 0, -shoulder_h])
-                        cylinder(d = pcb_boss_d, h = shoulder_h);
+            // 1. Upper Wide Shoulder: Clamps onto the top face of the PCB
+            // Dynamically calculated to drop exactly to the board surface
+            shoulder_h = inner_h - (z_pcb_seat + pcb_t);
+            translate([0, 0, -shoulder_h])
+                cylinder(d = pcb_boss_d, h = shoulder_h);
 
-            // 2. Interlocking Pin: Passes through PCB and bottom standoffs to the outside floor
-            translate([0, 0, -inner_h])
-                        cylinder(d = lock_pin_d, h = 2 * pcb_t + 0.2 + floor_t);
+            // 2. Interlocking Pin: Passes through PCB and bottom standoffs
+            // Drawn from the bottom UP. Bottom is lifted by squish_tol.
+            pin_h = inner_h - shoulder_h - squish_tol;
+            translate([0, 0, -inner_h + squish_tol])
+                cylinder(d = lock_pin_d, h = pin_h);
         }
     }
 }
