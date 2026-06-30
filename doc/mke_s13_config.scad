@@ -24,6 +24,13 @@ clearance_per_side = nozzle_d * 0.75; // = 0.3mm at the 0.4mm standard --
                                        // the per-side radial/lateral fit
                                        // tolerance used throughout this
                                        // design's sliding/drop-in joints
+// =====================================================
+// 0.5. REAL-WORLD MANUFACTURING TOLERANCES
+// =====================================================
+fab_x_tol    = 1.0; // 1. Extra X-axis length for PCB routing variations
+solder_z_tol = 1.0; // 2. Extra Z-clearance under board for hand-solder spikes
+squish_tol   = 0.5; // 3. Shortens locking pins to prevent elephant-foot bottoming out
+sealant_tol  = 0.5; // 4. Extra gap around probe slot for silicone/conformal coating
 
 // =====================================================
 // 1. PCB DIMENSIONS
@@ -76,8 +83,9 @@ wall        =   2.0; // wall thickness
 floor_t     =   1.5; // floor thickness
 lid_t       =   1.5; // lid plate thickness
 pcb_gap     =   clearance_per_side; // PCB-to-inner-wall clearance
-slot_gap    =   clearance_per_side; // extra clearance around probe passthrough
-baffle_clearance = 2 * clearance_per_side; // diametral width clearance
+slot_gap    =   clearance_per_side + sealant_tol; // extra clearance around probe
+                                                  // passthrough
+baffle_clearance = 2 * clearance_per_side + sealant_tol; // diametral width clearance
                          // between closure baffle and the U-slot it drops
                          // into (was a hardcoded -0.4 giving 0.2mm/side; now
                          // derived from clearance_per_side, giving 0.3mm/side
@@ -93,12 +101,12 @@ baffle_clearance = 2 * clearance_per_side; // diametral width clearance
 // (conn_h) = 10.0mm, total stack = 12.115mm.
 stack_h         =  12.115;            // connector top -> pin tip ends (measured)
 pin_protrusion  =  stack_h - conn_h - pcb_t; // solder pin tip protrusion
-                                              // below the PCB bottom surface
-                                              // (derived so stack_h stays
-                                              // internally consistent)
-inner_h     =  stack_h + 0.5;      // interior clear height
+                                             // below the PCB bottom surface
+                                             // (derived so stack_h stays
+                                             // internally consistent)
+inner_h     =  stack_h + 0.5 + solder_z_tol; // interior clear height
 outer_h     =  inner_h + floor_t;  // total shell height
-z_pcb_seat  =  floor_t + pcb_t + 0.2; // PCB seat height inside the case
+z_pcb_seat  =  floor_t + pcb_t + 0.2 + solder_z_tol; // PCB seat height inside the case
 
 // =====================================================
 // 8. ALIGNMENT NUB (Registration helper)
@@ -120,3 +128,34 @@ cable_clear =   1.0; // clearance around connector footprint
 // 10. DERIVED LAYOUT
 // =====================================================
 box_l       =  pcb_l - safe_line_x; // enclosure length (currently 42mm)
+
+// =====================================================
+// 11. CONNECTOR / PCB PARTITION BULKHEAD
+// =====================================================
+// All four values below are measured from the PCB's RIGHT edge
+// (x = pcb_l), i.e. the end opposite the chevron tip, running
+// along the PCB length axis -- matching how this was physically
+// measured on the board:
+//   0.0 -- 0.6 cm : connector footprint (JST shrouds sit here,
+//                   confirmed against connector_male() in the
+//                   assembly file: shroud starts ~112.25mm)
+//   0.7 -- 0.85cm : bulkhead wall (this section) -- separates the
+//                   connector cavity from the main PCB cavity
+//   0.9 -- 2.6 cm : PCB "red line" keep-out zone (informational;
+//                   no case feature is placed here, but it's why
+//                   the bulkhead is pinned at 0.85cm and not pushed
+//                   further left)
+// NOTE: the bulkhead is built into lid(), NOT bottom_shell(). The
+// PCB and male connector are pre-soldered into one rigid unit
+// before assembly, so the bottom shell must stay a plain,
+// unobstructed cavity for that unit to drop straight into. The
+// bulkhead only comes down afterward with the lid, around the
+// already-seated PCB.
+partition_far_edge  =   7.0;  // mm from right edge -- wall face nearer the connectors
+partition_near_edge =   8.5;  // mm from right edge -- wall face nearer the tip/PCB body
+red_line_near_edge  =   9.0;  // mm from right edge -- start of PCB red-line zone (reference only)
+red_line_far_edge   =  26.0;  // mm from right edge -- end of PCB red-line zone (reference only)
+
+partition_x1 = pcb_l - partition_near_edge; // = 109.5 -- tip-side face
+partition_x2 = pcb_l - partition_far_edge;  // = 111.0 -- connector-side face
+partition_t  = partition_x2 - partition_x1; // = 1.5mm -- wall thickness (== lid_t)
