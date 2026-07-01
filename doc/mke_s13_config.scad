@@ -4,7 +4,7 @@
 // Units: mm
 // =====================================================
 // Included (not used) by mke_s13_case.scad and
-// mke_s13_assembly.scad via: include <mke_s13_params.scad>
+// mke_s13_assembly.scad via: include <mke_s13_config.scad>
 // =====================================================
 
 // =====================================================
@@ -19,7 +19,7 @@
 // won't close the gap. If printing with a non-standard nozzle
 // (0.25/0.6/0.8mm etc.), revisit those clearance values relative
 // to the actual nozzle_d in use.
-nozzle_d = 0.4;
+nozzle_d = 0.2;
 clearance_per_side = nozzle_d * 0.75; // = 0.3mm at the 0.4mm standard --
                                        // the per-side radial/lateral fit
                                        // tolerance used throughout this
@@ -31,7 +31,15 @@ fab_x_tol    = 1.0; // 1. Extra X-axis length for PCB routing variations
 solder_z_tol = 1.0; // 2. Extra Z-clearance under board for hand-solder spikes
 squish_tol   = 0.5; // 3. Shortens locking pins to prevent elephant-foot bottoming out
 sealant_tol  = 0.5; // 4. Extra gap around probe slot for silicone/conformal coating
-
+overlap_eps  = 0.01; // Boolean-union safety margin: internal features that
+                      // meet the lid plate at an exact z=0 seam (baffle,
+                      // bulkhead, pillar shoulders) are extended this far
+                      // past the seam so the union is a genuine 3D overlap
+                      // rather than an exact coincident-face touch, which
+                      // CGAL can occasionally resolve into a non-manifold
+                      // edge. Purely a CAD-kernel safety margin -- has no
+                      // effect on printed dimensions since it's buried
+                      // inside material that's already solid there.
 // =====================================================
 // 1. PCB DIMENSIONS
 // =====================================================
@@ -159,3 +167,37 @@ red_line_far_edge   =  26.0;  // mm from right edge -- end of PCB red-line zone 
 partition_x1 = pcb_l - partition_near_edge; // = 109.5 -- tip-side face
 partition_x2 = pcb_l - partition_far_edge;  // = 111.0 -- connector-side face
 partition_t  = partition_x2 - partition_x1; // = 1.5mm -- wall thickness (== lid_t)
+
+// =====================================================
+// LABYRINTH JOINT PARAMETERS
+// =====================================================
+lip_h         = 3.0;     // Height of the tongue/groove overlap
+lip_clear     = 0.15;    // Radial clearance for a smooth sliding fit
+
+// Explicit, sturdy thicknesses for the lid walls:
+inner_skirt_t = 1.0;     // Gives the lid's inner lip 1mm of solid plastic
+outer_skirt_t = 1.5;     // Gives the lid's outer lip 1.5mm of solid plastic (overhang)
+
+// The tongue on the base is automatically calculated to sit perfectly between them:
+tongue_in  = inner_skirt_t + lip_clear;
+tongue_out = wall;       // Tongue extends flush to the outer edge of the bottom shell
+
+// =====================================================
+// PROBE MOUTH CHAMFER (Cantilever stress-riser mitigation)
+// =====================================================
+// The bare probe (chevron tip to safe_line_x, ~76mm of unsupported
+// 1.6mm FR4) exits the case through the U-slot / closure baffle gap.
+// Under insertion-force bending, the PCB pivots against whichever
+// edge it contacts first -- the top of the bottom_shell sill, or the
+// bottom-front tip of the lid's closure baffle. Left as plain cube
+// corners, those are hard 90 deg stress risers sitting right at the
+// point of maximum bending moment -- the most likely crack-initiation
+// site on the whole assembly. Flaring both into a funnel spreads
+// contact over a slope instead of a line/edge.
+mouth_chamfer_z = 1.0;  // mm -- extra Z (and Y) clearance at the
+                         // exterior/soil-facing edge of the mouth
+mouth_chamfer_x = 1.0;  // mm -- X depth over which the flare tapers
+                         // back down to the normal tight slot_gap
+                         // clearance at the interior face. 1.0/1.0
+                         // gives a ~45 deg taper -- self-supporting
+                         // on FDM, no bridging/overhang concerns.
