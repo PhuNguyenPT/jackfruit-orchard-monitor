@@ -88,8 +88,8 @@ lock_pin_d  =   hole_d - 2*clearance_per_side; // Lid's locking-pillar pin
 // 6. CASE WALLS & CLEARANCES
 // =====================================================
 wall        =   2.0; // wall thickness
-floor_t     =   1.5; // floor thickness
-lid_t       =   1.5; // lid plate thickness
+floor_t     =   2.0; // floor thickness
+lid_t       =   2.0; // lid plate thickness
 pcb_gap     =   clearance_per_side; // PCB-to-inner-wall clearance
 slot_gap    =   clearance_per_side + sealant_tol; // extra clearance around probe
                                                   // passthrough
@@ -166,7 +166,9 @@ red_line_far_edge   =  26.0;  // mm from right edge -- end of PCB red-line zone 
 
 partition_x1 = pcb_l - partition_near_edge; // = 109.5 -- tip-side face
 partition_x2 = pcb_l - partition_far_edge;  // = 111.0 -- connector-side face
-partition_t  = partition_x2 - partition_x1; // = 1.5mm -- wall thickness (== lid_t)
+partition_t  = partition_x2 - partition_x1; // = 1.5mm -- bulkhead wall thickness
+                                             // (independent of lid_t; derived from
+                                             // physical PCB connector/keepout layout)
 
 // =====================================================
 // LABYRINTH JOINT PARAMETERS
@@ -176,7 +178,7 @@ lip_clear     = 0.15;    // Radial clearance for a smooth sliding fit
 
 // Explicit, sturdy thicknesses for the lid walls:
 inner_skirt_t = 1.0;     // Gives the lid's inner lip 1mm of solid plastic
-outer_skirt_t = 1.5;     // Gives the lid's outer lip 1.5mm of solid plastic (overhang)
+outer_skirt_t = 2.0;     // Gives the lid's outer lip 2.0mm of solid plastic (overhang)
 
 // The tongue on the base is automatically calculated to sit perfectly between them:
 tongue_in  = inner_skirt_t + lip_clear;
