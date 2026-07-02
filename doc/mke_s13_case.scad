@@ -274,5 +274,11 @@ module lid_print_ready() {
 // =====================================================
 // RENDER
 // =====================================================
+plate_gap = 2.0; // mm
+bottom_shell_max_y = pcb_w + 2*(wall + pcb_gap);
+lid_min_y_offset    = wall + lip_clear + outer_skirt_t + pcb_gap;
+
 color("SteelBlue",  0.85) bottom_shell();
-color("LightBlue",  0.70) translate([0, pcb_w + 15, 0]) lid_print_ready();
+color("LightBlue",  0.70)
+    translate([0, bottom_shell_max_y + lid_min_y_offset + plate_gap, 0])
+        lid_print_ready();
