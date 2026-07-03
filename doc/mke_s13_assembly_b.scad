@@ -12,7 +12,7 @@ include <mke_s13_config_b.scad>
 // 1 = Assembled (Closed with transparency)
 // 2 = Exploded (Separated vertically)
 // 3 = Cutaway (Sliced along Y-midplane to verify clearances)
-view_mode = 3;
+view_mode = 1;
 
 $fn = 64;
 
