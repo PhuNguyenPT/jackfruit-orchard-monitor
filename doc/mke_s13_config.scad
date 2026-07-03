@@ -115,6 +115,13 @@ baffle_clearance = 2 * clearance_per_side + sealant_tol; // diametral width clea
                          // into (was a hardcoded -0.4 giving 0.2mm/side; now
                          // derived from clearance_per_side, giving 0.15mm/side
                          // at this project's actual 0.2mm-nozzle setup)
+// =====================================================
+// 6.5 SCREW BOSS GEOMETRY (shared: case + assembly)
+// =====================================================
+boss_d           = 7.0;   // screw boss outer diameter
+boss_radius      = boss_d / 2;
+boss_wall_gap_x  = 0.3;   // clearance off the front/back (exit-throat) walls
+boss_wall_gap_y  = 0.5;   // clearance off the PCB's straight long edges
 
 // =====================================================
 // 7. HEIGHT STACK (all computed)
