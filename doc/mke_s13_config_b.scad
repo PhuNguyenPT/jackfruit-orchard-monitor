@@ -16,11 +16,36 @@ pcb_gap_y_right = 12;   // connector-side long-edge gap -- sized for right-corne
 lid_t = 3.5;
 
 // ---- Screw boss / clearance geometry (variant B only) ----
+// ---- Screw boss / clearance geometry (variant B only) ----
 screw_clear_d            = 3.4;   // M3 clearance hole dia through the lid
-screw_head_d             = 6.0;   // pan-head dia -- used for the top chamfer only
-screw_countersink_depth  = 1.7;   // a full counterbore
+screw_head_d             = 6.0;   // flat-head (countersunk) max dia
+screw_countersink_depth  = 1.7;   // depth of the conical countersink
 base_plug                = 2.0;   // solid plastic left under the thread cavity
-thread_fit_comp          = 0.0;   // added to the M3 nominal diameter before cutting
+// Added to the M3 nominal diameter (3.0mm) before cutting the internal
+// thread with metric_thread(internal=true). 0.0 cuts the thread at exact
+// ISO nominal, which FDM printers reliably under-size.
+//
+// Derived from clearance_per_side (Section 0) rather than a standalone
+// number -- that section already exists as this project's single source
+// of truth for nozzle-driven print tolerance, and its header comment
+// explicitly names M3 threads as one of the features it's meant to serve.
+// Hardcoding a separate value here would just be the same "duplicate
+// tolerance logic" mistake as the old case_b.scad parameter redeclaration.
+//
+// Doubled (not used bare) to match how clearance_per_side is applied
+// elsewhere for DIAMETRAL fits (lock_pin_d, baffle_clearance): a printed
+// bore shrinks inward around its full circumference (crest rounding,
+// extrusion bulge, shrinkage), the same all-sides physical picture as a
+// pin-in-hole fit, not a one-sided wall gap like pcb_gap_y/slot_gap. At
+// this project's nozzle_d=0.2 that's 2 * 0.15 = 0.30mm.
+//
+// Threaded bores aren't a perfect analogue to a plain clearance gap --
+// crest/root geometry has its own printability limits beyond straight
+// radial shrinkage -- so treat this as a principled starting point, not
+// a proven number. PRINT A SINGLE TEST BOSS + SCREW before committing to
+// a full print. If the coupon comes out too loose, dial back toward
+// 1 * clearance_per_side rather than picking a new unrelated constant.
+thread_fit_comp          = 2 * clearance_per_side;
 
 boss_h      = outer_h;            // absolute Z, boss stands on the floor
 pilot_depth = boss_h - base_plug;
