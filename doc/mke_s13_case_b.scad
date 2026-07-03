@@ -5,18 +5,8 @@
 // Units: mm
 // =====================================================
 
-include <mke_s13_config.scad>
+include <mke_s13_config_b.scad>
 use <threads.scad>
-
-// =====================================================
-// OVERRIDE: PCB GAP (Case Expansion Fix)
-// =====================================================
-pcb_gap_x_left  = 2.5;  // exit-wall (probe side) — sized for the exit bosses
-pcb_gap_x_right = 4.5;  // connector-wall (opposite the pointy tip) — no boss-size
-                         // constraint here since pcb_gap_y=10 already gives
-                         // this corner plenty of Y-direction room
-pcb_gap_y_left   = 12;   // exit-side long-edge gap — sized for exit bosses (y_off_left)
-pcb_gap_y_right  = 12;   // connector-side long-edge gap — sized for right-corner bosses
 
 // --- VIEW CONFIGURATION ---
 // 1 = Print layout   (bottom shell + print-ready lid, side by side, bed-flat)
@@ -24,7 +14,7 @@ pcb_gap_y_right  = 12;   // connector-side long-edge gap — sized for right-cor
 // 3 = Cutaway        (sliced along Y-midplane -- also shows the corner
 //                      screw bosses/holes in section, CASE ONLY)
 // 4 = Exploded       (bottom shell + lid separated vertically, CASE ONLY)
-view_mode = 1;
+view_mode = 3;
 
 $fn = 48;
 
@@ -33,28 +23,12 @@ $fn = 48;
 // =====================================================
 screw_clear_d    = 3.4;   // M3 clearance hole dia through the lid
 screw_head_d     = 6.0;   // pan-head dia -- used for the top chamfer only
-screw_countersink_depth = 0.6; // shallow chamfer, NOT a full counterbore
-boss_d           = 7.0;   // screw boss outer diameter
+screw_countersink_depth = 1.7; // a full counterbore
 base_plug        = 2.0;   // solid plastic left under the thread cavity (matches floor_t)
 thread_fit_comp  = 0.0;   // added to the M3 nominal diameter (3.0mm) before cutting
 
 boss_h           = outer_h; // absolute Z, boss stands on the floor
 pilot_depth      = boss_h - base_plug;
-
-// --- PARAMETRIC DECOUPLED CORNER POSITIONING ---
-// Mathematically calculates the diagonal required to place the cylindrical
-// screw boss perfectly tangent to the curved inner wall. X and Y are now
-// controlled by SEPARATE gap variables: boss_wall_gap_x only pulls the
-// bosses along the probe-exit axis (safe_line_x face / pcb_l+fab_x_tol
-// face), while boss_wall_gap_y only pulls them along the PCB-width axis.
-// This is the fix -- previously a single diagonal offset_L/offset_R fed
-// BOTH axes, so widening the X clearance also narrowed the Y throat
-// between the two exit-side pillars and could pinch the PCB.
-boss_radius = boss_d / 2;
-boss_wall_gap_x = 0.3; // clearance off the front/back (exit-throat) walls
-boss_wall_gap_y = 0.5; // REAL clearance off the PCB's straight long edges
-                        // (y=0 / y=pcb_w) -- this is now an exact, direct
-                        // clearance value, not an approximation
 
 // Left Side: NOT a real PCB corner. The PCB edge here is a plain straight
 // line (y=0 / y=pcb_w run straight from the chevron tip all the way past
