@@ -3,15 +3,16 @@
 // Parametric OpenSCAD  |  v8.0 (Corrected PCB Triangle Tip)
 // Units: mm
 // =====================================================
-
+include <BOSL2/std.scad>
+include <BOSL2/screws.scad>
 use <mke_s13_case_b.scad>
-include <mke_s13_config.scad>
+include <mke_s13_config_b.scad>
 
 // --- VIEW CONFIGURATION ---
 // 1 = Assembled (Closed with transparency)
 // 2 = Exploded (Separated vertically)
 // 3 = Cutaway (Sliced along Y-midplane to verify clearances)
-view_mode = 1;
+view_mode = 3;
 
 $fn = 64;
 
@@ -237,6 +238,20 @@ module connector_footprint_outline() {
     }
 }
 
+module case_screws(z_lift = 0) {
+    z_lid_top = outer_h + lid_t + z_lift;  // = 18.115mm at z_lift=0
+
+    color("Silver") {
+        for (p = corner_positions)
+            translate([p[0], p[1], z_lid_top])
+                screw("M3", length=12, head="button", anchor=TOP);
+                // orient omitted -> defaults to UP, i.e. no flip.
+                // Canonical screw pose already has head-at-top,
+                // shank hanging down -- exactly what a screw dropping
+                // into a top-side countersink needs.
+    }
+}
+
 module pcb_assembly(male_z_extra = 0, female_z_extra = 0) {
     pcb_board();
     connector_male(z_extra = male_z_extra);
@@ -254,6 +269,7 @@ module full_system() {
 
     translate([0, 0, z_pcb_seat]) pcb_assembly();
     translate([0, 0, outer_h]) color("LightBlue", 0.50) lid();
+    case_screws(z_lift = 0);
 }
 
 module exploded_system() {
@@ -285,6 +301,8 @@ module exploded_system() {
 
     // Layer 4 — lid
     translate([0, 0, outer_h + gap * 4]) color("LightBlue", 0.75) lid();
+
+    case_screws(z_lift = 25 * 5);
 }
 
 // =====================================================
