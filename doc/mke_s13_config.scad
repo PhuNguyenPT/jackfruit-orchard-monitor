@@ -10,26 +10,31 @@
 // =====================================================
 // 0. PRINT TOLERANCE PROFILE
 // =====================================================
-// 0.4mm is the standard/default nozzle diameter on the vast
-// majority of consumer FDM printers (Ultimaker, Prusa, Bambu Lab,
-// Creality, Anycubic, etc. all ship with 0.4mm stock). All radial
-// clearances in this design (lock_pin_d, baffle_clearance,
-// nub_clearance) are sized to be comfortably larger than one
-// nozzle width (>=0.3mm/side), so ordinary FDM dimensional drift
-// won't close the gap. If printing with a non-standard nozzle
-// (0.25/0.6/0.8mm etc.), revisit those clearance values relative
-// to the actual nozzle_d in use.
+// This project is printed on a 0.2mm nozzle at 0.1mm layer height --
+// finer than the 0.4mm nozzle most consumer FDM printers ship with
+// by default (Ultimaker, Prusa, Bambu Lab, Creality, Anycubic, etc.),
+// chosen here for the extra dimensional precision this design's
+// small features (M3 threads, labyrinth lip, locking pins) benefit
+// from. All radial clearances in this design (lock_pin_d,
+// baffle_clearance) are sized to be comfortably
+// larger than one nozzle width (>=0.75x nozzle_d/side), so ordinary
+// FDM dimensional drift won't close the gap. If switching to a
+// coarser/finer nozzle, revisit those clearance values relative to
+// the actual nozzle_d in use -- and note the numbers embedded in
+// their comments below (currently computed FOR nozzle_d=0.2) will
+// need updating too, not just this value.
 nozzle_d = 0.2;
-clearance_per_side = nozzle_d * 0.75; // = 0.3mm at the 0.4mm standard --
-                                       // the per-side radial/lateral fit
+clearance_per_side = nozzle_d * 0.75; // = 0.15mm at this project's
+                                       // 0.2mm-nozzle setup -- the
+                                       // per-side radial/lateral fit
                                        // tolerance used throughout this
                                        // design's sliding/drop-in joints
 // =====================================================
 // 0.5. REAL-WORLD MANUFACTURING TOLERANCES
 // =====================================================
 fab_x_tol    = 1.0; // 1. Extra X-axis length for PCB routing variations
-solder_z_tol = 1.0; // 2. Extra Z-clearance under board for hand-solder spikes
-squish_tol   = 0.5; // 3. Shortens locking pins to prevent elephant-foot bottoming out
+solder_z_tol = 0.5; // 2. Extra Z-clearance under board for hand-solder spikes
+squish_tol   = 0.2; // 3. Shortens locking pins to prevent elephant-foot bottoming out
 sealant_tol  = 0.5; // 4. Extra gap around probe slot for silicone/conformal coating
 overlap_eps  = 0.01; // Boolean-union safety margin: internal features that
                       // meet the lid plate at an exact z=0 seam (baffle,
@@ -40,6 +45,17 @@ overlap_eps  = 0.01; // Boolean-union safety margin: internal features that
                       // edge. Purely a CAD-kernel safety margin -- has no
                       // effect on printed dimensions since it's buried
                       // inside material that's already solid there.
+lid_center_hollow_overcut = 0.1;  // how far the lid's center hollow-out cut
+                                   // reaches past z=0 into the plate (see lid()) --
+                                   // must stay in sync with lid_reconnect_h below
+lid_reconnect_h = lid_center_hollow_overcut + overlap_eps; // internal features
+                                   // (baffle, bulkhead, pillar shoulders) that
+                                   // attach to the underside of the lid plate must
+                                   // extend at least this far past z=0, or they end
+                                   // up as disconnected islands inside the void left
+                                   // by the hollow-out cut
+groove_overcut = 0.2; // Extra Z-depth for the labyrinth groove boolean
+                      // cut
 // =====================================================
 // 1. PCB DIMENSIONS
 // =====================================================
@@ -58,7 +74,6 @@ safe_line_x =  76.0; // Boundary between bare probe and case
 // 3. CONNECTOR — CASE CLEARANCE ENVELOPE (JST XH 3P, fully mated)
 // =====================================================
 conn_l      =  10.0; // length across pins (PCB width axis)
-conn_d      =   7.0; // depth incl. latch (PCB length axis)
 conn_h      =  10.0; // height above PCB top surface
 
 // =====================================================
@@ -81,23 +96,25 @@ pcb_boss_d  =   6.7; // Outer diameter of standoffs/pillars
 lock_pin_d  =   hole_d - 2*clearance_per_side; // Lid's locking-pillar pin
                       // diameter (was hardcoded inline as 3.0mm -- 0.1mm/side
                       // clearance vs hole_d was too tight for FDM; now derived
-                      // from clearance_per_side, giving 0.3mm/side at the
-                      // 0.4mm-nozzle standard)
+                      // from clearance_per_side, giving 0.15mm/side at this
+                      // project's actual 0.2mm-nozzle setup)
 
 // =====================================================
 // 6. CASE WALLS & CLEARANCES
 // =====================================================
 wall        =   2.0; // wall thickness
-floor_t     =   1.5; // floor thickness
-lid_t       =   1.5; // lid plate thickness
-pcb_gap     =   clearance_per_side; // PCB-to-inner-wall clearance
+floor_t     =   2.0; // floor thickness
+lid_t       =   2.0; // lid plate thickness
+pcb_gap_y     =   clearance_per_side; // PCB-to-inner-wall clearance
+shoulder_pcb_clearance_z = 0.4;
+pcb_z_gap = 0.2;
 slot_gap    =   clearance_per_side + sealant_tol; // extra clearance around probe
                                                   // passthrough
 baffle_clearance = 2 * clearance_per_side + sealant_tol; // diametral width clearance
                          // between closure baffle and the U-slot it drops
                          // into (was a hardcoded -0.4 giving 0.2mm/side; now
-                         // derived from clearance_per_side, giving 0.3mm/side
-                         // at the 0.4mm-nozzle standard)
+                         // derived from clearance_per_side, giving 0.15mm/side
+                         // at this project's actual 0.2mm-nozzle setup)
 
 // =====================================================
 // 7. HEIGHT STACK (all computed)
@@ -112,33 +129,22 @@ pin_protrusion  =  stack_h - conn_h - pcb_t; // solder pin tip protrusion
                                              // below the PCB bottom surface
                                              // (derived so stack_h stays
                                              // internally consistent)
-inner_h     =  stack_h + 0.5 + solder_z_tol; // interior clear height
+inner_h     =  stack_h + solder_z_tol; // interior clear height
 outer_h     =  inner_h + floor_t;  // total shell height
-z_pcb_seat  =  floor_t + pcb_t + 0.2 + solder_z_tol; // PCB seat height inside the case
+z_pcb_seat  =  floor_t + pcb_t + pcb_z_gap + solder_z_tol; // PCB seat height inside the case
 
 // =====================================================
-// 8. ALIGNMENT NUB (Registration helper)
-// =====================================================
-nub_d         =   2.5;
-nub_h         =   1.5;  // was 0.8 -- raised so the feature isn't lost to
-                         // first-layer squish / slicer minimum-feature rounding
-nub_x         =  96.0;
-nub_clearance =   0.8;  // diametral clearance between peg (nub_d) and dimple
-                         // (was an inline +0.4 magic number; widened to 0.8mm
-                         // diametral / 0.4mm radial -- a safer fit for 0.4mm-nozzle FDM)
-
-// =====================================================
-// 9. CABLE EXIT CLEARANCE
+// 8. CABLE EXIT CLEARANCE
 // =====================================================
 cable_clear =   1.0; // clearance around connector footprint
 
 // =====================================================
-// 10. DERIVED LAYOUT
+// 9. DERIVED LAYOUT
 // =====================================================
 box_l       =  pcb_l - safe_line_x; // enclosure length (currently 42mm)
 
 // =====================================================
-// 11. CONNECTOR / PCB PARTITION BULKHEAD
+// 10. CONNECTOR / PCB PARTITION BULKHEAD
 // =====================================================
 // All four values below are measured from the PCB's RIGHT edge
 // (x = pcb_l), i.e. the end opposite the chevron tip, running
@@ -166,7 +172,9 @@ red_line_far_edge   =  26.0;  // mm from right edge -- end of PCB red-line zone 
 
 partition_x1 = pcb_l - partition_near_edge; // = 109.5 -- tip-side face
 partition_x2 = pcb_l - partition_far_edge;  // = 111.0 -- connector-side face
-partition_t  = partition_x2 - partition_x1; // = 1.5mm -- wall thickness (== lid_t)
+partition_t  = partition_x2 - partition_x1; // = 1.5mm -- bulkhead wall thickness
+                                             // (independent of lid_t; derived from
+                                             // physical PCB connector/keepout layout)
 
 // =====================================================
 // LABYRINTH JOINT PARAMETERS
@@ -176,7 +184,7 @@ lip_clear     = 0.15;    // Radial clearance for a smooth sliding fit
 
 // Explicit, sturdy thicknesses for the lid walls:
 inner_skirt_t = 1.0;     // Gives the lid's inner lip 1mm of solid plastic
-outer_skirt_t = 1.5;     // Gives the lid's outer lip 1.5mm of solid plastic (overhang)
+outer_skirt_t = 2.0;     // Gives the lid's outer lip 2.0mm of solid plastic (overhang)
 
 // The tongue on the base is automatically calculated to sit perfectly between them:
 tongue_in  = inner_skirt_t + lip_clear;
@@ -194,10 +202,4 @@ tongue_out = wall;       // Tongue extends flush to the outer edge of the bottom
 // point of maximum bending moment -- the most likely crack-initiation
 // site on the whole assembly. Flaring both into a funnel spreads
 // contact over a slope instead of a line/edge.
-mouth_chamfer_z = 1.0;  // mm -- extra Z (and Y) clearance at the
-                         // exterior/soil-facing edge of the mouth
-mouth_chamfer_x = 1.0;  // mm -- X depth over which the flare tapers
-                         // back down to the normal tight slot_gap
-                         // clearance at the interior face. 1.0/1.0
-                         // gives a ~45 deg taper -- self-supporting
-                         // on FDM, no bridging/overhang concerns.
+ boolean_overlap = 1.0;
