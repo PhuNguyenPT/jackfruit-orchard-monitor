@@ -18,18 +18,6 @@ view_mode = 3;
 
 $fn = 48;
 
-// =====================================================
-// SCREW BOSS PARAMETERS (variant B: 4-corner screwed lid)
-// =====================================================
-screw_clear_d    = 3.4;   // M3 clearance hole dia through the lid
-screw_head_d     = 6.0;   // pan-head dia -- used for the top chamfer only
-screw_countersink_depth = 1.7; // a full counterbore
-base_plug        = 2.0;   // solid plastic left under the thread cavity (matches floor_t)
-thread_fit_comp  = 0.0;   // added to the M3 nominal diameter (3.0mm) before cutting
-
-boss_h           = outer_h; // absolute Z, boss stands on the floor
-pilot_depth      = boss_h - base_plug;
-
 // Left Side: NOT a real PCB corner. The PCB edge here is a plain straight
 // line (y=0 / y=pcb_w run straight from the chevron tip all the way past
 // this point) -- the "corner" at (base_x_left, 0)/(base_x_left, pcb_w) is
