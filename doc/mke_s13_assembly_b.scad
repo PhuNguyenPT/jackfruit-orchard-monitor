@@ -244,7 +244,7 @@ module case_screws(z_lift = 0) {
     color("Silver") {
         for (p = corner_positions)
             translate([p[0], p[1], z_lid_top])
-                screw("M3", length=12, head="button", anchor=TOP);
+                screw("M3", length=12, head="flat", anchor=TOP);
                 // orient omitted -> defaults to UP, i.e. no flip.
                 // Canonical screw pose already has head-at-top,
                 // shank hanging down -- exactly what a screw dropping
