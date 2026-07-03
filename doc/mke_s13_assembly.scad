@@ -211,7 +211,7 @@ module red_zone_markers() {
 // exactly the position and size of the male shroud body
 // (conn_male_d × conn_male_w), matching the translate()
 // origin used in connector_male().
-// Line thickness: nozzle_d (0.4 mm) — visually clear at
+// Line thickness: nozzle_d (0.2 mm) — visually clear at
 // 1:1 scale without overlapping the shroud body.
 silk_t = nozzle_d;  // silkscreen line thickness (one nozzle width)
 silk_z = 0.05;      // silk layer height above PCB surface
