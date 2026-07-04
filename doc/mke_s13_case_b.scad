@@ -14,7 +14,7 @@ use <threads.scad>
 // 3 = Cutaway        (sliced along Y-midplane -- also shows the corner
 //                      screw bosses/holes in section, CASE ONLY)
 // 4 = Exploded       (bottom shell + lid separated vertically, CASE ONLY)
-view_mode = 3;
+view_mode = 1;
 
 $fn = 48;
 
