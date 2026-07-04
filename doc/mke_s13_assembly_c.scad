@@ -1,11 +1,13 @@
 // =====================================================
 // MKE-S13 Case + PCB — Combined Fit-Check Assembly
-// Parametric OpenSCAD  | v8.2 (Fixed CSG Wall Glitch in Terminal Holes)
+// Parametric OpenSCAD  | v8.4 (Fixed CSG Wall Glitch in Terminal Holes)
 // Units: mm
 // =====================================================
 
-use <mke_s13_case.scad>
-include <mke_s13_config.scad>
+include <BOSL2/std.scad>
+include <BOSL2/screws.scad>
+use <mke_s13_case_c.scad>
+include <mke_s13_config_c.scad>
 
 // --- VIEW CONFIGURATION ---
 // 1 = Assembled (Closed with transparency)
@@ -20,13 +22,9 @@ $fn = 64;
 // =====================================================
 module pcb_outline_2d() {
     hull() {
-        // Point of the triangle
         translate([0, pcb_w/2]) circle(r=0.1);
-        // Base of the triangle (where the rectangle begins, 9.0mm from the point)
         translate([chev_l, 0]) circle(r=0.1);
         translate([chev_l, pcb_w]) circle(r=0.1);
-
-        // Far end of the rectangle
         translate([pcb_l - corner_r, corner_r]) circle(r=corner_r);
         translate([pcb_l - corner_r, pcb_w - corner_r]) circle(r=corner_r);
     }
@@ -35,17 +33,12 @@ module pcb_outline_2d() {
 module pcb_board() {
     color("ForestGreen", 0.95) {
         difference() {
-            // Extrude the updated two-part hull (Rectangle + 0.9cm Triangle)
             linear_extrude(pcb_t) pcb_outline_2d();
-
-            // 3 connector through-holes
             for(i = [-1, 0, 1]) {
                 translate([pcb_l - pin_offset_x, pcb_w/2 + (i * conn_pitch), -0.5]) {
                     cylinder(d=1.0, h=pcb_t + 1);
                 }
             }
-
-            // 2 mounting/locking-pillar through-holes
             for (y_off = [-hole_sp/2, hole_sp/2]) {
                 translate([hole_x, hole_cy + y_off, -0.5]) {
                     cylinder(d=hole_d, h=pcb_t + 1);
@@ -56,43 +49,27 @@ module pcb_board() {
 }
 
 module connector_male(z_extra = 0) {
-    // 1. Male Header Plastic Shroud
     color("White", 0.95) {
         translate([pcb_l - conn_male_d, pcb_w/2 - conn_male_w/2, pcb_t + z_extra]) {
             difference() {
                 union() {
-                    // Outer Housing Block
                     cube([conn_male_d, conn_male_w, conn_male_h]);
-
-                    // --- THE LATCH PROTRUSION (WEDGE PROFILE) ---
                     translate([conn_male_d, (conn_male_w/2) - 1.8, conn_male_h - 2.0]) {
                         hull() {
-                            // Bottom flat face
                             cube([0.6, 3.6, 0.01]);
-                            // Top edge tapering into the wall
                             translate([0, 0, 1.99]) {
                                 cube([0.01, 3.6, 0.01]);
                             }
                         }
                     }
                 }
-
-                // Top-down hollow cavity to receive the female plug
                 translate([0.8, 0.8, 1.5]) {
                     cube([conn_male_d - 1.6, conn_male_w - 1.6, conn_male_h]);
                 }
-
-                // --- TWO SPACINGS (SLOTS) ---
-                // NOTE: this slot's near (cavity-side) face sits at local
-                // x = conn_male_d - 0.8, which is the EXACT same plane as the
-                // cavity cutout's far face above (0.8 + (conn_male_d - 1.6) =
-                // conn_male_d - 0.8). Two independently-subtracted volumes
-                // meeting at a perfectly coincident face is what caused the
-                // CGAL non-manifold "wall glitch" -- the identical bug already
-                // fixed in connector_female()'s stepped terminal holes below,
-                // via a deliberate small overlap. Applying the same fix here:
-                // extend the slot overlap_eps back into the cavity so the two
-                // cuts genuinely intersect in 3D instead of just touching.
+                // Fix: coincident-face CSG glitch (slot's near face landed on
+                // the exact same plane as the cavity cutout's far face) --
+                // overlap slightly into the cavity so the two cuts genuinely
+                // intersect instead of just touching.
                 for(i = [-1, 1]) {
                     translate([conn_male_d - 0.8 - overlap_eps, (conn_male_w/2) + (i * conn_pitch) - 0.7, 1.5]) {
                         cube([1.0 + overlap_eps, 1.4, conn_male_h]);
@@ -101,16 +78,12 @@ module connector_male(z_extra = 0) {
             }
         }
     }
-
-    // 2. Metallic Pins
     color("Silver") {
         pin_tip_h = 0.4;
         for(i = [-1, 0, 1]) {
-            // Pointed solder tip protruding through the bottom of the PCB
             translate([pcb_l - pin_offset_x, pcb_w/2 + (i * conn_pitch), -pin_protrusion + z_extra]) {
                 cylinder(d1=0, d2=0.64, h=pin_tip_h, $fn=16);
             }
-            // Main pin bodies extending up inside the shroud cavity
             translate([pcb_l - pin_offset_x, pcb_w/2 + (i * conn_pitch), -pin_protrusion + pin_tip_h + z_extra]) {
                 cylinder(d=0.64, h=(conn_male_h - 1.5) + pcb_t + pin_protrusion - pin_tip_h, $fn=16);
             }
@@ -120,41 +93,31 @@ module connector_male(z_extra = 0) {
 
 module connector_female(z_extra = 0) {
     translate([0, 0, z_extra]) {
-        // 1. Female Plug Housing (with 3 hollow terminal cavities)
         color("Gainsboro", 0.98) {
             difference() {
                 union() {
                     translate([pcb_l - conn_male_d + 0.85, pcb_w/2 - (conn_male_w - 1.7)/2, pcb_t + 1.5]) {
-
-                        // Main plug block nested inside the male cavity
                         cube([conn_male_d - 1.7, conn_male_w - 1.7, 6.2]);
-
-                        // Top structural flange/lip (The "blade" closest to the wires)
                         translate([-0.2, -0.4, 5.2]) {
                             cube([conn_male_d - 1.3, conn_male_w - 0.9, 1.2]);
                         }
-
-                        // Two vertical guide ridges dropping down from the horizontal bar
                         for(i = [-1, 1]) {
                             translate([conn_male_d - 1.7, (conn_male_w - 1.7)/2 + (i * conn_pitch) - 0.6, 0]) {
                                 cube([0.85, 1.2, 5.2]);
                             }
                         }
-
-                        // Horizontal line connecting the 2 ridges
                         translate([conn_male_d - 1.7, (conn_male_w - 1.7)/2 - conn_pitch - 0.6, 5.2]) {
                             cube([0.85, (2 * conn_pitch) + 1.2, 1.2]);
                         }
                     }
                 }
 
-                // --- 3 TWO-PART STEPPED TERMINAL HOLES ---
                 for(i = [-1, 0, 1]) {
                     // A. Large Rectangle (Right side)
                     translate([
                         (pcb_l - 1.35) - 2.5,
                         (pcb_w / 2) + (i * conn_pitch) - 1.0,
-                        pcb_t + 1.5 + 3.0 // Starts 3mm up inside the plug
+                        pcb_t + 1.5 + 3.0
                     ]) {
                         cube([2.5, 2.0, 4.0]);
                     }
@@ -165,7 +128,7 @@ module connector_female(z_extra = 0) {
                     translate([
                         (pcb_l - 1.35) - 2.5 - 0.5,
                         (pcb_w / 2) + (i * conn_pitch) - 0.5,
-                        pcb_t + 1.5 + 3.0 // Starts 3mm up inside the plug
+                        pcb_t + 1.5 + 3.0
                     ]) {
                         cube([0.5 + terminal_hole_overlap, 1.0, 4.0]);
                     }
@@ -173,14 +136,13 @@ module connector_female(z_extra = 0) {
             }
         }
 
-        // 2. Insulated Sensor Wires Emerging from Inside the Terminal Holes
         wire_colors = ["Red", "White", "Black"];
         for(i = [-1, 0, 1]) {
             color(wire_colors[i+1]) {
                 translate([
                     pcb_l - pin_offset_x,
                     pcb_w/2 + (i * conn_pitch),
-                    pcb_t + 1.5 + 3.0 // Anchored deep inside the hollow pocket
+                    pcb_t + 1.5 + 3.0
                 ]) {
                     cylinder(d=1.1, h=20.0, $fn=16);
                 }
@@ -227,6 +189,16 @@ module connector_footprint_outline() {
     }
 }
 
+module case_screws(z_lift = 0) {
+    z_lid_top = outer_h + lid_t + z_lift;
+    color("Silver") {
+        for (y_off = [-hole_sp/2, hole_sp/2]) {
+            translate([hole_x, hole_cy + y_off, z_lid_top])
+                screw("M3", length=12, head="flat", anchor=TOP);
+        }
+    }
+}
+
 module pcb_assembly(male_z_extra = 0, female_z_extra = 0) {
     pcb_board();
     connector_male(z_extra = male_z_extra);
@@ -236,13 +208,11 @@ module pcb_assembly(male_z_extra = 0, female_z_extra = 0) {
     connector_footprint_outline();
 }
 
-// =====================================================
-// RENDERING MODULES
-// =====================================================
 module full_system() {
     color("SteelBlue", 0.65) bottom_shell();
     translate([0, 0, z_pcb_seat]) pcb_assembly();
     translate([0, 0, outer_h]) color("LightBlue", 0.50) lid();
+    case_screws(z_lift = 0);
 }
 
 module exploded_system() {
@@ -261,6 +231,7 @@ module exploded_system() {
         connector_female(z_extra = gap + conn_male_h + gap);
     }
     translate([0, 0, outer_h + gap * 4]) color("LightBlue", 0.75) lid();
+    case_screws(z_lift = gap * 5);
 }
 
 if (view_mode == 1) {

@@ -14,7 +14,7 @@ use <threads.scad>
 // 3 = Cutaway        (sliced along Y-midplane -- also shows the corner
 //                      screw bosses/holes in section, CASE ONLY)
 // 4 = Exploded       (bottom shell + lid separated vertically, CASE ONLY)
-view_mode = 3;
+view_mode = 1;
 
 $fn = 48;
 
@@ -69,6 +69,7 @@ module screw_boss(x, y) {
 
             // The threaded internal cutout
             translate([0, 0, boss_h - pilot_depth])
+                render()
                 metric_thread(
                     diameter=3.0 + thread_fit_comp,
                     pitch=0.5,
