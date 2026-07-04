@@ -33,3 +33,11 @@ thread_cut_undercut = 0.01; // both thread cuts start this far below their
                       // thread's phase-alignment math in
                       // mke_s13_case_c.scad has to reference the exact
                       // same value the bottom standoff's cut uses.
+// =====================================================
+// VARIANT C DOCUMENTATION NOTES
+// (Overrides/clarifications for the base config)
+// =====================================================
+
+// NOTE: References to 'locking_pins' in the base config
+// refer to the legacy Variant A design. Variant C utilizes
+// continuous M3 threaded standoffs instead.
