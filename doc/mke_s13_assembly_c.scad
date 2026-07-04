@@ -46,9 +46,9 @@ module pcb_board() {
                 }
             }
 
-            // 2 mounting/locking-pillar through-holes
-            // (lid's interlocking pin passes through here into the
-            // bottom standoff bore — see lid() in mke_s13_case.scad)
+            // 2 mounting through-holes
+            // (M3 screw shafts pass cleanly through here to act as metal
+            // alignment dowels between the lid and bottom standoff)
             for (y_off = [-hole_sp/2, hole_sp/2]) {
                 translate([hole_x, hole_cy + y_off, -0.5]) {
                     cylinder(d=hole_d, h=pcb_t + 1);
