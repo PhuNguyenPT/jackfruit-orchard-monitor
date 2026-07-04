@@ -69,6 +69,7 @@ module screw_boss(x, y) {
 
             // The threaded internal cutout
             translate([0, 0, boss_h - pilot_depth])
+                render()
                 metric_thread(
                     diameter=3.0 + thread_fit_comp,
                     pitch=0.5,
