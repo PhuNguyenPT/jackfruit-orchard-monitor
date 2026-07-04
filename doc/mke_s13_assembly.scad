@@ -1,6 +1,6 @@
 // =====================================================
 // MKE-S13 Case + PCB — Combined Fit-Check Assembly
-// Parametric OpenSCAD  |  v8.0 (Corrected PCB Triangle Tip)
+// Parametric OpenSCAD  | v8.2 (Fixed CSG Wall Glitch in Terminal Holes)
 // Units: mm
 // =====================================================
 
@@ -22,7 +22,6 @@ module pcb_outline_2d() {
     hull() {
         // Point of the triangle
         translate([0, pcb_w/2]) circle(r=0.1);
-
         // Base of the triangle (where the rectangle begins, 9.0mm from the point)
         translate([chev_l, 0]) circle(r=0.1);
         translate([chev_l, pcb_w]) circle(r=0.1);
@@ -47,8 +46,6 @@ module pcb_board() {
             }
 
             // 2 mounting/locking-pillar through-holes
-            // (lid's interlocking pin passes through here into the
-            // bottom standoff bore — see lid() in mke_s13_case.scad)
             for (y_off = [-hole_sp/2, hole_sp/2]) {
                 translate([hole_x, hole_cy + y_off, -0.5]) {
                     cylinder(d=hole_d, h=pcb_t + 1);
@@ -86,9 +83,19 @@ module connector_male(z_extra = 0) {
                 }
 
                 // --- TWO SPACINGS (SLOTS) ---
+                // NOTE: this slot's near (cavity-side) face sits at local
+                // x = conn_male_d - 0.8, which is the EXACT same plane as the
+                // cavity cutout's far face above (0.8 + (conn_male_d - 1.6) =
+                // conn_male_d - 0.8). Two independently-subtracted volumes
+                // meeting at a perfectly coincident face is what caused the
+                // CGAL non-manifold "wall glitch" -- the identical bug already
+                // fixed in connector_female()'s stepped terminal holes below,
+                // via a deliberate small overlap. Applying the same fix here:
+                // extend the slot overlap_eps back into the cavity so the two
+                // cuts genuinely intersect in 3D instead of just touching.
                 for(i = [-1, 1]) {
-                    translate([conn_male_d - 0.8, (conn_male_w/2) + (i * conn_pitch) - 0.7, 1.5]) {
-                        cube([1.0, 1.4, conn_male_h]);
+                    translate([conn_male_d - 0.8 - overlap_eps, (conn_male_w/2) + (i * conn_pitch) - 0.7, 1.5]) {
+                        cube([1.0 + overlap_eps, 1.4, conn_male_h]);
                     }
                 }
             }
@@ -97,11 +104,9 @@ module connector_male(z_extra = 0) {
 
     // 2. Metallic Pins
     color("Silver") {
-        pin_tip_h = 0.4; // cosmetic taper length of the solder point (unchanged)
+        pin_tip_h = 0.4;
         for(i = [-1, 0, 1]) {
             // Pointed solder tip protruding through the bottom of the PCB
-            // (tip's sharp point lands at -pin_protrusion, derived from the
-            // measured 12.115mm total stack: connector top -> pin tip end)
             translate([pcb_l - pin_offset_x, pcb_w/2 + (i * conn_pitch), -pin_protrusion + z_extra]) {
                 cylinder(d1=0, d2=0.64, h=pin_tip_h, $fn=16);
             }
@@ -143,15 +148,26 @@ module connector_female(z_extra = 0) {
                     }
                 }
 
-                // --- 3 RECTANGULAR TERMINAL HOLES (3.0mm x 2.0mm) ---
-                // Subtracted down into the top face of the plug
+                // --- 3 TWO-PART STEPPED TERMINAL HOLES ---
                 for(i = [-1, 0, 1]) {
+                    // A. Large Rectangle (Right side)
                     translate([
-                        (pcb_l - pin_offset_x) - 1.5,
+                        (pcb_l - 1.35) - 2.5,
                         (pcb_w / 2) + (i * conn_pitch) - 1.0,
-                        pcb_t + 1.5 + 3.0 // Starts 3mm up inside the plug, punches through the top
+                        pcb_t + 1.5 + 3.0 // Starts 3mm up inside the plug
                     ]) {
-                        cube([3.0, 2.0, 4.0]);
+                        cube([2.5, 2.0, 4.0]);
+                    }
+
+                    // B. Small Rectangle (Left side)
+                    // 0.5mm nominal length (X) + terminal_hole_overlap into the
+                    // large rectangle to prevent the CGAL coincident-face glitch
+                    translate([
+                        (pcb_l - 1.35) - 2.5 - 0.5,
+                        (pcb_w / 2) + (i * conn_pitch) - 0.5,
+                        pcb_t + 1.5 + 3.0 // Starts 3mm up inside the plug
+                    ]) {
+                        cube([0.5 + terminal_hole_overlap, 1.0, 4.0]);
                     }
                 }
             }
@@ -175,14 +191,10 @@ module connector_female(z_extra = 0) {
 
 module safe_line_marker() {
     color("Black") {
-        // Centered at safe_line_x, sitting on top of the PCB surface
         translate([safe_line_x, 0, pcb_t]) {
             hull() {
-                // Bottom point: 2.5mm gap from edge + 0.75mm radius = Y at 3.25
                 translate([0, 3.25, 0])
                     cylinder(d=1.5, h=0.05, $fn=32);
-
-                // Top point: pcb_w - (2.5mm gap + 0.75mm radius) = Y at pcb_w - 3.25
                 translate([0, pcb_w - 3.25, 0])
                     cylinder(d=1.5, h=0.05, $fn=32);
             }
@@ -192,48 +204,26 @@ module safe_line_marker() {
 
 module red_zone_markers() {
     color("Red") {
-        // First red line (0.9cm / 9.0mm from right edge)
         translate([pcb_l - red_line_near_edge - 0.75, 1, pcb_t]) {
             cube([1.5, pcb_w - 2, 0.05]);
         }
-
-        // Second red line (2.6cm / 26.0mm from right edge)
         translate([pcb_l - red_line_far_edge - 0.75, 1, pcb_t]) {
             cube([1.5, pcb_w - 2, 0.05]);
         }
     }
 }
 
-// =====================================================
-// CONNECTOR FOOTPRINT OUTLINE (silkscreen / fit-check)
-// =====================================================
-// Draws a white rectangle on the top face of the PCB at
-// exactly the position and size of the male shroud body
-// (conn_male_d × conn_male_w), matching the translate()
-// origin used in connector_male().
-// Line thickness: nozzle_d (0.2 mm) — visually clear at
-// 1:1 scale without overlapping the shroud body.
-silk_t = nozzle_d;  // silkscreen line thickness (one nozzle width)
-silk_z = 0.05;      // silk layer height above PCB surface
-
 module connector_footprint_outline() {
-    // Shroud origin on the PCB — mirrors connector_male() placement exactly
     ox = pcb_l - conn_male_d;
     oy = pcb_w / 2 - conn_male_w / 2;
+    silk_t = nozzle_d;
+    silk_z = 0.05;
 
     color("White") translate([ox, oy, pcb_t]) {
-        // Bottom edge
-        translate([0, 0, 0])
-            cube([conn_male_d, silk_t, silk_z]);
-        // Top edge
-        translate([0, conn_male_w - silk_t, 0])
-            cube([conn_male_d, silk_t, silk_z]);
-        // Left edge
-        translate([0, silk_t, 0])
-            cube([silk_t, conn_male_w - 2 * silk_t, silk_z]);
-        // Right edge
-        translate([conn_male_d - silk_t, silk_t, 0])
-            cube([silk_t, conn_male_w - 2 * silk_t, silk_z]);
+        translate([0, 0, 0]) cube([conn_male_d, silk_t, silk_z]);
+        translate([0, conn_male_w - silk_t, 0]) cube([conn_male_d, silk_t, silk_z]);
+        translate([0, silk_t, 0]) cube([silk_t, conn_male_w - 2 * silk_t, silk_z]);
+        translate([conn_male_d - silk_t, silk_t, 0]) cube([silk_t, conn_male_w - 2 * silk_t, silk_z]);
     }
 }
 
@@ -251,45 +241,28 @@ module pcb_assembly(male_z_extra = 0, female_z_extra = 0) {
 // =====================================================
 module full_system() {
     color("SteelBlue", 0.65) bottom_shell();
-
     translate([0, 0, z_pcb_seat]) pcb_assembly();
     translate([0, 0, outer_h]) color("LightBlue", 0.50) lid();
 }
 
 module exploded_system() {
     gap = 25;
-
-    // Layer 0 — bottom shell (sits on the bed)
     color("SteelBlue", 0.85) bottom_shell();
-
-    // Layer 1 — PCB board only (no connectors)
     translate([0, 0, z_pcb_seat + gap]) {
         pcb_board();
         safe_line_marker();
         red_zone_markers();
         connector_footprint_outline();
     }
-
-    // Layer 2 — male connector + pins
-    // Placed at the PCB seat height so its pcb_t-anchored geometry
-    // is correct; z_extra lifts it an additional gap above the PCB.
     translate([0, 0, z_pcb_seat + gap]) {
         connector_male(z_extra = gap);
     }
-
-    // Layer 3 — female plug + wires
-    // Sits one further gap above the male shroud top (conn_male_h).
     translate([0, 0, z_pcb_seat + gap]) {
         connector_female(z_extra = gap + conn_male_h + gap);
     }
-
-    // Layer 4 — lid
     translate([0, 0, outer_h + gap * 4]) color("LightBlue", 0.75) lid();
 }
 
-// =====================================================
-// RENDER EXECUTION
-// =====================================================
 if (view_mode == 1) {
     full_system();
 } else if (view_mode == 2) {
