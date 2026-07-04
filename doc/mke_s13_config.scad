@@ -45,6 +45,16 @@ overlap_eps  = 0.01; // Boolean-union safety margin: internal features that
                       // edge. Purely a CAD-kernel safety margin -- has no
                       // effect on printed dimensions since it's buried
                       // inside material that's already solid there.
+terminal_hole_overlap = 0.1; // Same CGAL-safety idea as overlap_eps (a real
+                      // 3D overlap instead of a coincident-face touch between
+                      // two independently-subtracted cutouts), but kept as its
+                      // own named constant rather than reusing overlap_eps:
+                      // this one sizes the overlap between the two-part
+                      // stepped terminal hole's A/B rectangles in
+                      // connector_female() (mke_s13_assembly*.scad), a
+                      // different feature at a different scale. Keeping the
+                      // two separate means tuning one for its own feature
+                      // can't accidentally shrink/loosen the other.
 lid_center_hollow_overcut = 0.1;  // how far the lid's center hollow-out cut
                                    // reaches past z=0 into the plate (see lid()) --
                                    // must stay in sync with lid_reconnect_h below
