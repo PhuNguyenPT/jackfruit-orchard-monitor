@@ -94,6 +94,27 @@ V   KZZ DATE     COMMENT
     resolution choices scoped to that module, not a leftover/inconsistency; and the hex-nut
     cylinder's $fn=6 (NutCutSquare/hex helper around line 1335) - 6 sides is the actual intended
     hexagon shape for a nut, not a resolution shortcut, so it must stay exactly 6.
+7.13 PhuNguyenPT 10.07.26 Gated the battery holder mounting bosses + M3 thread cuts behind
+    ShowBatteryHolder. Previously ShowBatteryHolder only controlled the semi-transparent
+    reference display block - the actual 6 mounting bosses and their thread cuts in the printed
+    bottom part were unconditional, so setting ShowBatteryHolder=false hid the preview but still
+    printed the hardware. Both blocks now check ShowBatteryHolder, same pattern as
+    ShowDeviceHolder1/2/3 already use for their own bosses.
+7.14 PhuNguyenPT 10.07.26 Reverted 7.13's gating: removed "if (ShowBatteryHolder)" from the
+    battery holder mounting boss union and its matching thread-cut difference in BodyBottom().
+    7.13 over-corrected - it made ShowBatteryHolder=false delete the physical bosses/threads from
+    the printed part too, not just hide the preview block. Left them unconditional (tied only to
+    the module's outer "if(ShowBottom)"), which fixed the coupling but removed any standalone way
+    to turn just the bosses off.
+7.15 PhuNguyenPT 10.07.26 Added a new ShowBatteryDeviceHolder toggle (default true, declared next
+    to ShowBatteryHolder) and gated the mounting boss union + thread-cut difference in
+    BodyBottom() behind it, replacing 7.14's unconditional version. This matches the existing
+    ShowDeviceHolder1/2/3 convention - each device's real printed hardware gets its own dedicated
+    switch - rather than either (a) tying the bosses to the preview toggle (7.13's bug: hiding the
+    preview also deleted the hardware) or (b) leaving them with no toggle at all (7.14). Net
+    result: ShowBatteryHolder controls only the semi-transparent preview block in BatteryHolder();
+    ShowBatteryDeviceHolder controls only the real mounting bosses/threads in BodyBottom(); both
+    still live inside the outer ShowBottom, so ShowBottom=false still turns everything off.
 *******************************************************************************/
 
 // Requires threads.scad (Ryan A. Colyer's library, CC0):
@@ -165,13 +186,20 @@ BreadboardHeight          = 10;
 // Move the breadboard left/right from the case center
 BreadboardOffset_X        = 0;
 // Move the breadboard forward/back from the case center - shifted toward one side to leave room for the battery holder
-BreadboardOffset_Y        = 32.0;
+BreadboardOffset_Y        = 30.0;
 // Lift the breadboard up from the inner floor (0 = resting directly on the floor)
 BreadboardOffset_Z        = 0;
 
 /* [Battery holder reference block] */
 // Show a reference rectangle representing the battery holder (visual only, it is not merged into the printed bottom/top parts)
 ShowBatteryHolder         = true;
+// V7.15 PhuNguyenPT: separate toggle for the real, printed mounting bosses + M3 thread cuts, kept
+// independent from ShowBatteryHolder above (which only controls the semi-transparent preview
+// block). Same pattern as ShowDeviceHolder1/2/3 further down - each device's physical hardware
+// gets its own on/off switch instead of being tied to the preview or hard-baked to ShowBottom
+// with no way to turn just this one off. Both this and ShowBatteryHolder still sit inside the
+// outer "if(ShowBottom)" in BodyBottom(), so ShowBottom=false still turns everything off.
+ShowBatteryDeviceHolder   = true;
 // Length of the battery holder (X direction)
 BatteryHolderLength       = 79;
 // Width of the battery holder (Y direction)
@@ -179,7 +207,7 @@ BatteryHolderWidth        = 59.5;
 // Height of the battery holder (Z direction)
 BatteryHolderHeight       = 22;
 // Move the battery holder left/right from the case center - positioned close to a corner
-BatteryHolderOffset_X     = -42.5;
+BatteryHolderOffset_X     = -35.5;
 // Gap between the breadboard's near edge and the battery holder's near edge, along Y.
 // Tune THIS to widen/narrow the clearance between the two - BatteryHolderOffset_Y below is
 // derived from it (and BreadboardOffset_Y/BreadboardWidth, both already set above), so the
@@ -676,12 +704,16 @@ module BodyBottom () {
                 // PCB1 rests on), which has no $fn override and so inherits the global $fn=80 set near
                 // the top of the file. Removing the override here makes both bosses use the same
                 // circumference resolution.
+                // V7.15 PhuNguyenPT: gated behind the new ShowBatteryDeviceHolder (not
+                // ShowBatteryHolder, which is the preview-only toggle - see its declaration).
+                if (ShowBatteryDeviceHolder) {
                 color("SteelBlue") for (i = [0 : 2]) {
                     translate([BatteryHolder_LeftX + BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness])
                         cylinder(h=BatteryHolderBossHeight, d=BatteryHolderBossDiameter, center=false);
 
                     translate([BatteryHolder_RightX - BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness])
                         cylinder(h=BatteryHolderBossHeight, d=BatteryHolderBossDiameter, center=false);
+                }
                 }
             }
 
@@ -691,6 +723,10 @@ module BodyBottom () {
             // (leaves the floor's exterior underside solid/sealed) and reaches to the top of the boss
             // so the screw can enter from inside the case, pass as clearance through the battery
             // holder's thin ~2mm tab, and thread straight into the boss.
+            // V7.15 PhuNguyenPT: gated behind ShowBatteryDeviceHolder (see matching note on the boss
+            // union above) - no point cutting a thread into a boss that doesn't exist, and it keeps
+            // this block in sync with the boss block using the same toggle.
+            if (ShowBatteryDeviceHolder) {
             for (i = [0 : 2]) {
                 // "Left" row (Nearest to the bottom-left case corner)
                 translate([BatteryHolder_LeftX + BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness+0.01])
@@ -699,6 +735,7 @@ module BodyBottom () {
                 // "Right" row (Separated by the longest distance / length)
                 translate([BatteryHolder_RightX - BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness+0.01])
                     ScrewThread(1.01*MetricScrewSize+1.25*ThreadFitComp, BatteryHolderBossHeight, ThreadPitch, ThreadAngle, ThreadFitComp);
+            }
             }
             // -------------------------------------------------
 
