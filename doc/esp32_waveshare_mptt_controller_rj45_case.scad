@@ -94,6 +94,12 @@ V   KZZ DATE     COMMENT
     resolution choices scoped to that module, not a leftover/inconsistency; and the hex-nut
     cylinder's $fn=6 (NutCutSquare/hex helper around line 1335) - 6 sides is the actual intended
     hexagon shape for a nut, not a resolution shortcut, so it must stay exactly 6.
+7.13 PhuNguyenPT 10.07.26 Gated the battery holder mounting bosses + M3 thread cuts behind
+    ShowBatteryHolder. Previously ShowBatteryHolder only controlled the semi-transparent
+    reference display block - the actual 6 mounting bosses and their thread cuts in the printed
+    bottom part were unconditional, so setting ShowBatteryHolder=false hid the preview but still
+    printed the hardware. Both blocks now check ShowBatteryHolder, same pattern as
+    ShowDeviceHolder1/2/3 already use for their own bosses.
 *******************************************************************************/
 
 // Requires threads.scad (Ryan A. Colyer's library, CC0):
@@ -676,12 +682,18 @@ module BodyBottom () {
                 // PCB1 rests on), which has no $fn override and so inherits the global $fn=80 set near
                 // the top of the file. Removing the override here makes both bosses use the same
                 // circumference resolution.
+                // V7.13 PhuNguyenPT: gated behind ShowBatteryHolder - previously this boss (and the
+                // matching thread cut below) was unconditional, so setting ShowBatteryHolder=false only
+                // hid the semi-transparent reference block but still printed the 6 mounting bosses/holes
+                // in the actual bottom part. Now both toggle together.
+                if (ShowBatteryHolder) {
                 color("SteelBlue") for (i = [0 : 2]) {
                     translate([BatteryHolder_LeftX + BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness])
                         cylinder(h=BatteryHolderBossHeight, d=BatteryHolderBossDiameter, center=false);
 
                     translate([BatteryHolder_RightX - BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness])
                         cylinder(h=BatteryHolderBossHeight, d=BatteryHolderBossDiameter, center=false);
+                }
                 }
             }
 
@@ -691,6 +703,10 @@ module BodyBottom () {
             // (leaves the floor's exterior underside solid/sealed) and reaches to the top of the boss
             // so the screw can enter from inside the case, pass as clearance through the battery
             // holder's thin ~2mm tab, and thread straight into the boss.
+            // V7.13 PhuNguyenPT: gated behind ShowBatteryHolder (see matching note on the boss above) -
+            // no point cutting a thread into a boss that no longer exists, and it keeps the two blocks
+            // in sync with a single toggle.
+            if (ShowBatteryHolder) {
             for (i = [0 : 2]) {
                 // "Left" row (Nearest to the bottom-left case corner)
                 translate([BatteryHolder_LeftX + BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness+0.01])
@@ -699,6 +715,7 @@ module BodyBottom () {
                 // "Right" row (Separated by the longest distance / length)
                 translate([BatteryHolder_RightX - BatteryHolderHoleGapFromWidthEdge, BatteryHolder_BottomY + BatteryHolderHoleGapFromLengthEdge + (i * BatteryHolderHoleSpacing), BottomTopThickness+0.01])
                     ScrewThread(1.01*MetricScrewSize+1.25*ThreadFitComp, BatteryHolderBossHeight, ThreadPitch, ThreadAngle, ThreadFitComp);
+            }
             }
             // -------------------------------------------------
 
