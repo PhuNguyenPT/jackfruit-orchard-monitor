@@ -104,6 +104,35 @@ V   KZZ DATE     COMMENT
     position, one side-wall hole, and all 4 of PCB1()'s corner holes. DeviceHolder1_ClearanceToWallY
     is now unused (Y-anchoring switched from wall-clearance to breadboard-gap style via
     GapToBreadboardY) - comment updated to flag this rather than delete the field outright.
+7.15 PhuNguyenPT 12.07.26 Added a device holder for the SHT40 sensor's L-shaped mounting bracket
+    (ShowSHT40Holder + SHT40_* settings, new SHT40Bracket() reference module). Unlike Device
+    Holders 1-3 (4 corner bosses each), this is a SINGLE M3 boss via one DeviceHolder() call,
+    since the bracket's base plate has only one screw hole. Bracket geometry, computed from the
+    given measurements (base 4.0x2.0x0.35cm; seating 2.0cm tall INCLUDING the 0.35cm base, 0.5cm
+    thick, carved out of one end of the 4.0cm base length rather than added on top of it; a
+    1.5cm-diameter sensor hole through the seating, whose closest point to the bracket's own
+    bottom face sits 0.5cm up): with the given defaults the hole exactly reaches the top of the
+    seating (0.5+1.5=2.0cm), so SHT40_SeatingHoleGapFromBottom/SHT40_SeatingHoleDiameter/
+    SHT40_SeatingHeight all cross-check to 0 clearance - see the new ShowSizes() "must be >= 0"
+    echo. Default position (SHT40_Offset_X=-60, Y=-30) sits below the breadboard on the Wall C
+    side, clear of PCB1 and the breadboard by construction, but DOES overlap the currently-
+    disabled (ShowBatteryHolder=false) battery holder footprint if that's ever turned on too -
+    flagged in a comment on SHT40_Offset_X rather than silently baked in, same spirit as the
+    pre-existing (also currently harmless) battery holder Y-extent already running past the case's
+    own wall in earlier versions.
+7.17 PhuNguyenPT 12.07.26 SHT40 bracket base plate mounting hole changed from a straight
+    SHT40_PlateHoleDiameter=3.4mm clearance hole to a countersunk taper (new
+    SHT40_PlateHoleMinDiameter/SHT40_PlateHoleMaxDiameter), narrow at the bottom (boss side) and
+    wide at the top. Display-only - does not affect the real mechanical thread, which is cut into
+    the boss itself by DeviceHolder() in BodyBottom().
+7.18 PhuNguyenPT 12.07.26 Fixed unit mix-up in SHT40_PlateHoleMinDiameter from 7.17 - was 0.4mm
+    (unusably small), corrected to 0.4cm (4.0mm), a normal M3 clearance/pilot diameter.
+7.19 PhuNguyenPT 12.07.26 Split ShowSHT40Holder into two independent toggles: ShowSHT40Boss (the
+    real, printed M3 mounting boss in BodyBottom()) and ShowSHT40Bracket (the semi-transparent,
+    display-only SHT40Bracket() reference model). Previously a single toggle controlled both
+    together; now either can be shown/hidden on its own. SHT40Bracket()'s position math still
+    assumes a boss of SHT40_ScrewCylinderHeight exists even if ShowSHT40Boss=false, so the
+    reference model stays correctly positioned regardless of the boss's visibility.
 *******************************************************************************/
 
 // Requires threads.scad (Ryan A. Colyer's library, CC0):
@@ -358,19 +387,94 @@ GapToBreadboardY           = 5.0;   // [0:0.25:50]
 // the customizer field doesn't vanish; safe to delete if you want to tidy the panel.
 DeviceHolder1_ClearanceToWallY = 16.95;
 
+/* [SHT40 sensor L-bracket reference dimensions - physical part, only change if your part differs] */
+// Bottom mounting plate length - the axis the seating wall sits at one END of (not centered)
+SHT40_BaseLength            = 40.0;
+// Bottom mounting plate width
+SHT40_BaseWidth             = 20.0;
+// Bottom mounting plate thickness
+SHT40_BaseThickness         = 3.5;
+// Total height of the seating/wall, measured from the BOTTOM of the base plate
+SHT40_SeatingHeight         = 20.0;
+// Thickness of the seating wall (carved out of the far end of SHT40_BaseLength)
+SHT40_SeatingThickness      = 5.0;
+// Diameter of the hole cut through the seating wall for the SHT40 sensor body
+SHT40_SeatingHoleDiameter   = 15.0;
+// Height of the hole's closest (lowest) point above the BOTTOM of the base plate
+SHT40_SeatingHoleGapFromBottom = 5.0;
+
+/* [SHT40 sensor L-bracket holder settings] */
+// Activate the single M3 mounting boss (the actual printed hardware) for the SHT40
+// temperature/humidity sensor. Independent of ShowSHT40Bracket below - v7.19 PhuNguyenPT: these
+// were previously a single ShowSHT40Holder toggle gating both the boss AND the reference bracket
+// display together; split apart so the boss (real geometry) can be shown/printed on its own
+// without forcing the semi-transparent reference bracket to render too, and vice versa.
+ShowSHT40Boss               = true;
+// Activate the semi-transparent reference model of the SHT40 sensor's L-shaped mounting bracket
+// (display-only, illustrative - not unioned/subtracted from the printed body). Independent of
+// ShowSHT40Boss above.
+ShowSHT40Bracket            = false;
+// Use a printed internal M3 thread in the boss (threads.scad), same technique as Device Holder 1 -
+// no nut/insert needed, the screw threads straight into the boss
+SHT40_UseThread             = true;
+SHT40_ScrewSize             = 3;
+// ISO metric coarse thread pitch in mm for the size above: m2=0.4 // m2.5=0.45 // m3=0.5 // m4=0.7 // m5=0.8
+SHT40_ThreadPitch           = 0.5;
+// Plain clearance hole diameter cut into the BOSS itself, only used if SHT40_UseThread = false
+SHT40_ScrewHoleDiameter     = 2.2;
+// Diameter of the single mounting boss (standoff) the bracket's base plate rests on
+SHT40_ScrewCylinderDiameter = 7.0;
+// Height of the mounting boss
+SHT40_ScrewCylinderHeight   = 6.0;
+// v7.16: Clearance from the bracket's PLAIN end (the local -X end, with no seating/sensor hole)
+// to the inner face of Wall C. SHT40_Offset_X below is now DERIVED from this instead of being a
+// free absolute coordinate, so the bracket stays anchored to Wall C automatically if Caselength
+// or SHT40_BaseLength ever change - same "anchor to a real edge, not a magic number" style as
+// BatteryHolderOffset_Y/Offset_Y_1 elsewhere in this file.
+SHT40_ClearanceToWallC_X    = 20.0;  // [0:0.25:50]
+// Move the SHT40 bracket's footprint center left/right from the case center.
+// v7.16: computed, not a free literal - see SHT40_ClearanceToWallC_X above. Reproduces the
+// "10mm to the plain end, Wall C side" requirement exactly regardless of other geometry changes.
+// (InnerBorder+GrooveWidth+OuterBorder) is used inline here, not the SideWallThickness variable,
+// because SideWallThickness is only computed much later in file order (see "Calculated settings
+// for case" near the bottom) - same forward-reference workaround Offset_X_1 already uses below.
+SHT40_Offset_X              = (-Caselength/2 + (InnerBorder+GrooveWidth+OuterBorder)) + SHT40_ClearanceToWallC_X + SHT40_BaseLength/2;
+// Move the SHT40 bracket's footprint center forward/back from the case center
+SHT40_Offset_Y              = -30;
+// Rotate the whole bracket (and its single mounting hole) around Z, in case the seating wall
+// needs to face a different direction. 0 = seating wall sits at the bracket's local +X end.
+SHT40_Rotation              = 0;
+// Fine-tune the single M3 screw hole's position within the bracket's own local footprint
+SHT40_ScrewOffsetX          = 0;
+SHT40_ScrewOffsetY          = 0;
+// Countersunk clearance hole through the reference bracket's own base plate (the "seat" that
+// rests on top of the SHT40_ScrewCylinderHeight boss below). Tapers from a narrow pilot at the
+// BOTTOM (nearest the boss) to a wide countersink opening at the TOP (where a flat/countersunk
+// M3 screw head would seat), matching the bore+countersink convention already used for the
+// battery holder tab (BatteryHolderTabBoreDepth/CsinkTopRadius above).
+// v7.18 PhuNguyenPT: corrected units - min diameter is 0.4cm (4.0mm), not 0.4mm (a straight
+// 0.4mm hole would be far too small for an M3 clearance/pilot, even in this display-only
+// reference bracket). With base thickness 3.5mm, 4.0mm -> 9.0mm gives an included cone angle of
+// 2*atan((9.0-4.0)/2 / 3.5) =~ 71.1 deg - a shallow-ish but perfectly usable countersink taper.
+SHT40_PlateHoleMinDiameter  = 4.0;   // 0.4cm - narrow end, at the bracket's bottom face (boss side)
+SHT40_PlateHoleMaxDiameter  = 9.0;   // 0.9cm - wide end, at the plate's top face (countersink)
+
 /* [PCB 1 reference block: DC-DC Buck LM2596 3A LED (ZX-052 V2.0)] */
-// Show a reference block for the PCB resting on Device Holder 1's 4 corner standoffs
 ShowPCB1                  = false;
-// Overall PCB width, the 36mm side - rendered along Y, matching DeviceHolder_y_Distance1
 PCB1_Length               = 36.0;
-// Overall PCB length, the 66mm side - rendered along X, parallel to the breadboard, matching DeviceHolder_X_Distance1
 PCB1_Width                = 66.0;
-// Overall PCB height/clearance, Z direction
 PCB1_Height               = 1;
-// Diameter of the 4 corner mounting holes (fits M2.5 screws)
 PCB1_HoleDiameter         = 3.2;
 
-Offset_X_1 = Caselength/2 - (InnerBorder+GrooveWidth+OuterBorder) - DeviceHolder1_ClearanceToWallX - DeviceHolder_X_Distance1/2;
+// v7.16: Gap in X from the SHT40 bracket's seating/sensor-hole end (its local +X endpoint,
+// which is also the outer face of the 5mm seating wall) to PCB1's own near (-X) edge.
+// Offset_X_1 below is now derived from THIS + SHT40_Offset_X instead of from
+// DeviceHolder1_ClearanceToWallX (Wall A side) - DeviceHolder1_ClearanceToWallX is now UNUSED,
+// same status as DeviceHolder1_ClearanceToWallY since v7.14. Left in place, not deleted, so the
+// customizer panel field doesn't vanish.
+GapSHT40ToPCB1X            = 30.0;   // [0:0.25:50]
+
+Offset_X_1 = (SHT40_Offset_X + SHT40_BaseLength/2) + GapSHT40ToPCB1X + PCB1_Width/2;
 
 Offset_Y_1 = (BreadboardOffset_Y - BreadboardWidth/2) - PCB1_Length/2 - GapToBreadboardY;
 
@@ -608,6 +712,11 @@ if (ShowBottom) translate([X_ObjectPosition,0,0]) BatteryHolder();
 // Only shown alongside the bottom case, since it rests on standoffs that live in BodyBottom().
 if (ShowBottom) translate([X_ObjectPosition,0,0]) PCB1();
 
+// --> Show the SHT40 sensor L-bracket reference block, resting on the single M3 standoff
+// (visual only, not part of the printed model). Only shown alongside the bottom case, since it
+// rests on the boss that lives in BodyBottom().
+if (ShowBottom) translate([X_ObjectPosition,0,0]) SHT40Bracket();
+
 //===============================================================================
 //                                  M O D U L E S
 //===============================================================================
@@ -665,7 +774,22 @@ module BodyBottom () {
                     translate([-DeviceHolder_X_Distance3/2+Offset_X_3, DeviceHolder_y_Distance3/2+Offset_Y_3,-0.01]) DeviceHolder("PaleGreen",ScrewCylinderHeight3,ScrewCylinderDiameter3,ScrewHoleDiameter3);
                 }
 
-                // --- BATTERY HOLDER MOUNTING BOSSES (printed M3 threads, threads.scad) ---
+                // --- SHT40 SENSOR L-BRACKET: single M3 mounting boss ---
+                // Only ONE boss (not 4, unlike Device Holders 1-3) - the SHT40 bracket's base
+                // plate has a single screw hole. DeviceHolder() already builds the full
+                // boss+hole/thread combo internally (see its own difference()), so one call is
+                // all that's needed here. Position is rotated by SHT40_Rotation and offset by
+                // SHT40_ScrewOffsetX/Y to stay under the bracket's actual screw hole even if the
+                // bracket itself is rotated or the hole isn't centered on the plate.
+                if (ShowSHT40Boss)
+                {
+                    translate([
+                        SHT40_Offset_X + SHT40_ScrewOffsetX*cos(SHT40_Rotation) - SHT40_ScrewOffsetY*sin(SHT40_Rotation),
+                        SHT40_Offset_Y + SHT40_ScrewOffsetX*sin(SHT40_Rotation) + SHT40_ScrewOffsetY*cos(SHT40_Rotation),
+                        -0.01
+                    ]) DeviceHolder("CornflowerBlue",SHT40_ScrewCylinderHeight,SHT40_ScrewCylinderDiameter,SHT40_ScrewHoleDiameter,SHT40_UseThread,SHT40_ScrewSize,SHT40_ThreadPitch,ThreadAngle,ThreadFitComp);
+                }
+
                 // Solid bosses rising from the inner floor. Thread is cut into these (as a blind hole,
                 // see the difference() below) instead of relying on the battery holder's thin 2mm tab
                 // or a separate nut. Floor stays fully sealed on the exterior underside.
@@ -954,6 +1078,14 @@ module ShowSizes () {
     echo (str(" Z clearance (Height), holder resting on top of the ",BatteryHolderBossHeight,"mm mounting boss : ",(CaseHeight-2*BottomTopThickness-BatteryHolderBossHeight)-(BatteryHolderFloorThickness+max(BatteryHolderWidthWallHeight,BatteryHolderLengthWallHeight)),"mm "));
     echo (str(" Battery slot width (each of 3 slots, between ",BatteryHolderSlotWallThickness,"mm dividers) : ",(BatteryHolderWidth-2*BatteryHolderWidthWallThickness-2*BatteryHolderSlotWallThickness)/3,"mm "));
     echo (str(" Gap between breadboard and battery holder (Y) : ",(BreadboardOffset_Y-BreadboardWidth/2)-(BatteryHolderOffset_Y+BatteryHolderWidth/2),"mm (must be > 0, no overlap)"));
+    echo ();
+    echo (str(" --> SHT40 L-bracket fit check (",SHT40_BaseLength,"x",SHT40_BaseWidth,"x",SHT40_BaseThickness,"mm base, ",SHT40_SeatingHeight,"mm tall seating, boss enabled=",ShowSHT40Boss,", bracket display enabled=",ShowSHT40Bracket,"): "));
+    echo (str(" Seating wall material height above the base plate : ",SHT40_SeatingHeight-SHT40_BaseThickness,"mm "));
+    echo (str(" Sensor hole span (from bracket's own bottom face) : ",SHT40_SeatingHoleGapFromBottom,"mm to ",SHT40_SeatingHoleGapFromBottom+SHT40_SeatingHoleDiameter,"mm "));
+    echo (str(" Sensor hole clearance below top of seating wall : ",SHT40_SeatingHeight-(SHT40_SeatingHoleGapFromBottom+SHT40_SeatingHoleDiameter),"mm (must be >= 0, hole must not cut past the top edge)"));
+    echo (str(" Bracket rests on top of a ",SHT40_ScrewCylinderHeight,"mm boss - bottom face global Z : ",BottomTopThickness+SHT40_ScrewCylinderHeight,"mm "));
+    echo (str(" Plate countersunk hole : ",SHT40_PlateHoleMinDiameter,"mm (bottom/boss side) -> ",SHT40_PlateHoleMaxDiameter,"mm (top) over ",SHT40_BaseThickness,"mm plate thickness, included cone angle =~ ",2*atan((SHT40_PlateHoleMaxDiameter-SHT40_PlateHoleMinDiameter)/(2*SHT40_BaseThickness)),"deg "));
+    echo (str(" Y clearance to breadboard (breadboard's near edge to bracket's near edge) : ",(BreadboardOffset_Y-BreadboardWidth/2)-(SHT40_Offset_Y+SHT40_BaseWidth/2),"mm (must be > 0, no overlap, assumes SHT40_Rotation=0)"));
     echo ();
     echo (str(" --> RJ45 ethernet port cutouts (",EthernetPortWidth,"x",EthernetPortHeight,"mm opening, ",EthernetPortInsideDepth,"mm inside clearance): "));
     echo (str(" Cut into the TOP piece - centered height (global Z) : ",EthernetPortDefaultZ,"mm "));
@@ -1725,6 +1857,75 @@ module PCB1 () {
         }
     }
 }
+
+module SHT40Bracket () {
+    // Semi-transparent reference model of the SHT40 temperature/humidity sensor's L-shaped
+    // mounting bracket. Display-only - not unioned/subtracted from the printed bottom/top bodies;
+    // the real mechanical hardware is the single M3 boss added in BodyBottom() above
+    // (ShowSHT40Boss / SHT40_ScrewCylinder*), using the same DeviceHolder() technique
+    // (optional printed thread via threads.scad) as the other device holders.
+    // v7.19 PhuNguyenPT: gated by ShowSHT40Bracket now, independent of ShowSHT40Boss above - the
+    // bracket's own position math still assumes a boss of SHT40_ScrewCylinderHeight exists (so the
+    // reference model lines up correctly even if the boss itself is currently hidden/toggled off).
+    //
+    // Local layout, before the SHT40_Offset_X/Y translate + SHT40_Rotation rotate placement,
+    // with Z=0 at the bracket's own bottom face (which rests on top of the mounting boss, so its
+    // actual Z in the case is SHT40_RestZ, not 0):
+    //   - Base plate: SHT40_BaseLength (40mm, X) x SHT40_BaseWidth (20mm, Y) x
+    //     SHT40_BaseThickness (3.5mm, Z), footprint centered on the bracket's own origin.
+    //   - Seating (vertical wall): an L-shape - sits at the LOCAL +X end of the base footprint,
+    //     occupying the last SHT40_SeatingThickness (5mm) of SHT40_BaseLength (this overlaps the
+    //     base plate's own footprint there, it is not extra length added on top of the 40mm).
+    //     Rises from the bracket's own bottom face (Z=0 locally) up to SHT40_SeatingHeight (20mm
+    //     total) - since that total already includes the 3.5mm base plate, the wall material
+    //     itself, above the plate, is only SHT40_SeatingHeight - SHT40_BaseThickness = 16.5mm.
+    //   - Sensor hole: SHT40_SeatingHoleDiameter (15mm) cut straight through the wall's thickness
+    //     (axis along local X), centered in Y, with its lowest point
+    //     SHT40_SeatingHoleGapFromBottom (5mm) above the bracket's own bottom face. With the
+    //     given defaults (5 + 15 = 20 = SHT40_SeatingHeight) the hole is exactly tangent to the
+    //     top of the wall - see the ShowSizes() fit-check echo for a live version of this math.
+    //   - Single M3 mounting hole through the base plate (display-only, countersunk): tapers from
+    //     SHT40_PlateHoleMinDiameter at the plate's BOTTOM face (Z=0 locally, resting on the boss)
+    //     to SHT40_PlateHoleMaxDiameter at the plate's TOP face, positioned via
+    //     SHT40_ScrewOffsetX/Y - default centered.
+    if (ShowSHT40Bracket)
+    {
+        // Bottom face of the bracket = where it rests on top of the printed mounting boss
+        SHT40_RestZ = BottomTopThickness + SHT40_ScrewCylinderHeight;
+
+        // X position of the seating wall's center, relative to the base plate's own center
+        SHT40_WallLocalX = SHT40_BaseLength/2 - SHT40_SeatingThickness/2;
+        // Z center of the sensor hole, relative to the bracket's own bottom face
+        SHT40_HoleLocalZ = SHT40_SeatingHoleGapFromBottom + SHT40_SeatingHoleDiameter/2;
+
+        color([0.2,0.55,0.85,0.55])
+        translate([SHT40_Offset_X, SHT40_Offset_Y, 0]) rotate([0,0,SHT40_Rotation])
+        difference() {
+            union() {
+                // Bottom mounting plate
+                translate([0,0,SHT40_RestZ+SHT40_BaseThickness/2])
+                    cube([SHT40_BaseLength, SHT40_BaseWidth, SHT40_BaseThickness], center=true);
+                // Seating/wall - rises from the bracket's own floor (local Z=0, i.e. SHT40_RestZ
+                // in case coordinates) up to SHT40_SeatingHeight
+                translate([SHT40_WallLocalX,0,SHT40_RestZ+SHT40_SeatingHeight/2])
+                    cube([SHT40_SeatingThickness, SHT40_BaseWidth, SHT40_SeatingHeight], center=true);
+            }
+            // Sensor hole through the seating wall - overshoots both faces slightly so the cut
+            // fully clears the wall thickness (display-only, avoids a coincident-face sliver)
+            translate([SHT40_WallLocalX,0,SHT40_RestZ+SHT40_HoleLocalZ])
+                rotate([0,90,0])
+                    cylinder(h=SHT40_SeatingThickness+1.0, d=SHT40_SeatingHoleDiameter, center=true);
+
+            // Single M3 mounting hole through the base plate (display-only - the real mechanical
+            // hole/thread is in the boss itself, cut by DeviceHolder() in BodyBottom()).
+            // Countersunk taper: d1 (bottom, SHT40_RestZ side) = narrow pilot nearest the boss,
+            // d2 (top) = wide countersink opening for a flat/countersunk M3 screw head.
+            translate([SHT40_ScrewOffsetX, SHT40_ScrewOffsetY, SHT40_RestZ-0.01])
+                cylinder(h=SHT40_BaseThickness+0.02, d1=SHT40_PlateHoleMinDiameter, d2=SHT40_PlateHoleMaxDiameter, center=false);
+        }
+    }
+}
+
 
 module DeviceHolder (Col,CylHeight,CylDia,HoleDia,UseThread=false,ThreadSize=0,ThreadPitchVal=0,ThreadAngleVal=30,ThreadFitVal=0) {
     color(Col)translate([0,0,CylHeight/2+BottomTopThickness]) difference(){
