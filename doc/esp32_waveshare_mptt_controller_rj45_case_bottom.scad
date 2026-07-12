@@ -115,6 +115,22 @@ V   KZZ DATE     COMMENT
     result: ShowBatteryHolder controls only the semi-transparent preview block in BatteryHolder();
     ShowBatteryDeviceHolder controls only the real mounting bosses/threads in BodyBottom(); both
     still live inside the outer ShowBottom, so ShowBottom=false still turns everything off.
+7.16 PhuNguyenPT 12.07.26 Added RJ45 ethernet ports 3 and 4 (ShowEthernetPort3/4,
+    EthernetPort3/4_Wall, EthernetPort3/4_OffsetZ - same pattern as ports 1/2), and replaced the
+    old hardcoded EthernetPort1/2_Position literals (13.5 / 50.5mm, not evenly spaced) with a
+    fully calculated 4-port equal-distribution layout in the CALCULATED SETTINGS section
+    (EthernetPortCount/Footprint/WallFlatSpan/Gap + EthernetPort1..4_Position). The layout solves
+    for a single gap value G such that N*F + (N+1)*G = flat wall span, using the COLLAR footprint
+    (cutout + collar wall both sides) - not the narrower outer cutout - as the port width F, since
+    the collar is the widest feature that actually has to clear the rounded corner. This guarantees
+    identical clearance between the corner radius and the nearest port AND between every pair of
+    neighbouring ports, with no manual guesswork. Current defaults (CaseWidth=187,
+    CaseRoundingRadius=4.8mm, EthernetPortWidth=19.3mm, EthernetPortCollarWall=1.6mm) give
+    G=~17.48mm and positions ~-59.97/-19.99/19.99/59.97mm. Updated all call sites (RJ45Model,
+    EthernetPortCollar, EthernetPortCut in BodyTop()) and ShowSizes() to cover ports 3/4 and to
+    echo EthernetPortGap as a live "must be > 0" clearance check, same convention as the existing
+    breadboard/battery-holder overlap checks. NOTE: this auto-layout assumes all 4 ports share the
+    same wall (default "C"); splitting them across walls needs manual positioning instead.
 *******************************************************************************/
 
 // Requires threads.scad (Ryan A. Colyer's library, CC0):
@@ -520,6 +536,10 @@ SideWallHolePosition_D     = 0;
 ShowEthernetPort1          = true;
 // Activate ethernet port cutout 2
 ShowEthernetPort2          = true;
+// Activate ethernet port cutout 3
+ShowEthernetPort3          = true;
+// Activate ethernet port cutout 4
+ShowEthernetPort4          = true;
 // Width of the rectangular cutout as seen from outside the case
 EthernetPortWidth          = 19 + 2*ClearanceGap;
 // Height of the rectangular cutout as seen from outside the case
@@ -530,14 +550,24 @@ EthernetPortInsideDepth    = 10 + 2*ClearanceGap;
 EthernetPort1_Wall         = "C"; // [A,B,C,D]
 // Which wall port 2 sits in: A = right (+X), B = front (-Y), C = left (-X), D = back (+Y)
 EthernetPort2_Wall         = "C"; // [A,B,C,D]
-// Horizontal position of port 1 along its wall (0 = centered)
-EthernetPort1_Position     = 13.5;
-// Horizontal position of port 2 along its wall (0 = centered)
-EthernetPort2_Position     = 50.5;
+// Which wall port 3 sits in: A = right (+X), B = front (-Y), C = left (-X), D = back (+Y)
+EthernetPort3_Wall         = "C"; // [A,B,C,D]
+// Which wall port 4 sits in: A = right (+X), B = front (-Y), C = left (-X), D = back (+Y)
+EthernetPort4_Wall         = "C"; // [A,B,C,D]
+// NOTE: EthernetPort1_Position .. EthernetPort4_Position are no longer set here. All 4 ports
+// are auto-distributed evenly along their wall by the CALCULATED SETTINGS section below, with
+// equal clearance gaps between the corner rounding and the outer ports, and between neighbouring
+// ports - see EthernetPortGap there. This only produces a sane even layout when all 4 ports sit
+// on the SAME wall (all "C" by default); if you split them across different walls, position each
+// wall's ports manually instead.
 // Fine-tune vertical position of port 1, relative to the default (centered in the top piece, above the breadboard). 0 = default
 EthernetPort1_OffsetZ      = 0;
 // Fine-tune vertical position of port 2, relative to the default (centered in the top piece, above the breadboard). 0 = default
 EthernetPort2_OffsetZ      = 0;
+// Fine-tune vertical position of port 3, relative to the default (centered in the top piece, above the breadboard). 0 = default
+EthernetPort3_OffsetZ      = 0;
+// Fine-tune vertical position of port 4, relative to the default (centered in the top piece, above the breadboard). 0 = default
+EthernetPort4_OffsetZ      = 0;
 // Add a friction-fit collar (thickened sleeve) around each port that extends inward for a snug grip on the RJ45 module body
 ShowEthernetPortCollar     = true;
 // Thickness of added material around the port opening, on each side (needs a real friction-fit channel, not just a clip)
@@ -567,6 +597,32 @@ CaseRoundingRadius        = ScrewHoleDia/2+InnerBorder+GrooveWidth+OuterBorder;
 // Calculated default vertical position for the ethernet ports (do not change!!!)
 // Centered within the top piece's wall height, i.e. above the split line and comfortably clear of the breadboard
 EthernetPortDefaultZ      = (CaseHeight-CutFromTop) + CutFromTop/2;
+
+// Calculated horizontal (along-the-wall) positions for the 4 RJ45 ports - equally distributed
+// (do not change!!!)
+// Assumes all 4 ports sit on the same wall (default: all "C"). Goal: identical clearance gap
+// - between the case's rounded corner and the nearest port, AND
+// - between each pair of neighbouring ports,
+// so no port ever crowds a rounded corner or its neighbour.
+//
+// EthernetPortFootprint uses the COLLAR width (cutout + collar wall on both sides), not the
+// narrower outer cutout width, because the collar is the widest feature that has to clear the
+// corner radius - clearing the cutout alone would still let the collar overlap the curve.
+//
+// EthernetPortWallFlatSpan is the straight, non-curved run of the wall (CaseWidth minus the two
+// rounded corners at each end) - same logic already used for ScrewCornerPos below.
+//
+// With N ports of width F laid out with N+1 equal gaps G across a flat span S:
+//   N*F + (N+1)*G = S  -->  G = (S - N*F) / (N+1)
+// Port i (0-indexed) is centered at: -S/2 + G*(i+1) + F*(i+0.5)
+EthernetPortCount          = 4;
+EthernetPortFootprint      = EthernetPortWidth + 2*EthernetPortCollarWall;
+EthernetPortWallFlatSpan   = CaseWidth - 2*CaseRoundingRadius;
+EthernetPortGap            = (EthernetPortWallFlatSpan - EthernetPortCount*EthernetPortFootprint) / (EthernetPortCount+1);
+EthernetPort1_Position     = -EthernetPortWallFlatSpan/2 + EthernetPortGap*1 + EthernetPortFootprint*0.5;
+EthernetPort2_Position     = EthernetPort1_Position + EthernetPortFootprint + EthernetPortGap;
+EthernetPort3_Position     = EthernetPort2_Position + EthernetPortFootprint + EthernetPortGap;
+EthernetPort4_Position     = EthernetPort3_Position + EthernetPortFootprint + EthernetPortGap;
 ScrewCornerPos            = [Caselength/2-CaseRoundingRadius,CaseWidth/2-CaseRoundingRadius,0];
 ScrewAddXPos              = [0,CaseWidth/2-CaseRoundingRadius,0];
 ScrewAddYPos              = [Caselength/2-CaseRoundingRadius,0,0];
@@ -619,6 +675,8 @@ if (ShowTop) translate([-X_ObjectPosition,0,Z_TopHigh+0.03]) rotate([0,Y_TopRota
 {
     if (ShowEthernetPort1) RJ45Model(EthernetPort1_Wall, EthernetPort1_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort1_OffsetZ));
     if (ShowEthernetPort2) RJ45Model(EthernetPort2_Wall, EthernetPort2_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort2_OffsetZ));
+    if (ShowEthernetPort3) RJ45Model(EthernetPort3_Wall, EthernetPort3_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort3_OffsetZ));
+    if (ShowEthernetPort4) RJ45Model(EthernetPort4_Wall, EthernetPort4_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort4_OffsetZ));
 }
 
 if (ShowGasket)
@@ -845,6 +903,8 @@ module BodyTop () {
                 // RJ45 friction-fit collars - added material for a snug grip along the module's inserted depth
                 if (ShowEthernetPortCollar && ShowEthernetPort1) { color("SlateGray") EthernetPortCollar(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPortCollarWall,EthernetPort1_Wall,EthernetPort1_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort1_OffsetZ)); }
                 if (ShowEthernetPortCollar && ShowEthernetPort2) { color("SlateGray") EthernetPortCollar(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPortCollarWall,EthernetPort2_Wall,EthernetPort2_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort2_OffsetZ)); }
+                if (ShowEthernetPortCollar && ShowEthernetPort3) { color("SlateGray") EthernetPortCollar(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPortCollarWall,EthernetPort3_Wall,EthernetPort3_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort3_OffsetZ)); }
+                if (ShowEthernetPortCollar && ShowEthernetPort4) { color("SlateGray") EthernetPortCollar(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPortCollarWall,EthernetPort4_Wall,EthernetPort4_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort4_OffsetZ)); }
             }
             if (SeeGrooveRidgeScrew)
             {
@@ -855,6 +915,8 @@ module BodyTop () {
             // RJ45 ethernet port cutouts - positioned in the top piece so they sit above the breadboard
             if (ShowEthernetPort1) { EthernetPortCut(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPort1_Wall,EthernetPort1_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort1_OffsetZ)); }
             if (ShowEthernetPort2) { EthernetPortCut(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPort2_Wall,EthernetPort2_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort2_OffsetZ)); }
+            if (ShowEthernetPort3) { EthernetPortCut(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPort3_Wall,EthernetPort3_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort3_OffsetZ)); }
+            if (ShowEthernetPort4) { EthernetPortCut(EthernetPortWidth,EthernetPortHeight,EthernetPortInsideDepth,EthernetPort4_Wall,EthernetPort4_Position, CaseHeight-(EthernetPortDefaultZ+EthernetPort4_OffsetZ)); }
         }
     }
 }
@@ -986,8 +1048,13 @@ module ShowSizes () {
     echo (str(" --> RJ45 ethernet port cutouts (",EthernetPortWidth,"x",EthernetPortHeight,"mm opening, ",EthernetPortInsideDepth,"mm inside clearance): "));
     echo (str(" Cut into the TOP piece - centered height (global Z) : ",EthernetPortDefaultZ,"mm "));
     echo (str(" Breadboard top (global Z) : ",BottomTopThickness+BreadboardHeight,"mm "));
-    echo (str(" Port 1 : wall ",EthernetPort1_Wall," enabled=",ShowEthernetPort1));
-    echo (str(" Port 2 : wall ",EthernetPort2_Wall," enabled=",ShowEthernetPort2));
+    echo (str(" Port 1 : wall ",EthernetPort1_Wall," pos ",EthernetPort1_Position,"mm enabled=",ShowEthernetPort1));
+    echo (str(" Port 2 : wall ",EthernetPort2_Wall," pos ",EthernetPort2_Position,"mm enabled=",ShowEthernetPort2));
+    echo (str(" Port 3 : wall ",EthernetPort3_Wall," pos ",EthernetPort3_Position,"mm enabled=",ShowEthernetPort3));
+    echo (str(" Port 4 : wall ",EthernetPort4_Wall," pos ",EthernetPort4_Position,"mm enabled=",ShowEthernetPort4));
+    echo (str(" Collar footprint per port (cutout + collar wall both sides) : ",EthernetPortFootprint,"mm "));
+    echo (str(" Wall flat span available (excludes rounded corners) : ",EthernetPortWallFlatSpan,"mm "));
+    echo (str(" Equal gap - corner to nearest port / between neighbouring ports : ",EthernetPortGap,"mm (must be > 0, no overlap with corner or neighbour)"));
     echo (str(" Friction-fit collar : enabled=",ShowEthernetPortCollar," wall thickness=",EthernetPortCollarWall,"mm "));
     echo ();
     echo (str(" Screw dimensions : "));
