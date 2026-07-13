@@ -13,6 +13,11 @@ services:
   nginx-goapp-dev:
     profiles: ["dev"]
     image: nginx:alpine
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
     secrets:
       - nginx_client_crt
@@ -43,6 +48,11 @@ services:
   nginx-goapp-prod:
     profiles: ["prod"]
     image: nginx:alpine
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
     secrets:
       - nginx_client_crt
@@ -83,6 +93,11 @@ services:
   app:
     profiles: ["prod"]
     image: phunpt01/jackfruit-orchard-monitor-app:${APP_VERSION:-latest}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     secrets:
       - go_crt
       - go_key
@@ -127,6 +142,11 @@ services:
           cpus: "1.0"
 
   watch:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     secrets:
       - go_crt
       - go_key
@@ -180,6 +200,11 @@ services:
   psql:
     profiles: ["prod", "dev"]
     image: postgres:${POSTGRES_VERSION}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
     env_file:
       - .env
