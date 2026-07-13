@@ -3,6 +3,7 @@ import { sensorChartOptions } from './chart-utils.js';
 
 const dataEl = document.getElementById('chart-data');
 const rows = JSON.parse(dataEl.dataset.points);
+const nonce = dataEl.dataset.nonce; // Extract the nonce to ensure CSP compliance
 const soilLabel = dataEl.dataset.labelSoil;
 const wsUrl = dataEl.dataset.wsUrl;
 const labels = rows.map((r) => r.t);
@@ -37,20 +38,25 @@ function setLive(on) {
 }
 
 // ── Marker ────────────────────────────────────────────────────────────────
-const marker = document.getElementById('soil-marker');
 const label = document.getElementById('soil-current-label');
-const bar = document.querySelector('.soil-gradient-bar');
 
 function updateMarker(pct) {
     const clamped = Math.min(100, Math.max(0, pct));
-    const barWidth = bar.getBoundingClientRect().width;
-    marker.style.left = `${(clamped / 100) * barWidth - 6}px`;
+
+    let styleTag = document.getElementById('soil-marker-style');
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'soil-marker-style';
+        styleTag.nonce = nonce; // Attaches cryptographic nonce securely
+        document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `#soil-marker { left: calc(${clamped}% - 6px) !important; }`;
+
     label.textContent = `${clamped.toFixed(1)}%`;
 }
 
 const latest = rows[rows.length - 1];
 if (latest) updateMarker(latest.pct);
-
 const soilChart = new Chart(document.getElementById('soil-chart'), {
     type: 'line',
     data: {

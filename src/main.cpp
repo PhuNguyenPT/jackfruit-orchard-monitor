@@ -22,7 +22,11 @@ namespace {
 const uint32_t kWifiInitDelayMs = 100U;
 const uint32_t kWifiReconnectDelayMs = 500U;
 const uint32_t kSerialInitDelayMs = 10U;
-const uint64_t kDeepSleepUs = 3600ULL * 1000000ULL;
+#ifndef DEEP_SLEEP_SEC
+#define DEEP_SLEEP_SEC 3600ULL
+#endif
+
+const uint64_t kDeepSleepUs = static_cast<uint64_t>(DEEP_SLEEP_SEC) * 1000000ULL;
 const char* TAG = "Main";
 
 RTC_DATA_ATTR uint32_t bootCount = 0U;
@@ -116,7 +120,9 @@ void soilPollTask(void* /*pvParameters*/) {
 
 // ---------------------------------------------------------------------------
 void goToSleep() {
-    ESP_LOGI(TAG, "Cycle complete. Shutting down radios and entering deep sleep for 1 hour...");
+    ESP_LOGI(TAG,
+             "Cycle complete. Shutting down radios and entering deep sleep for %llu seconds...",
+             static_cast<unsigned long long>(DEEP_SLEEP_SEC));
 
     SoilPoller::parkForSleep();
     gpio_deep_sleep_hold_en();  // global switch — required for per-pin holds to survive deep sleep
