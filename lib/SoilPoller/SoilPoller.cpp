@@ -12,8 +12,9 @@
 namespace SoilPoller {
 
 namespace {
-const uint8_t kNumSamples = 30U;
-const uint32_t kSampleDelayMs = 10U;
+const uint8_t kNumSamples = 12U;
+const uint32_t kSampleDelayMs = 2U;
+const uint32_t kChannelSettleUs = 100U;
 const char* TAG = "Soil";
 
 enum class BoardIdx : uint8_t {};
@@ -52,7 +53,7 @@ auto readSensor(BoardIdx boardIdx, ChannelIdx chanIdx) -> uint16_t {
     disableAllBoards();
     enableBoard(board.enPin, true);
     selectChannel(static_cast<uint8_t>(chanIdx));
-    delay(5U);
+    delayMicroseconds(kChannelSettleUs);
     const uint16_t raw = readAvg(board.sigPin);
     enableBoard(board.enPin, false);
     return raw;
