@@ -2,6 +2,10 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+#include <array>
 
 namespace MQTTManager {
 
@@ -11,7 +15,11 @@ const size_t kClientIdSize = 24U;
 uint32_t lastAttemptMs = 0U;
 const char* TAG = "MQTT";
 
-// Single connection attempt — shared by connect() and maybeReconnect()
+// Guards every PubSubClient socket op once multiple tasks share one client.
+// Constructed at global-init time (before setup() runs), so there's no
+// ordering dependency on which task touches publish()/isConnected() first.
+SemaphoreHandle_t publishMutex = xSemaphoreCreateMutex();
+
 auto attempt(PubSubClient& client, const char* user, const char* pass) -> bool {
     std::array<char, kClientIdSize> clientId{};
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
@@ -62,6 +70,20 @@ void maybeReconnect(PubSubClient& client, const char* user, const char* pass) {
     lastAttemptMs = now;
 
     attempt(client, user, pass);
+}
+
+auto publish(PubSubClient& client, const char* topic, const char* payload) -> bool {
+    xSemaphoreTake(publishMutex, portMAX_DELAY);
+    const bool published = client.publish(topic, payload);
+    xSemaphoreGive(publishMutex);
+    return published;
+}
+
+auto isConnected(PubSubClient& client) -> bool {
+    xSemaphoreTake(publishMutex, portMAX_DELAY);
+    const bool connected = client.connected();
+    xSemaphoreGive(publishMutex);
+    return connected;
 }
 
 }  // namespace MQTTManager
