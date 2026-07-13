@@ -17,8 +17,8 @@ struct MuxBoard {
 };
 
 inline constexpr std::array<MuxBoard, 2> kBoards = {{
-    {32U, 18U, 2U},  // MUX1: SIG=GPIO32, EN=GPIO18, 2 sensors on CH0-CH1
-    {33U, 19U, 2U},  // MUX2: SIG=GPIO33, EN=GPIO19, 2 sensors on CH0-CH1
+    {32U, 13U, 2U},  // MUX1: SIG=GPIO32, EN=GPIO13, 2 sensors on CH0-CH1
+    {33U, 4U, 2U},   // MUX2: SIG=GPIO33, EN=GPIO4,  2 sensors on CH0-CH1
 }};
 
 inline constexpr uint8_t kNumBoards = static_cast<uint8_t>(kBoards.size());
