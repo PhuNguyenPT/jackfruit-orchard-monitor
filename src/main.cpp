@@ -2,6 +2,7 @@
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <driver/gpio.h>
 #include <esp_sleep.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
@@ -116,6 +117,10 @@ void soilPollTask(void* /*pvParameters*/) {
 // ---------------------------------------------------------------------------
 void goToSleep() {
     ESP_LOGI(TAG, "Cycle complete. Shutting down radios and entering deep sleep for 1 hour...");
+
+    SoilPoller::parkForSleep();
+    gpio_deep_sleep_hold_en();  // global switch — required for per-pin holds to survive deep sleep
+
     client.disconnect();
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);

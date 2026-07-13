@@ -8,6 +8,6 @@ namespace SoilPoller {
 
 void init();
 void poll(PubSubClient& mqttClient);
-
+void parkForSleep();
 }  // namespace SoilPoller
 #endif

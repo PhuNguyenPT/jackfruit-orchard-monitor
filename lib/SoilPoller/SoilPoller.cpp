@@ -1,6 +1,7 @@
 #include "SoilPoller.h"
 
 #include <Arduino.h>
+#include <driver/gpio.h>
 
 #include <array>
 
@@ -59,6 +60,16 @@ auto readSensor(BoardIdx boardIdx, ChannelIdx chanIdx) -> uint16_t {
 }  // namespace
 
 void init() {
+    // Release any hold left over from the previous deep-sleep cycle before
+    // touching pinMode() — held pins ignore reconfiguration until released.
+    gpio_hold_dis(static_cast<gpio_num_t>(SoilConfig::kMuxS0));
+    gpio_hold_dis(static_cast<gpio_num_t>(SoilConfig::kMuxS1));
+    gpio_hold_dis(static_cast<gpio_num_t>(SoilConfig::kMuxS2));
+    gpio_hold_dis(static_cast<gpio_num_t>(SoilConfig::kMuxS3));
+    for (const auto& board : SoilConfig::kBoards) {
+        gpio_hold_dis(static_cast<gpio_num_t>(board.enPin));
+    }
+
     pinMode(SoilConfig::kMuxS0, OUTPUT);
     pinMode(SoilConfig::kMuxS1, OUTPUT);
     pinMode(SoilConfig::kMuxS2, OUTPUT);
@@ -111,6 +122,24 @@ void poll(PubSubClient& mqttClient) {
 
             sensorId++;
         }
+    }
+}
+
+void parkForSleep() {
+    disableAllBoards();  // EN = HIGH on both boards
+    selectChannel(0U);   // deterministic select-line state
+
+    // All four are RTC-capable — hold is meaningful and will survive deep sleep.
+    gpio_hold_en(static_cast<gpio_num_t>(SoilConfig::kMuxS0));
+    gpio_hold_en(static_cast<gpio_num_t>(SoilConfig::kMuxS1));
+    gpio_hold_en(static_cast<gpio_num_t>(SoilConfig::kMuxS2));
+    gpio_hold_en(static_cast<gpio_num_t>(SoilConfig::kMuxS3));
+
+    // GPIO13/4 are RTC-capable now (post GPIO18/19 rewire), so this hold
+    // actually persists through esp_deep_sleep_start() — unlike the old
+    // GPIO18/19 assignment, where this call was a no-op during deep sleep.
+    for (const auto& board : SoilConfig::kBoards) {
+        gpio_hold_en(static_cast<gpio_num_t>(board.enPin));
     }
 }
 
