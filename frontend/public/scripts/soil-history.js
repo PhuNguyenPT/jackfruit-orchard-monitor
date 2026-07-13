@@ -38,7 +38,6 @@ function setLive(on) {
 }
 
 // ── Marker ────────────────────────────────────────────────────────────────
-const marker = document.getElementById('soil-marker');
 const label = document.getElementById('soil-current-label');
 
 function updateMarker(pct) {
