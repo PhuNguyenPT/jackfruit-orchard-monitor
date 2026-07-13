@@ -5,6 +5,7 @@
 #include <array>
 
 #include "MKE_S13.h"
+#include "MQTTManager.h"
 #include "TimeSync.h"
 
 namespace SoilPoller {
@@ -16,9 +17,7 @@ const char* TAG = "Soil";
 
 enum class BoardIdx : uint8_t {};
 enum class ChannelIdx : uint8_t {};
-// ---------------------------------------------------------------------------
-// MUX helpers
-// ---------------------------------------------------------------------------
+
 void selectChannel(uint8_t channel) {
     digitalWrite(SoilConfig::kMuxS0, (channel >> 0U) & 0x01U);
     digitalWrite(SoilConfig::kMuxS1, (channel >> 1U) & 0x01U);
@@ -28,7 +27,7 @@ void selectChannel(uint8_t channel) {
 }
 
 void enableBoard(uint8_t enPin, bool enable) {
-    digitalWrite(enPin, enable ? LOW : HIGH);  // EN is active LOW
+    digitalWrite(enPin, enable ? LOW : HIGH);
     delayMicroseconds(5U);
 }
 
@@ -38,9 +37,6 @@ void disableAllBoards() {
     }
 }
 
-// ---------------------------------------------------------------------------
-// ADC averaging
-// ---------------------------------------------------------------------------
 auto readAvg(uint8_t sigPin) -> uint16_t {
     uint32_t sum = 0U;
     for (uint8_t sampleIdx = 0U; sampleIdx < kNumSamples; sampleIdx++) {
@@ -50,9 +46,6 @@ auto readAvg(uint8_t sigPin) -> uint16_t {
     return static_cast<uint16_t>(sum / kNumSamples);
 }
 
-// ---------------------------------------------------------------------------
-// Single sensor read: isolate board, select channel, sample
-// ---------------------------------------------------------------------------
 auto readSensor(BoardIdx boardIdx, ChannelIdx chanIdx) -> uint16_t {
     const SoilConfig::MuxBoard& board = SoilConfig::kBoards.at(static_cast<uint8_t>(boardIdx));
     disableAllBoards();
@@ -65,9 +58,6 @@ auto readSensor(BoardIdx boardIdx, ChannelIdx chanIdx) -> uint16_t {
 }
 }  // namespace
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
 void init() {
     pinMode(SoilConfig::kMuxS0, OUTPUT);
     pinMode(SoilConfig::kMuxS1, OUTPUT);
@@ -93,7 +83,7 @@ void poll(PubSubClient& mqttClient) {
             ESP_LOGI(TAG, "Soil Sensor %d (MUX%d CH%d): raw=%d -> %.1f %%", sensorId, boardIdx + 1U,
                      chanIdx, raw, percent);
 
-            if (!mqttClient.connected()) {
+            if (!MQTTManager::isConnected(mqttClient)) {
                 sensorId++;
                 continue;
             }
@@ -113,7 +103,7 @@ void poll(PubSubClient& mqttClient) {
                 snprintf(payload.data(), payload.size(), R"({"moisture": %.1f, "raw": %d})",
                          percent, raw);
             }
-            if (!mqttClient.publish(topic.data(), payload.data())) {
+            if (!MQTTManager::publish(mqttClient, topic.data(), payload.data())) {
                 ESP_LOGE(TAG, "MQTT Frame dropped. Publish failed for soil sensor %d.", sensorId);
             } else {
                 ESP_LOGI(TAG, "MQTT Outbound -> [%s] Payload: %s", topic.data(), payload.data());
