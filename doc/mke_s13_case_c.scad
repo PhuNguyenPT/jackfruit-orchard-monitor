@@ -107,6 +107,46 @@ module bottom_shell() {
         linear_extrude(z_pcb_seat)
             offset(r = pcb_gap_y) pcb_box_section_2d();
     }
+
+    // --- CONNECTOR SHROUD (LOWER HALF) ---
+    // Two side (Y) walls, closing the box the partition bulkhead
+    // above starts on the near side. There's still deliberately no
+    // separate distal (far) wall -- that end is sealed by the
+    // labyrinth tongue-and-groove joint itself (tongue_in/tongue_out,
+    // built into shell_2d() above), which forms the case's real
+    // perimeter wall there. Instead, each side wall now runs all the
+    // way out to conn_shroud_bottom_x2, flush against that same
+    // tongue's own inner wall (shell_2d(tongue_in)), so the two
+    // structures butt directly together with no unwalled gap between
+    // them, rather than stopping short at the connector slot's edge
+    // (conn_slot_x2) and leaving a path around the wall's end. Same
+    // split-half, same intersection-with-case-profile safety
+    // approach as the partition, just hugging the connector slot's Y
+    // footprint instead of spanning the full cavity width.
+    for (y_face = [conn_slot_y1 - conn_shroud_wall_t, conn_slot_y2]) {
+        intersection() {
+            // Side wall: runs from conn_slot_x1 (flush against the
+            // partition's far face -- no gap at that corner) out to
+            // conn_shroud_bottom_x2 (flush against the bottom
+            // shell's own tongue -- its labyrinth joint's inner
+            // wall).
+            translate([conn_slot_x1, y_face, 0])
+                cube([
+                    conn_shroud_bottom_x2 - conn_slot_x1,
+                    conn_shroud_wall_t,
+                    z_pcb_seat
+                ]);
+            // Safety-clip profile widened from the plain interior
+            // cavity (offset = pcb_gap_y) out to the tongue's own
+            // inner-wall offset (pcb_gap_y + tongue_in), matching how
+            // far the wall above is now meant to reach -- otherwise
+            // this clip would silently truncate the wall back down
+            // to the old, shorter reach regardless of the cube's own
+            // length.
+            linear_extrude(z_pcb_seat)
+                offset(r = pcb_gap_y + tongue_in + overlap_eps) pcb_box_section_2d();
+        }
+    }
 }
 // Interior hollow profile, with the two pillar locations left solid
 // so the lid's screw pillars stay continuous from the mating plane
@@ -275,6 +315,36 @@ module lid() {
         -partition_drop_h
     ])
         cube([partition_t, partition_w, partition_drop_h + lid_reconnect_h]);
+
+    // --- CONNECTOR SHROUD (UPPER HALF) ---
+    // Two side (Y) walls, hanging from the lid to frame the TIGHT
+    // CONNECTOR SLOT cutout's long edges. No distal wall here either
+    // -- the lid's own labyrinth trench (inner_skirt_t / outer_skirt_t
+    // walls, cut by the groove above) still closes off the far/distal
+    // end when the case is assembled. But rather than stopping at the
+    // slot's own far edge (conn_slot_x2) and leaving the trench
+    // unreached, each side wall now runs out to conn_shroud_lid_x2 --
+    // flush against the trench's INNER wall (the lid's inner skirt),
+    // not its outer wall, since crossing all the way to the outer
+    // wall would drive the wall across the open groove itself and
+    // into the bottom shell's tongue on assembly. Dropped by the same
+    // partition_drop_h as the bulkhead so both shroud walls stop at
+    // the same slot_gap clearance above the PCB top surface, and
+    // extended by lid_reconnect_h past z=0 so each wall unions
+    // cleanly with the lid plate despite the center hollow-out cut
+    // above.
+    for (y_face = [conn_slot_y1 - conn_shroud_wall_t, conn_slot_y2]) {
+        translate([
+            conn_slot_x1,
+            y_face,
+            -partition_drop_h
+        ])
+            cube([
+                conn_shroud_lid_x2 - conn_slot_x1,
+                conn_shroud_wall_t,
+                partition_drop_h + lid_reconnect_h
+            ]);
+    }
 }
 
 // =====================================================

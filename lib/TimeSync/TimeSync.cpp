@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 
+#include <atomic>
 #include <ctime>
 
 namespace TimeSync {
@@ -13,17 +14,15 @@ const uint32_t kPollDelayMs = 500U;
 // earlier than this is the ESP32's un-synced power-on default, not a
 // real NTP result. Exact date has no other significance; bump it
 // forward over time if you want, it just needs to predate "now."
-const time_t kMinPlausibleTs = 1735689600L;                     // 2025-01-01T00:00:00Z
-const uint32_t kResyncIntervalMs = 6UL * 60UL * 60UL * 1000UL;  // 6 hours
-uint32_t lastResyncMs = 0U;
-bool synced = false;
+const time_t kMinPlausibleTs = 1735689600L;  // 2025-01-01T00:00:00Z
+std::atomic<bool> synced{false};
 const char* TAG = "TimeSync";
 }  // namespace
 
 void setup() {
     ESP_LOGI(TAG, "Querying NTP pools for network time sync...");
 
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");  // UTC, no offset — see note below
+    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
 
     time_t currentTime = time(nullptr);
     const uint32_t startMs = millis();
@@ -32,35 +31,17 @@ void setup() {
         if (millis() - startMs >= kSyncTimeoutMs) {
             ESP_LOGW(TAG, "NTP sync timed out after %lu ms — proceeding without synced time.",
                      static_cast<unsigned long>(kSyncTimeoutMs));
-            synced = false;
+            synced.store(false, std::memory_order_release);
             return;
         }
         delay(kPollDelayMs);
         currentTime = time(nullptr);
     }
-    synced = true;
+    synced.store(true, std::memory_order_release);
     ESP_LOGI(TAG, "NTP Time synchronized perfectly.");
 }
 
-void maybeResync() {
-    if (millis() - lastResyncMs < kResyncIntervalMs) {
-        return;
-    }
-    lastResyncMs = millis();
-
-    ESP_LOGI(TAG, "Performing periodic NTP re-sync...");
-    configTime(0, 0, "pool.ntp.org", "time.nist.gov");
-
-    time_t currentTime = time(nullptr);
-    if (currentTime >= kMinPlausibleTs) {
-        synced = true;
-        ESP_LOGI(TAG, "NTP re-sync successful.");
-    } else {
-        ESP_LOGW(TAG, "NTP re-sync did not return valid time yet.");
-    }
-}
-
-auto isSynced() -> bool { return synced; }
+auto isSynced() -> bool { return synced.load(std::memory_order_acquire); }
 
 auto now() -> time_t { return time(nullptr); }
 }  // namespace TimeSync

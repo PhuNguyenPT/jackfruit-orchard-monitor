@@ -6,12 +6,13 @@
 
 #include <array>
 
+#include "MQTTManager.h"
 #include "TimeSync.h"
 
 namespace SHT40Poller {
 
 namespace {
-HardwareSerial modbusSerial(1);  // UART1
+HardwareSerial modbusSerial(1);
 ModbusMaster node;
 const char* TAG = "SHT40";
 }  // namespace
@@ -30,7 +31,7 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
 
         ESP_LOGI(TAG, "Sensor %d Readout: %.1f %%RH | %.1f C", slaveAddr, hum, temp);
 
-        if (mqttClient.connected()) {
+        if (MQTTManager::isConnected(mqttClient)) {
             std::array<char, kTopicBufSize> topic{};
             std::array<char, kPayloadBufSize> payload{};
 
@@ -47,7 +48,7 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
                          R"({"temperature": %.1f, "humidity": %.1f})", temp, hum);
             }
 
-            if (!mqttClient.publish(topic.data(), payload.data())) {
+            if (!MQTTManager::publish(mqttClient, topic.data(), payload.data())) {
                 ESP_LOGE(TAG, "MQTT Frame dropped. Publish failed.");
                 return;
             }
