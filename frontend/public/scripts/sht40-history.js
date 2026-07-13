@@ -83,7 +83,6 @@ function updateTempMarker(latestTemp) {
 // ── Humidity Marker ───────────────────────────────────────────────────────
 const humidMarkerEl = document.getElementById('humid-marker');
 const humidCurrentLabel = document.getElementById('humid-current-label');
-const humidBar = document.querySelector('.humid-gradient-bar');
 
 function updateHumidMarker(pct) {
     if (!humidMarkerEl) return;
