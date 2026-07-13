@@ -153,7 +153,19 @@ z_pcb_seat  =  floor_t + pcb_t + pcb_z_gap + solder_z_tol; // PCB seat height in
 // =====================================================
 // 8. CABLE EXIT CLEARANCE
 // =====================================================
-cable_clear =   1.0; // clearance around connector footprint
+cable_clear =   clearance_per_side + sealant_tol; // clearance around connector
+                      // footprint for the lid's TIGHT CONNECTOR SLOT cutout --
+                      // was a flat 1.0mm (assembly workroom with no sealing
+                      // rationale behind the number). conn_l is already sized
+                      // to the fully-mated connector envelope (see section 3),
+                      // so this margin only needs to cover FDM print-fit slop
+                      // + room for silicone/conformal coating to actually seal
+                      // the gap -- exactly what slot_gap already does for the
+                      // probe passthrough, the case's other water-facing
+                      // opening. Reusing that same formula here (0.65mm,
+                      // down from 1.0mm) tightens the water path around the
+                      // connector/cable without cutting into the connector's
+                      // actual fit envelope.
 
 // =====================================================
 // 9. DERIVED LAYOUT
@@ -194,6 +206,40 @@ partition_t  = partition_x2 - partition_x1; // = 1.5mm -- bulkhead wall thicknes
                                              // physical PCB connector/keepout layout)
 
 // =====================================================
+// 10.5 CONNECTOR SHROUD (2 side walls that close the box the
+// partition starts)
+// =====================================================
+// The partition above already forms ONE wall of a box around the
+// connector cavity (its far/connector-side face sits exactly on
+// conn_slot_x1 below). These 2 additional side (Y) walls close out
+// the long edges, hugging the lid's TIGHT CONNECTOR SLOT cutout
+// (see lid() in mke_s13_case_c.scad) directly rather than relying
+// on the far-away outer shell wall. Like the partition, each side
+// wall is built as a split lid/bottom pair in mke_s13_case_c.scad
+// (upper half hangs from the lid, lower half is rooted in the
+// bottom shell up to the PCB standoff height) so they land flush
+// against the PCB on assembly, the same way the partition does.
+// NOTE: there is deliberately no 4th/distal wall at conn_slot_x2 --
+// that end is already closed by the labyrinth tongue-and-groove
+// joint (tongue_in/tongue_out + the lid's inner_skirt_t/
+// outer_skirt_t trench below), which is the case's real perimeter
+// seal there. A separate wall would just sit inside that trench
+// and risk fouling the tongue/groove fit.
+conn_shroud_wall_t = partition_t; // reuse partition_t so the shroud
+                      // reads as one consistent feature with the
+                      // existing bulkhead rather than introducing a
+                      // second, arbitrary wall thickness
+
+// Slot footprint -- must exactly match the TIGHT CONNECTOR SLOT
+// cube in lid() so the shroud always hugs the current hole
+// geometry even if conn_l/cable_clear/pcb_l/partition_far_edge
+// ever change
+conn_slot_x1 = partition_x2;                        // near/tip edge -- already walled by the partition
+conn_slot_x2 = pcb_l + cable_clear;                  // far/distal edge -- side walls stop here; no wall added at this face itself
+conn_slot_y1 = pcb_w/2 - (conn_l/2) - cable_clear;   // near-side edge
+conn_slot_y2 = pcb_w/2 + (conn_l/2) + cable_clear;   // far-side edge
+
+// =====================================================
 // LABYRINTH JOINT PARAMETERS
 // =====================================================
 lip_h         = 3.0;     // Height of the tongue/groove overlap
@@ -206,6 +252,40 @@ outer_skirt_t = 2.0;     // Gives the lid's outer lip 2.0mm of solid plastic (ov
 // The tongue on the base is automatically calculated to sit perfectly between them:
 tongue_in  = inner_skirt_t + lip_clear;
 tongue_out = wall;       // Tongue extends flush to the outer edge of the bottom shell
+
+// =====================================================
+// CONNECTOR SHROUD -- EXTENDED WALL ENDPOINTS
+// =====================================================
+// The 2 shroud side walls (mke_s13_case_c.scad) previously stopped at
+// conn_slot_x2 (the connector slot's own far edge) -- short of the
+// labyrinth joint, deliberately, per the note above, since that joint
+// was already doing the real sealing at the distal end. These two
+// values instead carry each half of the shroud out to butt directly
+// against its matching half of the labyrinth joint, closing the
+// unwalled gap that used to sit between conn_slot_x2 and the joint.
+//
+// Both reuse the same offset math shell_2d() applies to
+// pcb_box_section_2d(): within the shroud's Y-range the profile's
+// distal edge is a flat line at x = pcb_l (see corner_r / pcb_2d()
+// above), so an offset of radius r there lands at x = pcb_l + r,
+// same as any other point on that flat edge would.
+//
+// LID half -- reaches the trench's INNER wall (shell_2d(tongue_in -
+// lip_clear), the boundary of the lid's inner skirt) rather than the
+// trench's OUTER wall (shell_2d(tongue_out + lip_clear)): going all
+// the way to the outer wall would drive the shroud wall across the
+// open groove itself and into collision with the bottom shell's
+// tongue when assembled. overlap_eps pushes the face a hair past the
+// boundary so the union with the inner skirt is a genuine 3D overlap,
+// not a coincident touch (same CGAL-safety reasoning as overlap_eps's
+// other uses).
+conn_shroud_lid_x2 = pcb_l + pcb_gap_y + (tongue_in - lip_clear) + overlap_eps;
+
+// BOTTOM half -- reaches the bottom shell's own tongue's inner wall
+// (shell_2d(tongue_in), no lip_clear subtraction -- that adjustment
+// only matters for the lid's groove cut, not the solid tongue
+// itself).
+conn_shroud_bottom_x2 = pcb_l + pcb_gap_y + tongue_in + overlap_eps;
 
 // =====================================================
 // PROBE MOUTH CHAMFER (Cantilever stress-riser mitigation)
