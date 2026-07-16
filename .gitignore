@@ -92,3 +92,8 @@ coverage.html
 *.pem
 
 compile_commands.json
+
+data/
+.venv/
+requirements.txt
+notebook/
