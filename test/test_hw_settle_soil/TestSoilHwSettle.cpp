@@ -66,10 +66,9 @@ void test_channel_settle_is_sufficient(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Diagnostic sweep — NOT a pass/fail check. Logs raw ADC values at increasing
-// settle times after a mux switch so you can read the curve off the serial
-// monitor and pick the real minimum delay by hand. This does not assert
-// anything; TEST_MESSAGE just prints through Unity's output stream.
+// Diagnostic sweep — NOT a pass/fail check. Prints raw ADC values over Serial
+// at increasing settle times after a mux switch so you can read the curve off
+// the serial monitor and pick the real minimum delay by hand.
 // ---------------------------------------------------------------------------
 void test_channel_settle_sweep(void) {
     configurePins();
@@ -83,7 +82,7 @@ void test_channel_settle_sweep(void) {
         for (uint8_t ch = 0; ch < board.numCh; ch++) {
             char header[64];
             snprintf(header, sizeof(header), "--- board EN=%d ch=%d ---", board.enPin, ch);
-            TEST_MESSAGE(header);
+            Serial.println(header);
 
             for (size_t i = 0; i < numCheckpoints; i++) {
                 // Fresh switch each time so every checkpoint measures settle
@@ -102,7 +101,7 @@ void test_channel_settle_sweep(void) {
                 char line[64];
                 snprintf(line, sizeof(line), "  t=%5luus  raw=%d",
                          static_cast<unsigned long>(checkpointsUs[i]), val);
-                TEST_MESSAGE(line);
+                Serial.println(line);
             }
         }
     }
@@ -114,6 +113,7 @@ void test_channel_settle_sweep(void) {
 
 // ---------------------------------------------------------------------------
 void setup() {
+    Serial.begin(1000000);
     delay(10000);
     UNITY_BEGIN();
 
