@@ -1,12 +1,11 @@
 #include <Arduino.h>
-#include <PubSubClient.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <driver/gpio.h>
 #include <esp_sleep.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/task.h>
+#include <mqtt_client.h>
 
 #include "MQTTManager.h"
 #include "SHT40Poller.h"
@@ -22,6 +21,8 @@ namespace {
 const uint32_t kWifiInitDelayMs = 100U;
 const uint32_t kWifiReconnectDelayMs = 500U;
 const uint32_t kSerialInitDelayMs = 10U;
+const uint32_t kMqttConnectTimeoutMs = 15000U;
+const uint32_t kMqttAckTimeoutMs = 2000U;
 #ifndef DEEP_SLEEP_SEC
 #define DEEP_SLEEP_SEC 3600ULL
 #endif
@@ -30,9 +31,6 @@ const uint64_t kDeepSleepUs = static_cast<uint64_t>(DEEP_SLEEP_SEC) * 1000000ULL
 const char* TAG = "Main";
 
 RTC_DATA_ATTR uint32_t bootCount = 0U;
-
-WiFiClientSecure espClient;
-PubSubClient client(espClient);
 
 // --- sync primitives ---------------------------------------------------
 EventGroupHandle_t g_syncEvents = nullptr;
@@ -44,8 +42,8 @@ constexpr EventBits_t kSoilDoneBit = BIT3;
 
 constexpr uint32_t kNetTaskStack = 12288U;  // TLS handshake is stack-hungry
 constexpr uint32_t kHwInitStack = 3072U;
-constexpr uint32_t kSht40PollStack = 8192U;  // also does TLS writes via publish()
-constexpr uint32_t kSoilPollStack = 8192U;   // same
+constexpr uint32_t kSht40PollStack = 8192U;
+constexpr uint32_t kSoilPollStack = 8192U;
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -74,8 +72,20 @@ void setupWiFi() {
 void networkSetupTask(void* /*pvParameters*/) {
     setupWiFi();
     TimeSync::setup();
-    MQTTManager::setup(espClient, client, MQTT_SERVER, MQTT_PORT, ROOT_CA);
-    MQTTManager::connect(client, MQTT_USER, MQTT_PASS);  // blocking, fine here
+
+    esp_mqtt_client_config_t mqttCfg = {};
+    mqttCfg.host = MQTT_SERVER;
+    mqttCfg.port = static_cast<uint16_t>(MQTT_PORT);
+    mqttCfg.username = MQTT_USER;
+    mqttCfg.password = MQTT_PASS;
+#ifdef MQTT_SECURE
+    mqttCfg.transport = MQTT_TRANSPORT_OVER_SSL;
+    mqttCfg.cert_pem = ROOT_CA;
+#else
+    mqttCfg.transport = MQTT_TRANSPORT_OVER_TCP;
+#endif
+    MQTTManager::setup(mqttCfg);
+    MQTTManager::connect(kMqttConnectTimeoutMs);  // bounded — don't block forever pre-sleep
 
     xEventGroupSetBits(g_syncEvents, kNetworkReadyBit);
     vTaskDelete(nullptr);
@@ -93,12 +103,12 @@ void hardwareInitTask(void* /*pvParameters*/) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase C: SHT40 poll (core 0) — mutex around every publish
+// Phase C: SHT40 poll (core 0)
 // ---------------------------------------------------------------------------
 void sht40PollTask(void* /*pvParameters*/) {
     ESP_LOGI(TAG, "Executing scheduled Modbus scan...");
     for (uint8_t i = 0; i < NUM_SENSORS; i++) {
-        SHT40Poller::poll(SLAVE_ADDRS.at(i), client);
+        SHT40Poller::poll(SLAVE_ADDRS.at(i));
         if (i < NUM_SENSORS - 1U) {
             delay(INTER_SLAVE_MS);
         }
@@ -108,12 +118,11 @@ void sht40PollTask(void* /*pvParameters*/) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase D: Soil poll (core 1) — mutex around the whole call for now
-// (see note below on splitting reads from publishes for finer-grained locking)
+// Phase D: Soil poll (core 1)
 // ---------------------------------------------------------------------------
 void soilPollTask(void* /*pvParameters*/) {
     ESP_LOGI(TAG, "Executing scheduled soil moisture scan...");
-    SoilPoller::poll(client);
+    SoilPoller::poll();
     xEventGroupSetBits(g_syncEvents, kSoilDoneBit);
     vTaskDelete(nullptr);
 }
@@ -127,7 +136,8 @@ void goToSleep() {
     SoilPoller::parkForSleep();
     gpio_deep_sleep_hold_en();  // global switch — required for per-pin holds to survive deep sleep
 
-    client.disconnect();
+    MQTTManager::waitForAcks(kMqttAckTimeoutMs);  // let PUBACKs land before killing the radio
+    MQTTManager::disconnect();
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
 

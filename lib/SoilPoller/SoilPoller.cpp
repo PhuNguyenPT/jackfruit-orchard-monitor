@@ -84,7 +84,7 @@ void init() {
     disableAllBoards();
 }
 
-void poll(PubSubClient& mqttClient) {
+void poll() {
     uint8_t sensorId = 0U;
 
     for (uint8_t boardIdx = 0U; boardIdx < SoilConfig::kNumBoards; boardIdx++) {
@@ -95,7 +95,7 @@ void poll(PubSubClient& mqttClient) {
             ESP_LOGI(TAG, "Soil Sensor %d (MUX%d CH%d): raw=%d -> %.1f %%", sensorId, boardIdx + 1U,
                      chanIdx, raw, percent);
 
-            if (!MQTTManager::isConnected(mqttClient)) {
+            if (!MQTTManager::isConnected()) {
                 sensorId++;
                 continue;
             }
@@ -115,8 +115,8 @@ void poll(PubSubClient& mqttClient) {
                 snprintf(payload.data(), payload.size(), R"({"moisture": %.1f, "raw": %d})",
                          percent, raw);
             }
-            if (!MQTTManager::publish(mqttClient, topic.data(), payload.data())) {
-                ESP_LOGE(TAG, "MQTT Frame dropped. Publish failed for soil sensor %d.", sensorId);
+            if (MQTTManager::publish(topic.data(), payload.data()) < 0) {
+                ESP_LOGE(TAG, "MQTT publish failed to queue for topic %s.", topic.data());
             } else {
                 ESP_LOGI(TAG, "MQTT Outbound -> [%s] Payload: %s", topic.data(), payload.data());
             }
