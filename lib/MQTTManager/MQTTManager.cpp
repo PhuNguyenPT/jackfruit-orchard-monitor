@@ -1,89 +1,103 @@
 #include "MQTTManager.h"
 
 #include <Arduino.h>
-#include <WiFi.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
+#include <esp_log.h>
+#include <mqtt_client.h>
 
-#include <array>
+#include <atomic>
 
 namespace MQTTManager {
 
 namespace {
-const uint32_t kRetryDelayMs = 5000U;
-const size_t kClientIdSize = 24U;
-uint32_t lastAttemptMs = 0U;
 const char* TAG = "MQTT";
+const uint32_t kPollMs = 20U;
 
-// Guards every PubSubClient socket op once multiple tasks share one client.
-// Constructed at global-init time (before setup() runs), so there's no
-// ordering dependency on which task touches publish()/isConnected() first.
-SemaphoreHandle_t publishMutex = xSemaphoreCreateMutex();
+esp_mqtt_client_handle_t client = nullptr;
+std::atomic<bool> connected{false};
+std::atomic<int> pendingAcks{0};
 
-auto attempt(PubSubClient& client, const char* user, const char* pass) -> bool {
-    std::array<char, kClientIdSize> clientId{};
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg)
-    snprintf(clientId.data(), clientId.size(), "ESP32-Gateway-%04X",
-             static_cast<unsigned int>(random(0xffff)));
-
-    ESP_LOGI(TAG, "Attempting TLS encrypted MQTT handshake...");
-    if (client.connect(clientId.data(), user, pass)) {
-        ESP_LOGI(TAG, "TLS Session established. Connected to broker.");
-        return true;
+void eventHandler(void* /*handlerArgs*/, esp_event_base_t /*base*/, int32_t eventId,
+                  void* eventData) {
+    auto* event = static_cast<esp_mqtt_event_handle_t>(eventData);
+    switch (static_cast<esp_mqtt_event_id_t>(eventId)) {
+        case MQTT_EVENT_CONNECTED:
+#ifdef MQTT_SECURE
+            ESP_LOGI(TAG, "TLS session established. Connected to broker.");
+#else
+            ESP_LOGI(TAG, "Connected to broker (plain TCP, dev/test mode).");
+#endif
+            connected.store(true, std::memory_order_release);
+            break;
+        case MQTT_EVENT_DISCONNECTED:
+            ESP_LOGW(TAG, "MQTT disconnected.");
+            connected.store(false, std::memory_order_release);
+            break;
+        case MQTT_EVENT_PUBLISHED:
+            ESP_LOGI(TAG, "PUBACK received for msg_id=%d.", event->msg_id);
+            pendingAcks.fetch_sub(1, std::memory_order_acq_rel);
+            break;
+        case MQTT_EVENT_ERROR:
+            ESP_LOGE(TAG, "MQTT error, type=%d.",
+                     static_cast<int>(event->error_handle->error_type));
+            break;
+        default:
+            break;
     }
-    ESP_LOGE(TAG, "MQTT connection failure, rc=%d.", client.state());
-    return false;
 }
 }  // namespace
 
-void setup(WiFiClientSecure& espClient, PubSubClient& client, const char* server, uint16_t port,
-           const char* caCert) {
-#ifdef MQTT_SECURE
-    ESP_LOGI(TAG, "TLS: verifying broker against CA cert.");
-    espClient.setCACert(caCert);
-#else
-    ESP_LOGW(TAG, "TLS verification DISABLED — dev/test mode.");
-    espClient.setInsecure();
-    (void)caCert;
-#endif
-    client.setServer(server, port);
+void setup(const esp_mqtt_client_config_t& cfg) {
+    esp_mqtt_client_config_t localCfg = cfg;
+    localCfg.keepalive = 30;
+
+    client = esp_mqtt_client_init(&localCfg);
+    esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID),
+                                   eventHandler, nullptr);
+    esp_mqtt_client_start(client);
 }
 
-void connect(PubSubClient& client, const char* user, const char* pass) {
-    while (!client.connected() && WiFi.status() == WL_CONNECTED) {
-        if (attempt(client, user, pass)) {
-            return;
+auto connect(uint32_t timeoutMs) -> bool {
+    const uint32_t start = millis();
+    while (!connected.load(std::memory_order_acquire)) {
+        if (millis() - start >= timeoutMs) {
+            ESP_LOGW(TAG, "MQTT connect timed out after %lu ms.",
+                     static_cast<unsigned long>(timeoutMs));
+            return false;
         }
-        delay(kRetryDelayMs);
+        delay(kPollMs);
     }
+    return true;
 }
 
-void maybeReconnect(PubSubClient& client, const char* user, const char* pass) {
-    if (client.connected() || WiFi.status() != WL_CONNECTED) {
-        return;
-    }
+auto isConnected() -> bool { return connected.load(std::memory_order_acquire); }
 
-    const uint32_t now = millis();
-    if (now - lastAttemptMs < kRetryDelayMs) {
-        return;
+auto publish(const char* topic, const char* payload) -> int {
+    const int msgId = esp_mqtt_client_publish(client, topic, payload, 0, /*qos=*/1, /*retain=*/0);
+    if (msgId < 0) {
+        ESP_LOGE(TAG, "Failed to queue publish on topic %s.", topic);
+        return msgId;
     }
-    lastAttemptMs = now;
-
-    attempt(client, user, pass);
+    pendingAcks.fetch_add(1, std::memory_order_acq_rel);
+    return msgId;
 }
 
-auto publish(PubSubClient& client, const char* topic, const char* payload) -> bool {
-    xSemaphoreTake(publishMutex, portMAX_DELAY);
-    const bool published = client.publish(topic, payload);
-    xSemaphoreGive(publishMutex);
-    return published;
+auto waitForAcks(uint32_t timeoutMs) -> bool {
+    const uint32_t start = millis();
+    while (pendingAcks.load(std::memory_order_acquire) > 0) {
+        if (millis() - start >= timeoutMs) {
+            ESP_LOGW(TAG, "Timed out with %d PUBACK(s) still outstanding.",
+                     pendingAcks.load(std::memory_order_acquire));
+            return false;
+        }
+        delay(kPollMs);
+    }
+    return true;
 }
 
-auto isConnected(PubSubClient& client) -> bool {
-    xSemaphoreTake(publishMutex, portMAX_DELAY);
-    const bool connected = client.connected();
-    xSemaphoreGive(publishMutex);
-    return connected;
+void disconnect() {
+    if (client != nullptr) {
+        esp_mqtt_client_stop(client);
+    }
 }
 
 }  // namespace MQTTManager

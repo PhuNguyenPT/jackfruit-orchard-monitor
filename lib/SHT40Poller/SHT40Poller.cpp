@@ -21,7 +21,7 @@ void init(RxPin rxPin, TxPin txPin, uint32_t baud) {
     modbusSerial.begin(baud, SERIAL_8N1, static_cast<int>(rxPin), static_cast<int>(txPin));
 }
 
-void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
+void poll(uint8_t slaveAddr) {
     node.begin(slaveAddr, modbusSerial);
     const uint8_t result = node.readHoldingRegisters(0x0000, 2);
 
@@ -31,7 +31,7 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
 
         ESP_LOGI(TAG, "Sensor %d Readout: %.1f %%RH | %.1f C", slaveAddr, hum, temp);
 
-        if (MQTTManager::isConnected(mqttClient)) {
+        if (MQTTManager::isConnected()) {
             std::array<char, kTopicBufSize> topic{};
             std::array<char, kPayloadBufSize> payload{};
 
@@ -48,8 +48,8 @@ void poll(uint8_t slaveAddr, PubSubClient& mqttClient) {
                          R"({"temperature": %.1f, "humidity": %.1f})", temp, hum);
             }
 
-            if (!MQTTManager::publish(mqttClient, topic.data(), payload.data())) {
-                ESP_LOGE(TAG, "MQTT Frame dropped. Publish failed.");
+            if (MQTTManager::publish(topic.data(), payload.data()) < 0) {
+                ESP_LOGE(TAG, "MQTT publish failed to queue for topic %s.", topic.data());
                 return;
             }
             ESP_LOGI(TAG, "MQTT Outbound -> [%s] Payload: %s", topic.data(), payload.data());
