@@ -213,8 +213,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USERNAME}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--auth-local=scram-sha-256 --auth-host=scram-sha-256"
-    ports:
-      - "${POSTGRES_PORT}:5432"
     volumes:
       - psql_volume:/var/lib/postgresql
     healthcheck:
