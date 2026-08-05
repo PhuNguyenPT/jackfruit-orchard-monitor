@@ -4,9 +4,13 @@
 #include <ModbusMaster.h>
 #include <cstdint>
 #include <cstdio>
+#include "PowerRail.h"
+#include "SHT40Common.h"
+#include "SHT40Poller.h"   // add — for kMinWarmupMs
 #include "config.h"
 #include "gpio.h"
 #include "sht40.h"
+#include <driver/gpio.h>
 
 // cppcheck-suppress unusedFunction
 void setUp(void) {}
@@ -15,106 +19,120 @@ void tearDown(void) {}
 
 namespace {
 
-// Match SHT40Poller::init()'s default baud — bump this alongside the real
-// code if/when you move to a higher baud rate, so the sweep reflects the
-// actual bus speed you're testing against.
 constexpr uint32_t kBaud = 4800U;
 
 HardwareSerial modbusSerial(1);
 ModbusMaster node;
 
-// Result of a single poll attempt against one slave.
 struct PollResult {
     bool ok;
-    uint8_t exceptionCode;  // valid only when !ok
+    uint8_t exceptionCode;
+    bool zeroed;
 };
 
 auto pollOnce(uint8_t slaveAddr) -> PollResult {
     node.begin(slaveAddr, modbusSerial);
     const uint8_t result = node.readHoldingRegisters(0x0000, 2);
-    return PollResult{result == ModbusMaster::ku8MBSuccess, result};
+    if (result != ModbusMaster::ku8MBSuccess) {
+        return PollResult{false, result, false};
+    }
+    const bool zeroed =
+        SHT40Poller::isZeroedReading(node.getResponseBuffer(0), node.getResponseBuffer(1));
+    return PollResult{true, 0U, zeroed};
+}
+
+auto measureSettleMs(uint8_t slaveAddr, uint32_t pollIntervalMs, uint32_t maxWaitMs) -> int32_t {
+    PowerRail::parkForSleep();
+    delay(2000U);  // confirmed sufficient for full rail discharge
+
+    modbusSerial.begin(kBaud, SERIAL_8N1, static_cast<int>(XY485_RX), static_cast<int>(XY485_TX));
+
+    const uint32_t startMs = millis();
+    gpio_hold_dis(static_cast<gpio_num_t>(15U));
+    pinMode(15U, OUTPUT);
+    digitalWrite(15U, HIGH);
+
+    while (millis() - startMs < maxWaitMs) {
+        const PollResult r = pollOnce(slaveAddr);
+        if (r.ok && !r.zeroed) {
+            return static_cast<int32_t>(millis() - startMs);
+        }
+        delay(pollIntervalMs);
+    }
+    return -1;
 }
 
 }  // namespace
 
 // ---------------------------------------------------------------------------
-// Regression guard — confirms the CURRENT INTER_SLAVE_MS is sufficient for
-// every configured slave, back-to-back, over several cycles.
+// Regression guard — confirms real settle time stays safely under the
+// production kMinWarmupMs floor SHT40Poller::poll() waits out before its
+// first read attempt. This is a hardware fact (2s internal refresh cycle
+// per datasheet), not a retry-budget question — see SHT40Poller.h.
+//
+// Two things must hold:
+//   1. settleMs must land at or below kMinWarmupMs — if it doesn't,
+//      production's first read after the warm-up wait would still see a
+//      zeroed register, reproducing the original bug.
+//   2. settleMs must land above a floor (kSanityFloorMs) — if a trial
+//      "settles" near-instantly, that's a sign the sensor isn't actually
+//      power-cycling (e.g. the discharge delay above stopped being
+//      sufficient), not a sign things got better.
 // ---------------------------------------------------------------------------
-void test_inter_slave_delay_is_sufficient(void) {
-    modbusSerial.begin(kBaud, SERIAL_8N1, static_cast<int>(XY485_RX),
-                        static_cast<int>(XY485_TX));
+void test_hw_settle_within_warmup_floor(void) {
+    const uint32_t kPollIntervalMs = 50U;
+    const uint32_t kSanityFloorMs = 1900U;  // real refresh cycle is 2000ms per datasheet
+    const uint8_t kTrials = 5U;
 
-    const uint8_t kCycles = 10U;
-    for (uint8_t cycle = 0U; cycle < kCycles; cycle++) {
+    for (uint8_t trial = 0U; trial < kTrials; trial++) {
         for (size_t i = 0; i < NUM_SENSORS; i++) {
             const uint8_t addr = SLAVE_ADDRS.at(i);
-            const PollResult r = pollOnce(addr);
+            const int32_t settleMs =
+                measureSettleMs(addr, kPollIntervalMs, SHT40Poller::kMinWarmupMs + 500U);
 
-            char msg[80];
+            char msg[112];
             snprintf(msg, sizeof(msg),
-                     "cycle=%d slave=%d failed at INTER_SLAVE_MS=%d (code=0x%02X)", cycle, addr,
-                     INTER_SLAVE_MS, r.exceptionCode);
-            TEST_ASSERT_TRUE_MESSAGE(r.ok, msg);
-
-            if (i + 1 < NUM_SENSORS) {
-                delay(INTER_SLAVE_MS);
-            }
+                     "trial=%d slave=%d settled at %ld ms (production waits %lu ms)", trial, addr,
+                     static_cast<long>(settleMs),
+                     static_cast<unsigned long>(SHT40Poller::kMinWarmupMs));
+            TEST_ASSERT_TRUE_MESSAGE(
+                settleMs >= static_cast<int32_t>(kSanityFloorMs) &&
+                    settleMs <= static_cast<int32_t>(SHT40Poller::kMinWarmupMs),
+                msg);
         }
-        delay(INTER_SLAVE_MS);  // gap before next cycle, same as steady-state polling
     }
 }
 
 // ---------------------------------------------------------------------------
-// Diagnostic sweep — NOT a pass/fail check. For each candidate inter-slave
-// delay, hammers every configured slave several times back-to-back and prints
-// the success rate over Serial. Read the printed values to pick the real
-// minimum delay by hand, the same way the mux channel-settle sweep was read.
+// Diagnostic sweep — unchanged, still useful for eyeballing the real curve.
 // ---------------------------------------------------------------------------
-void test_inter_slave_delay_sweep(void) {
-    modbusSerial.begin(kBaud, SERIAL_8N1, static_cast<int>(XY485_RX),
-                        static_cast<int>(XY485_TX));
+void test_hw_settle_sweep(void) {
+    const uint32_t kPollIntervalMs = 10U;
+    const uint32_t kMaxWaitMs = 5000U;
+    const uint8_t kTrialsPerSlave = 5U;
 
-    // Checkpoints in milliseconds — covers well below and well above the
-    // current 200ms setting so you can see the full curve.
-    const uint32_t checkpointsMs[] = {200, 100, 50, 20, 10, 5, 2, 0};
-    const size_t numCheckpoints = sizeof(checkpointsMs) / sizeof(checkpointsMs[0]);
-    const uint8_t kTrialsPerCheckpoint = 20U;
-
-    for (size_t i = 0; i < numCheckpoints; i++) {
-        const uint32_t delayMs = checkpointsMs[i];
+    for (size_t s = 0; s < NUM_SENSORS; s++) {
+        const uint8_t addr = SLAVE_ADDRS.at(s);
 
         char header[48];
-        snprintf(header, sizeof(header), "--- INTER_SLAVE_MS=%lu ---",
-                 static_cast<unsigned long>(delayMs));
+        snprintf(header, sizeof(header), "--- slave=%d ---", addr);
         Serial.println(header);
 
-        for (size_t s = 0; s < NUM_SENSORS; s++) {
-            const uint8_t addr = SLAVE_ADDRS.at(s);
-            uint8_t successes = 0U;
-            uint8_t lastFailCode = 0U;
+        for (uint8_t trial = 0U; trial < kTrialsPerSlave; trial++) {
+            const int32_t settleMs = measureSettleMs(addr, kPollIntervalMs, kMaxWaitMs);
 
-            for (uint8_t trial = 0U; trial < kTrialsPerCheckpoint; trial++) {
-                const PollResult r = pollOnce(addr);
-                if (r.ok) {
-                    successes++;
-                } else {
-                    lastFailCode = r.exceptionCode;
-                }
-                if (delayMs > 0) {
-                    delay(delayMs);
-                }
+            char line[64];
+            if (settleMs >= 0) {
+                snprintf(line, sizeof(line), "  trial=%d settled at %ld ms", trial,
+                         static_cast<long>(settleMs));
+            } else {
+                snprintf(line, sizeof(line), "  trial=%d NEVER settled within %lu ms", trial,
+                         static_cast<unsigned long>(kMaxWaitMs));
             }
-
-            char line[80];
-            snprintf(line, sizeof(line), "  slave=%d  %d/%d ok  (last fail code=0x%02X)", addr,
-                     successes, kTrialsPerCheckpoint, lastFailCode);
             Serial.println(line);
         }
     }
 
-    // Always "passes" — this test exists to produce log output, not to gate
-    // anything. Read the printed success rates to decide the real delay floor.
     TEST_ASSERT_TRUE(true);
 }
 
@@ -124,8 +142,8 @@ void setup() {
     delay(10000);
     UNITY_BEGIN();
 
-    RUN_TEST(test_inter_slave_delay_sweep);
-    RUN_TEST(test_inter_slave_delay_is_sufficient);
+    RUN_TEST(test_hw_settle_sweep);
+    RUN_TEST(test_hw_settle_within_warmup_floor);
 
     UNITY_END();
 }
