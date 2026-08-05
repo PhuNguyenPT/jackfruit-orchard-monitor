@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 #include "MKE_S13.h"
+#include "PowerRail.h"
 
 // cppcheck-suppress unusedFunction
 void setUp(void) {}
@@ -115,6 +116,7 @@ void test_channel_settle_sweep(void) {
 void setup() {
     Serial.begin(1000000);
     delay(10000);
+    PowerRail::init();
     UNITY_BEGIN();
 
     RUN_TEST(test_channel_settle_sweep);

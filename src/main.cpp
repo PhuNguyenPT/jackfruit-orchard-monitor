@@ -8,6 +8,7 @@
 #include <mqtt_client.h>
 
 #include "MQTTManager.h"
+#include "PowerRail.h"
 #include "SHT40Poller.h"
 #include "SoilPoller.h"
 #include "TimeSync.h"
@@ -95,6 +96,7 @@ void networkSetupTask(void* /*pvParameters*/) {
 // Phase B: hardware init (core 1) — zero overlap with WiFi radio
 // ---------------------------------------------------------------------------
 void hardwareInitTask(void* /*pvParameters*/) {
+    PowerRail::init();
     SHT40Poller::init(SHT40Poller::RxPin{XY485_RX}, SHT40Poller::TxPin{XY485_TX});
     SoilPoller::init();
 
@@ -134,6 +136,7 @@ void goToSleep() {
              static_cast<unsigned long long>(DEEP_SLEEP_SEC));
 
     SoilPoller::parkForSleep();
+    PowerRail::parkForSleep();
     gpio_deep_sleep_hold_en();  // global switch — required for per-pin holds to survive deep sleep
 
     MQTTManager::waitForAcks(kMqttAckTimeoutMs);  // let PUBACKs land before killing the radio
