@@ -102,6 +102,24 @@ void test_topic_does_not_overflow(void) {
 }
 
 // ---------------------------------------------------------------------------
+// isZeroedReading() tests
+// ---------------------------------------------------------------------------
+void test_isZeroedReading_both_zero(void) {
+    TEST_ASSERT_TRUE(SHT40Poller::isZeroedReading(0U, 0U));
+}
+
+void test_isZeroedReading_humidity_nonzero(void) {
+    TEST_ASSERT_FALSE(SHT40Poller::isZeroedReading(671U, 0U));
+}
+
+void test_isZeroedReading_temperature_nonzero(void) {
+    TEST_ASSERT_FALSE(SHT40Poller::isZeroedReading(0U, 305U));
+}
+
+void test_isZeroedReading_both_nonzero(void) {
+    TEST_ASSERT_FALSE(SHT40Poller::isZeroedReading(671U, 305U));
+}
+// ---------------------------------------------------------------------------
 // Entry point
 // ---------------------------------------------------------------------------
 #ifdef ARDUINO
@@ -123,7 +141,10 @@ void setup() {
     RUN_TEST(test_topic_format_addr_1);
     RUN_TEST(test_topic_format_addr_2);
     RUN_TEST(test_topic_does_not_overflow);
-
+    RUN_TEST(test_isZeroedReading_both_zero);
+    RUN_TEST(test_isZeroedReading_humidity_nonzero);
+    RUN_TEST(test_isZeroedReading_temperature_nonzero);
+    RUN_TEST(test_isZeroedReading_both_nonzero);
     UNITY_END();
 }
 
@@ -146,7 +167,10 @@ int main(int argc, char** argv) {
     RUN_TEST(test_topic_format_addr_1);
     RUN_TEST(test_topic_format_addr_2);
     RUN_TEST(test_topic_does_not_overflow);
-
+    RUN_TEST(test_isZeroedReading_both_zero);
+    RUN_TEST(test_isZeroedReading_humidity_nonzero);
+    RUN_TEST(test_isZeroedReading_temperature_nonzero);
+    RUN_TEST(test_isZeroedReading_both_nonzero);
     return UNITY_END();
 }
 
