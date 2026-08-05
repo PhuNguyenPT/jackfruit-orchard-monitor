@@ -12,6 +12,6 @@ inline constexpr char kTopicTemplate[] = "sht40/%d/data";
 
 auto scaleHumidity(uint16_t raw) -> float;
 auto scaleTemperature(uint16_t raw) -> float;
-
+auto isZeroedReading(uint16_t rawHumidity, uint16_t rawTemperature) -> bool;
 }  // namespace SHT40Poller
 #endif

@@ -15,15 +15,42 @@ namespace {
 HardwareSerial modbusSerial(1);
 ModbusMaster node;
 const char* TAG = "SHT40";
+const uint8_t kMaxAttempts = 3U;
+const uint32_t kRetryDelayMs = 50U;
+uint32_t g_railOnMs = 0U;
 }  // namespace
 
 void init(RxPin rxPin, TxPin txPin, uint32_t baud) {
     modbusSerial.begin(baud, SERIAL_8N1, static_cast<int>(rxPin), static_cast<int>(txPin));
+    g_railOnMs = millis();
 }
 
 void poll(uint8_t slaveAddr) {
+    const uint32_t elapsed = millis() - g_railOnMs;
+    if (elapsed < kMinWarmupMs) {
+        delay(kMinWarmupMs - elapsed);
+    }
+
     node.begin(slaveAddr, modbusSerial);
-    const uint8_t result = node.readHoldingRegisters(0x0000, 2);
+    uint8_t result = node.readHoldingRegisters(0x0000, 2);
+
+    uint8_t attempt = 1U;
+    while (result == ModbusMaster::ku8MBSuccess &&
+           isZeroedReading(node.getResponseBuffer(0), node.getResponseBuffer(1)) &&
+           attempt < kMaxAttempts) {
+        ESP_LOGW(TAG, "Sensor %d returned zeroed registers (attempt %d/%d), retrying...", slaveAddr,
+                 attempt, kMaxAttempts);
+        delay(kRetryDelayMs);
+        result = node.readHoldingRegisters(0x0000, 2);
+        attempt++;
+    }
+
+    if (result == ModbusMaster::ku8MBSuccess &&
+        isZeroedReading(node.getResponseBuffer(0), node.getResponseBuffer(1))) {
+        ESP_LOGE(TAG, "Sensor %d still zeroed after %d attempts — skipping publish.", slaveAddr,
+                 kMaxAttempts);
+        return;
+    }
 
     if (result == ModbusMaster::ku8MBSuccess) {
         const float hum = scaleHumidity(node.getResponseBuffer(0));
