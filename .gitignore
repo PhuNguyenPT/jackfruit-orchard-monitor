@@ -7,10 +7,12 @@
 # Ignore actual credentials containing sensitive strings
 include/config.h
 include/broker_config.h
+include/wifi.h
 
 # Except the example templates
-!include/config.h.example
-!include/broker_config.h.example
+!include/config.example.h
+!include/broker_config.example.h
+!include/wifi.example.h
 
 # Binaries for programs and plugins
 *.exe
