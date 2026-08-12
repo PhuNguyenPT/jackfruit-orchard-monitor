@@ -26,8 +26,12 @@ templ Header(currentPage string, userName string, lang string) {
 						}
 					</div>
 					<!-- Language selector - always visible -->
-					<div class="relative group">
-						<button class="text-xs border rounded px-2 py-1 text-gray-500 hover:text-blue-600 font-medium flex items-center gap-1 whitespace-nowrap">
+					<div class="relative">
+						<button
+							id="lang-menu-btn"
+							data-target="lang-menu"
+							class="text-xs border rounded px-2 py-1 text-gray-500 hover:text-blue-600 font-medium flex items-center gap-1 whitespace-nowrap"
+						>
 							if lang == "vi" {
 								🇻🇳 VI
 							} else {
@@ -37,7 +41,7 @@ templ Header(currentPage string, userName string, lang string) {
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
 							</svg>
 						</button>
-						<div class="absolute right-0 mt-0 pt-1 bg-white border border-gray-200 rounded shadow-lg z-50 hidden group-hover:block min-w-max">
+						<div id="lang-menu" class="hidden absolute right-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-max">
 							<a href="?lang=en" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">🇬🇧 English</a>
 							<a href="?lang=vi" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">🇻🇳 Tiếng Việt</a>
 						</div>
