@@ -21,6 +21,7 @@
 namespace {
 const uint32_t kWifiInitDelayMs = 100U;
 const uint32_t kWifiReconnectDelayMs = 500U;
+const uint32_t kWifiConnectTimeoutMs = 20000U;
 const uint32_t kSerialInitDelayMs = 10U;
 const uint32_t kMqttConnectTimeoutMs = 15000U;
 const uint32_t kMqttAckTimeoutMs = 2000U;
@@ -35,6 +36,7 @@ RTC_DATA_ATTR uint32_t bootCount = 0U;
 
 // --- sync primitives ---------------------------------------------------
 EventGroupHandle_t g_syncEvents = nullptr;
+bool g_networkReady = false;
 
 constexpr EventBits_t kNetworkReadyBit = BIT0;
 constexpr EventBits_t kHardwareReadyBit = BIT1;
@@ -50,7 +52,7 @@ constexpr uint32_t kSoilPollStack = 8192U;
 // ---------------------------------------------------------------------------
 // Wi-Fi
 // ---------------------------------------------------------------------------
-void setupWiFi() {
+auto setupWiFi() -> bool {
     ESP_LOGI(TAG, "Initializing Wi-Fi interface...");
     ESP_LOGI(TAG, "Connecting to SSID: %s", WIFI_SSID);
 
@@ -59,34 +61,53 @@ void setupWiFi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
+    const uint32_t deadline = millis() + kWifiConnectTimeoutMs;
     while (WiFi.status() != WL_CONNECTED) {
+        if (millis() >= deadline) {
+            Serial.println();
+            ESP_LOGW(TAG, "Wi-Fi connect timed out after %lu ms — continuing cycle offline",
+                     static_cast<unsigned long>(kWifiConnectTimeoutMs));
+            WiFi.disconnect(true);
+            return false;
+        }
         delay(kWifiReconnectDelayMs);
         Serial.print('.');
     }
     Serial.println();
     ESP_LOGI(TAG, "Wi-Fi Connected! IP Assigned: %s", WiFi.localIP().toString().c_str());
+
+    IPAddress dns1(1, 1, 1, 1);
+    IPAddress dns2(8, 8, 8, 8);
+    WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns1, dns2);
+    ESP_LOGI(TAG, "DNS overridden to %s / %s", dns1.toString().c_str(), dns2.toString().c_str());
+    return true;
 }
 
 // ---------------------------------------------------------------------------
 // Phase A: network chain (core 0)
 // ---------------------------------------------------------------------------
 void networkSetupTask(void* /*pvParameters*/) {
-    setupWiFi();
-    TimeSync::setup();
+    g_networkReady = setupWiFi();
 
-    esp_mqtt_client_config_t mqttCfg = {};
-    mqttCfg.host = MQTT_SERVER;
-    mqttCfg.port = static_cast<uint16_t>(MQTT_PORT);
-    mqttCfg.username = MQTT_USER;
-    mqttCfg.password = MQTT_PASS;
+    if (g_networkReady) {
+        TimeSync::setup();
+
+        esp_mqtt_client_config_t mqttCfg = {};
+        mqttCfg.host = MQTT_SERVER;
+        mqttCfg.port = static_cast<uint16_t>(MQTT_PORT);
+        mqttCfg.username = MQTT_USER;
+        mqttCfg.password = MQTT_PASS;
 #ifdef MQTT_SECURE
-    mqttCfg.transport = MQTT_TRANSPORT_OVER_SSL;
-    mqttCfg.cert_pem = ROOT_CA;
+        mqttCfg.transport = MQTT_TRANSPORT_OVER_SSL;
+        mqttCfg.cert_pem = ROOT_CA;
 #else
-    mqttCfg.transport = MQTT_TRANSPORT_OVER_TCP;
+        mqttCfg.transport = MQTT_TRANSPORT_OVER_TCP;
 #endif
-    MQTTManager::setup(mqttCfg);
-    MQTTManager::connect(kMqttConnectTimeoutMs);  // bounded — don't block forever pre-sleep
+        MQTTManager::setup(mqttCfg);
+        MQTTManager::connect(kMqttConnectTimeoutMs);  // bounded — don't block forever pre-sleep
+    } else {
+        ESP_LOGW(TAG, "Skipping TimeSync and MQTT this cycle — no network");
+    }
 
     xEventGroupSetBits(g_syncEvents, kNetworkReadyBit);
     vTaskDelete(nullptr);
@@ -139,8 +160,10 @@ void goToSleep() {
     PowerRail::parkForSleep();
     gpio_deep_sleep_hold_en();  // global switch — required for per-pin holds to survive deep sleep
 
-    MQTTManager::waitForAcks(kMqttAckTimeoutMs);  // let PUBACKs land before killing the radio
-    MQTTManager::disconnect();
+    if (g_networkReady) {
+        MQTTManager::waitForAcks(kMqttAckTimeoutMs);  // let PUBACKs land before killing the radio
+        MQTTManager::disconnect();
+    }
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
 
