@@ -57,6 +57,10 @@ type Config struct {
 	// Contact Config
 	ContactEmail string `validate:"required,email"`
 	ContactPhone string
+	// Default Admin Seed (optional — if AdminEmail is empty, seeding is skipped)
+	AdminEmail    string `validate:"omitempty,email"`
+	AdminPassword string `validate:"required_with=AdminEmail,omitempty,min=8"`
+	AdminName     string `validate:"required_with=AdminEmail"`
 }
 
 func parseLogLevel(s string) (slog.Level, error) {
@@ -109,34 +113,37 @@ func LoadAppConfig() (*Config, error) {
 	lv := &slog.LevelVar{}
 	lv.Set(logLevel)
 	cfg := &Config{
-		Port:         getEnvOrDefaultInt("PORT", 8080),
-		AppEnv:       os.Getenv("APP_ENV"),
-		AppName:      getEnvOrDefaultStr("APP_NAME", "Prizm"),
-		BaseURLs:     baseURLs,
-		GinMode:      os.Getenv("GIN_MODE"),
-		LogLevel:     lv,
-		DBHost:       os.Getenv("POSTGRES_HOST"),
-		DBPort:       getEnvOrDefaultInt("POSTGRES_PORT", 5432),
-		DBDatabase:   os.Getenv("POSTGRES_DATABASE"),
-		DBUsername:   os.Getenv("POSTGRES_USERNAME"),
-		DBPassword:   os.Getenv("POSTGRES_PASSWORD"),
-		DBSchema:     os.Getenv("POSTGRES_SCHEMA"),
-		PageSize:     getEnvOrDefaultInt("PAGE_SIZE", 20),
-		MaxPageSize:  getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
-		TLSCertPath:  getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
-		TLSKeyPath:   getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
-		TLSCAPath:    getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
-		TLSPort:      getEnvOrDefaultInt("TLS_PORT", 8443),
-		MQTTTLSPort:  getEnvOrDefaultInt("MQTT_TLS_PORT", 8883),
-		MQTTPort:     getEnvOrDefaultInt("MQTT_PORT", 0), // 0 = disabled by default
-		MQTTUser:     getEnvOrDefaultStr("MQTT_USER", "esp32"),
-		MQTTPass:     os.Getenv("MQTT_PASS"),
-		MQTTCertPath: getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
-		MQTTKeyPath:  getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
-		SoilDryValue: getEnvOrDefaultInt("SOIL_DRY_VALUE", 3500),
-		SoilWetValue: getEnvOrDefaultInt("SOIL_WET_VALUE", 1760),
-		ContactEmail: getEnvOrDefaultStr("CONTACT_EMAIL", "info@yourdomain.com"),
-		ContactPhone: getEnvOrDefaultStr("CONTACT_PHONE", ""),
+		Port:          getEnvOrDefaultInt("PORT", 8080),
+		AppEnv:        os.Getenv("APP_ENV"),
+		AppName:       getEnvOrDefaultStr("APP_NAME", "Prizm"),
+		BaseURLs:      baseURLs,
+		GinMode:       os.Getenv("GIN_MODE"),
+		LogLevel:      lv,
+		DBHost:        os.Getenv("POSTGRES_HOST"),
+		DBPort:        getEnvOrDefaultInt("POSTGRES_PORT", 5432),
+		DBDatabase:    os.Getenv("POSTGRES_DATABASE"),
+		DBUsername:    os.Getenv("POSTGRES_USERNAME"),
+		DBPassword:    os.Getenv("POSTGRES_PASSWORD"),
+		DBSchema:      os.Getenv("POSTGRES_SCHEMA"),
+		PageSize:      getEnvOrDefaultInt("PAGE_SIZE", 20),
+		MaxPageSize:   getEnvOrDefaultInt("MAX_PAGE_SIZE", 100),
+		TLSCertPath:   getEnvOrDefaultStr("TLS_CERT_PATH", "/run/secrets/go_crt"),
+		TLSKeyPath:    getEnvOrDefaultStr("TLS_KEY_PATH", "/run/secrets/go_key"),
+		TLSCAPath:     getEnvOrDefaultStr("TLS_CA_PATH", "/run/secrets/backend_ca"),
+		TLSPort:       getEnvOrDefaultInt("TLS_PORT", 8443),
+		MQTTTLSPort:   getEnvOrDefaultInt("MQTT_TLS_PORT", 8883),
+		MQTTPort:      getEnvOrDefaultInt("MQTT_PORT", 0), // 0 = disabled by default
+		MQTTUser:      getEnvOrDefaultStr("MQTT_USER", "esp32"),
+		MQTTPass:      os.Getenv("MQTT_PASS"),
+		MQTTCertPath:  getEnvOrDefaultStr("MQTT_CERT_PATH", ""),
+		MQTTKeyPath:   getEnvOrDefaultStr("MQTT_KEY_PATH", ""),
+		SoilDryValue:  getEnvOrDefaultInt("SOIL_DRY_VALUE", 3500),
+		SoilWetValue:  getEnvOrDefaultInt("SOIL_WET_VALUE", 1760),
+		ContactEmail:  getEnvOrDefaultStr("CONTACT_EMAIL", "info@yourdomain.com"),
+		ContactPhone:  getEnvOrDefaultStr("CONTACT_PHONE", ""),
+		AdminEmail:    os.Getenv("ADMIN_EMAIL"),
+		AdminPassword: os.Getenv("ADMIN_PASSWORD"),
+		AdminName:     getEnvOrDefaultStr("ADMIN_NAME", "Admin"),
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())

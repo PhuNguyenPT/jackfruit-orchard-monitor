@@ -2,13 +2,17 @@ package server
 
 import (
 	"GoApp/internal/ctxutil"
+	"GoApp/internal/database"
+	"GoApp/internal/rbac"
 	"context"
 	"log"
 	"net/http"
 	"net/url"
 
 	config "GoApp/internal/config"
+
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (s *Server) authMiddleware() gin.HandlerFunc {
@@ -86,6 +90,47 @@ func (s *Server) nonceMiddleware() gin.HandlerFunc {
 		ctx := context.WithValue(c.Request.Context(), ctxutil.NonceKey, nonce)
 		c.Request = c.Request.WithContext(ctx)
 
+		c.Next()
+	}
+}
+func currentUserID(c *gin.Context) (uuid.UUID, bool) {
+	v, ok := c.Get("userID")
+	if !ok {
+		return uuid.UUID{}, false
+	}
+	id, ok := v.(uuid.UUID)
+	return id, ok
+}
+
+func (s *Server) userIsAdmin(ctx context.Context, userID uuid.UUID) bool {
+	has, err := s.db.UserHasPermission(ctx, database.UserHasPermissionParams{
+		UserID:   userID,
+		Resource: string(rbac.ResourceSoilCalibration),
+		Action:   string(rbac.ActionWrite),
+	})
+	return err == nil && has
+}
+
+func (s *Server) requirePermission(resource rbac.Resource, action rbac.Action) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, ok := currentUserID(c)
+		if !ok {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		has, err := s.db.UserHasPermission(c.Request.Context(), database.UserHasPermissionParams{
+			UserID:   userID,
+			Resource: string(resource),
+			Action:   string(action),
+		})
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+		if !has {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 		c.Next()
 	}
 }

@@ -4,7 +4,7 @@ import "time"
 import "strconv"
 import "GoApp/internal/database"
 
-templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt time.Time, sessions []database.Session, lang string, site SiteConfig) {
+templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt time.Time, sessions []database.Session, lang string, site SiteConfig, isAdmin bool) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -16,6 +16,11 @@ templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt
 			<main class="flex-1">
 				<div class="max-w-4xl mx-auto px-8 py-12 space-y-6">
 					<h1 class="text-3xl font-bold" id="welcome-heading">{ T(lang).DashboardWelcome }, { name }!</h1>
+					if isAdmin {
+						<a href="/admin/soil-calibration" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
+							{ T(lang).AdminNav }
+						</a>
+					}
 					<!-- Account Info Card -->
 					<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
 						<h2 class="text-lg font-semibold text-gray-800 mb-4">{ T(lang).AccountInfo }</h2>

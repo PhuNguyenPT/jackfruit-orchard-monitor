@@ -50,3 +50,20 @@
         #2980b9    /* 100% — blue, saturated */
     );
 }
+
+/* Soil calibration row: transient save/error badge, auto-fades out */
+.soil-cal-badge {
+	animation: soil-cal-fade-out 2.5s ease-in-out forwards;
+}
+
+@keyframes soil-cal-fade-out {
+	0% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}

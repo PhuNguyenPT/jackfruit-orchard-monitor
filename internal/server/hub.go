@@ -33,6 +33,7 @@ type Hub struct {
 	sht40Charts map[*websocket.Conn]chartSub  // conn -> addr filter
 	soilCharts  map[*websocket.Conn]chartSub  // conn -> sensorIdx filter
 	cfg         *config.Config
+	soilCal     map[int16]model.SoilCalibration
 }
 
 func NewHub(cfg *config.Config) *Hub {
@@ -41,6 +42,7 @@ func NewHub(cfg *config.Config) *Hub {
 		devices:     make(map[string]model.DeviceStatus),
 		sht40Charts: make(map[*websocket.Conn]chartSub),
 		soilCharts:  make(map[*websocket.Conn]chartSub),
+		soilCal:     make(map[int16]model.SoilCalibration),
 		cfg:         cfg,
 	}
 }
@@ -156,10 +158,11 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 		log.Printf("[Hub] invalid soil addr %q: %v", addr, err)
 		return
 	}
+	sensorIdx := int16(addrInt)
+	cal := h.GetSoilCalibration(sensorIdx)
 
-	// Construct the database row format expected by Templ
 	row := database.GetLatestSoilMoistureReadingsRow{
-		SensorIdx: int16(addrInt),
+		SensorIdx: sensorIdx,
 		Raw:       int16(raw),
 		CreatedAt: createdAt,
 	}
@@ -169,8 +172,7 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 	var buf bytes.Buffer
 	for c, lang := range h.clients {
 		buf.Reset()
-		// Render the SoilCardOOB, passing in h.cfg
-		if err := views.SoilCardOOB(row, lang, h.cfg.SoilDryValue, h.cfg.SoilWetValue).Render(context.Background(), &buf); err != nil {
+		if err := views.SoilCardOOB(row, lang, cal.Dry, cal.Wet).Render(context.Background(), &buf); err != nil {
 			log.Printf("[Hub] render error: %v", err)
 			continue
 		}
@@ -191,7 +193,7 @@ func (h *Hub) BroadcastSoilMoisture(addr string, raw int, createdAt time.Time) {
 		}
 		msg, err := json.Marshal(soilPoint{
 			T:   createdAt.In(hubVietnamTZ).Format(format),
-			Pct: soilPct(int16(raw), h.cfg.SoilDryValue, h.cfg.SoilWetValue),
+			Pct: soilPct(int16(raw), cal.Dry, cal.Wet), // ← was h.cfg.SoilDryValue, h.cfg.SoilWetValue
 		})
 		if err != nil {
 			log.Printf("[Hub] soil chart marshal error: %v", err)
@@ -301,6 +303,7 @@ func (h *Hub) pushSoilBackfill(ctx context.Context, db DB, conn *websocket.Conn,
 		return
 	}
 
+	cal := h.GetSoilCalibration(idx)
 	format := "02-01 15:04:05"
 	if lang != "vi" {
 		format = "01-02 15:04:05"
@@ -310,7 +313,7 @@ func (h *Hub) pushSoilBackfill(ctx context.Context, db DB, conn *websocket.Conn,
 	for _, r := range rows {
 		points = append(points, soilPoint{
 			T:   r.CreatedAt.In(hubVietnamTZ).Format(format),
-			Pct: soilPct(r.Raw, h.cfg.SoilDryValue, h.cfg.SoilWetValue),
+			Pct: soilPct(r.Raw, cal.Dry, cal.Wet),
 		})
 	}
 
@@ -340,4 +343,40 @@ func (h *Hub) pushDeviceStatusesToClient(conn *websocket.Conn, lang string) {
 		return
 	}
 	_ = conn.WriteMessage(websocket.TextMessage, buf.Bytes())
+}
+
+func (h *Hub) LoadSoilCalibrations(ctx context.Context, db DB) error {
+	rows, err := db.ListSoilCalibrations(ctx)
+	if err != nil {
+		return err
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, r := range rows {
+		h.soilCal[r.SensorIdx] = model.SoilCalibration{Dry: int(r.DryValue), Wet: int(r.WetValue)}
+	}
+	return nil
+}
+
+func (h *Hub) GetSoilCalibration(idx int16) model.SoilCalibration {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if c, ok := h.soilCal[idx]; ok {
+		return c
+	}
+	return model.SoilCalibration{Dry: h.cfg.SoilDryValue, Wet: h.cfg.SoilWetValue}
+}
+
+func (h *Hub) SetSoilCalibration(idx int16, dry, wet int) {
+	h.mu.Lock()
+	h.soilCal[idx] = model.SoilCalibration{Dry: dry, Wet: wet}
+	h.mu.Unlock()
+}
+
+func (h *Hub) AllSoilCalibrations() map[int16]model.SoilCalibration {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	out := make(map[int16]model.SoilCalibration, len(h.soilCal))
+	maps.Copy(out, h.soilCal)
+	return out
 }
