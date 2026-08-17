@@ -54,6 +54,24 @@ func (q *Queries) GetLatestSoilMoistureReadings(ctx context.Context) ([]GetLates
 	return items, nil
 }
 
+const getSoilCalibration = `-- name: GetSoilCalibration :one
+SELECT sensor_idx, dry_value, wet_value, updated_at
+FROM soil_calibration
+WHERE sensor_idx = $1
+`
+
+func (q *Queries) GetSoilCalibration(ctx context.Context, sensorIdx int16) (SoilCalibration, error) {
+	row := q.db.QueryRowContext(ctx, getSoilCalibration, sensorIdx)
+	var i SoilCalibration
+	err := row.Scan(
+		&i.SensorIdx,
+		&i.DryValue,
+		&i.WetValue,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getSoilMoistureReadingsBySensorIdx = `-- name: GetSoilMoistureReadingsBySensorIdx :many
 SELECT sensor_idx, raw, created_at
 FROM soil_moisture_readings
@@ -151,4 +169,66 @@ type InsertSoilMoistureReadingParams struct {
 func (q *Queries) InsertSoilMoistureReading(ctx context.Context, arg InsertSoilMoistureReadingParams) error {
 	_, err := q.db.ExecContext(ctx, insertSoilMoistureReading, arg.SensorIdx, arg.Raw, arg.CreatedAt)
 	return err
+}
+
+const listSoilCalibrations = `-- name: ListSoilCalibrations :many
+SELECT sensor_idx, dry_value, wet_value, updated_at
+FROM soil_calibration
+ORDER BY sensor_idx
+`
+
+func (q *Queries) ListSoilCalibrations(ctx context.Context) ([]SoilCalibration, error) {
+	rows, err := q.db.QueryContext(ctx, listSoilCalibrations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SoilCalibration
+	for rows.Next() {
+		var i SoilCalibration
+		if err := rows.Scan(
+			&i.SensorIdx,
+			&i.DryValue,
+			&i.WetValue,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const upsertSoilCalibration = `-- name: UpsertSoilCalibration :one
+INSERT INTO soil_calibration (sensor_idx, dry_value, wet_value, updated_at)
+VALUES ($1, $2, $3, NOW())
+ON CONFLICT (sensor_idx)
+DO UPDATE SET dry_value = EXCLUDED.dry_value,
+              wet_value = EXCLUDED.wet_value,
+              updated_at = NOW()
+RETURNING sensor_idx, dry_value, wet_value, updated_at
+`
+
+type UpsertSoilCalibrationParams struct {
+	SensorIdx int16
+	DryValue  int16
+	WetValue  int16
+}
+
+func (q *Queries) UpsertSoilCalibration(ctx context.Context, arg UpsertSoilCalibrationParams) (SoilCalibration, error) {
+	row := q.db.QueryRowContext(ctx, upsertSoilCalibration, arg.SensorIdx, arg.DryValue, arg.WetValue)
+	var i SoilCalibration
+	err := row.Scan(
+		&i.SensorIdx,
+		&i.DryValue,
+		&i.WetValue,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

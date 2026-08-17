@@ -14,7 +14,7 @@ type SoilReadingView struct {
 	CreatedAt  time.Time
 }
 
-templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, soilDry int, soilWet int, site SiteConfig, devices map[string]model.DeviceStatus) {
+templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, userName string, soilCal map[int16]model.SoilCalibration, site SiteConfig, devices map[string]model.DeviceStatus) {
 	<!DOCTYPE html>
 	<html lang={ lang }>
 		@Head(SEOMeta{
@@ -37,7 +37,7 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 					</div>
 					<div hx-ext="ws" ws-connect="/sensors/ws">
 						@DeviceStatusList(devices, lang)
-						@SensorGrid(shtReadings, soilReadings, lang, soilDry, soilWet)
+						@SensorGrid(shtReadings, soilReadings, lang, soilCal)
 					</div>
 				</div>
 			</main>
@@ -46,7 +46,7 @@ templ SensorsPage(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilR
 	</html>
 }
 
-templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
+templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilReadings []database.GetLatestSoilMoistureReadingsRow, lang string, soilCal map[int16]model.SoilCalibration) {
 	<div id="sensor-grid" class="space-y-10">
 		<div class="space-y-4">
 			<h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">{ T(lang).SHT40SectionHeading }</h2>
@@ -71,7 +71,7 @@ templ SensorGrid(shtReadings []database.GetLatestAirTempHumidReadingsRow, soilRe
 			} else {
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					for _, r := range soilReadings {
-						@SoilCard(r, lang, soilDry, soilWet)
+						@SoilCard(r, lang, soilCal[r.SensorIdx])
 					}
 				</div>
 			}
@@ -116,21 +116,21 @@ templ sensorCardBody(r database.GetLatestAirTempHumidReadingsRow, lang string) {
 	<p class="text-xs text-gray-400">{ T(lang).SensorLastUpdated } { FormatDateTime(r.CreatedAt, lang) }</p>
 }
 
-templ SoilCard(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
+templ SoilCard(r database.GetLatestSoilMoistureReadingsRow, lang string, cal model.SoilCalibration) {
 	<a href={ templ.SafeURL(fmt.Sprintf("/sensors/soil/%d/history", r.SensorIdx)) } class="block group">
 		<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 group-hover:border-emerald-300 group-hover:shadow-md transition-all cursor-pointer">
-			@soilCardBody(r, lang, soilDry, soilWet)
+			@soilCardBody(r, lang, cal)
 		</div>
 	</a>
 }
 
-templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
+templ SoilCardOOB(r database.GetLatestSoilMoistureReadingsRow, lang string, dry int, wet int) {
 	<div id={ fmt.Sprintf("soil-%d", r.SensorIdx) } hx-swap-oob="true" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
-		@soilCardBody(r, lang, soilDry, soilWet)
+		@soilCardBody(r, lang, model.SoilCalibration{Dry: dry, Wet: wet})
 	</div>
 }
 
-templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soilDry int, soilWet int) {
+templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, cal model.SoilCalibration) {
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-semibold text-gray-700">{ T(lang).SensorAddr } { fmt.Sprintf("%d", r.SensorIdx) }</span>
 		<span class="text-xs text-gray-400">{ T(lang).SensorRaw }: { fmt.Sprintf("%d", r.Raw) }</span>
@@ -139,7 +139,7 @@ templ soilCardBody(r database.GetLatestSoilMoistureReadingsRow, lang string, soi
 		<div class="bg-emerald-50 rounded-lg p-3 space-y-1">
 			<p class="text-xs font-medium text-emerald-600">{ T(lang).SoilMoistureLabel }</p>
 			<p class="text-2xl font-bold text-gray-800">
-				{ fmt.Sprintf("%.1f", calculateSoilPercentage(r.Raw, soilDry, soilWet)) }
+				{ fmt.Sprintf("%.1f", calculateSoilPercentage(r.Raw, cal.Dry, cal.Wet)) }
 				<span class="text-sm font-normal text-gray-500 ml-0.5">%</span>
 			</p>
 		</div>

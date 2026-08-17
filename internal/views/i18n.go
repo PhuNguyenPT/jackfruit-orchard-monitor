@@ -135,6 +135,18 @@ type Translations struct {
 	AboutHardwareEsp32Desc string
 	AboutHardwareSht40Desc string
 	AboutHardwareSoilDesc  string
+	// Soil Calibration
+	SoilCalibrationTitle       string
+	SoilCalibrationDescription string
+	SoilCalibrationHeading     string
+	SoilCalibrationSubtitle    string
+	SoilCalibrationNoData      string
+	SoilCalibrationSensor      string
+	SoilCalibrationDryLabel    string
+	SoilCalibrationWetLabel    string
+	SoilCalibrationSaveButton  string
+	SoilCalibrationSaved       string
+	SoilCalibrationSaveFailed  string
 }
 
 const (
@@ -279,6 +291,18 @@ func T(lang string) Translations {
 			AboutHardwareEsp32Desc: "Bộ vi điều khiển trung tâm tích hợp Wi-Fi, chịu trách nhiệm tổng hợp dữ liệu và truyền tải an toàn qua giao thức MQTT/TLS.",
 			AboutHardwareSht40Desc: "Cảm biến đo nhiệt độ và độ ẩm với độ chính xác cao, sử dụng chuẩn giao tiếp Modbus RTU.",
 			AboutHardwareSoilDesc:  "Cảm biến điện dung đo độ ẩm đất, được mở rộng kênh đọc tín hiệu thông qua IC 74HC4067.",
+			// Soil Calibration
+			SoilCalibrationTitle:       "Hiệu chỉnh độ ẩm đất",
+			SoilCalibrationDescription: "Cấu hình giá trị ADC khô/ướt cho từng cảm biến độ ẩm đất.",
+			SoilCalibrationHeading:     "Hiệu chỉnh độ ẩm đất",
+			SoilCalibrationSubtitle:    "Đặt giá trị ADC gốc khô và ướt dùng để tính phần trăm độ ẩm cho từng cảm biến.",
+			SoilCalibrationNoData:      "Chưa có hiệu chỉnh nào được lưu.",
+			SoilCalibrationSensor:      "Cảm biến",
+			SoilCalibrationDryLabel:    "Khô",
+			SoilCalibrationWetLabel:    "Ướt",
+			SoilCalibrationSaveButton:  "Lưu",
+			SoilCalibrationSaved:       "Đã lưu hiệu chỉnh thành công.",
+			SoilCalibrationSaveFailed:  "Lưu hiệu chỉnh thất bại. Vui lòng thử lại.",
 		}
 	}
 	return Translations{
@@ -416,5 +440,17 @@ func T(lang string) Translations {
 		AboutHardwareEsp32Desc: "The core WiFi microcontroller handling data aggregation and secure MQTT transmission over TLS.",
 		AboutHardwareSht40Desc: "High-precision temperature and humidity tracking communicated via Modbus RTU protocol.",
 		AboutHardwareSoilDesc:  "Capacitive soil moisture monitoring multiplexed securely via a 74HC4067 component.",
+		// Soil Calibration
+		SoilCalibrationTitle:       "Soil Calibration",
+		SoilCalibrationDescription: "Configure per-sensor soil moisture dry/wet calibration values.",
+		SoilCalibrationHeading:     "Soil Calibration",
+		SoilCalibrationSubtitle:    "Set the dry and wet ADC raw values used to compute moisture percentage per sensor.",
+		SoilCalibrationNoData:      "No calibrations saved yet.",
+		SoilCalibrationSensor:      "Sensor",
+		SoilCalibrationDryLabel:    "Dry",
+		SoilCalibrationWetLabel:    "Wet",
+		SoilCalibrationSaveButton:  "Save",
+		SoilCalibrationSaved:       "Calibration saved successfully.",
+		SoilCalibrationSaveFailed:  "Failed to save calibration. Please try again.",
 	}
 }
