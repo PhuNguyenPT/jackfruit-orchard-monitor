@@ -7,6 +7,7 @@ type Translations struct {
 	Products   string
 	SignOut    string
 	GetStarted string
+	AdminNav   string
 	// Register
 	RegisterTitle       string
 	RegisterDescription string
@@ -163,6 +164,7 @@ func T(lang string) Translations {
 			Products:   "Sản phẩm",
 			SignOut:    "Đăng xuất",
 			GetStarted: "Bắt đầu",
+			AdminNav:   "Quản trị",
 			// Register
 			RegisterTitle:       "Đăng ký",
 			RegisterDescription: "Tạo tài khoản mới",
@@ -312,6 +314,7 @@ func T(lang string) Translations {
 		Products:   "Products",
 		SignOut:    "Sign out",
 		GetStarted: "Get Started",
+		AdminNav:   "Admin",
 		// Register
 		RegisterTitle:       "Register",
 		RegisterDescription: "Create a new account",

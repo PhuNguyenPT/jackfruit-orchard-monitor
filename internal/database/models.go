@@ -28,6 +28,18 @@ type Contact struct {
 	CreatedAt time.Time
 }
 
+type Group struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	CreatedAt   time.Time
+}
+
+type GroupPermission struct {
+	GroupID      uuid.UUID
+	PermissionID uuid.UUID
+}
+
 type MqttAcl struct {
 	ID           uuid.UUID
 	CredentialID uuid.UUID
@@ -43,6 +55,14 @@ type MqttCredential struct {
 	CreatedAt time.Time
 }
 
+type Permission struct {
+	ID          uuid.UUID
+	Resource    string
+	Action      string
+	Description string
+	CreatedAt   time.Time
+}
+
 type Session struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -51,6 +71,13 @@ type Session struct {
 	UserAgent string
 	IpAddress string
 	CreatedAt time.Time
+}
+
+type SoilCalibration struct {
+	SensorIdx int16
+	DryValue  int16
+	WetValue  int16
+	UpdatedAt time.Time
 }
 
 type SoilMoistureReading struct {
@@ -67,4 +94,9 @@ type User struct {
 	Name         string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type UserGroup struct {
+	UserID  uuid.UUID
+	GroupID uuid.UUID
 }

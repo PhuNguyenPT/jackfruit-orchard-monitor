@@ -39,9 +39,11 @@ func (s *Server) dashboardPageHandler(c *gin.Context) {
 		sessions = nil
 	}
 
+	isAdmin := s.userIsAdmin(c.Request.Context(), userID)
+
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.DashboardPage(user.Name, maskEmail(user.Email), user.Email, user.CreatedAt, sessions, getLangStr(c), s.siteConfig(c)).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.DashboardPage(user.Name, maskEmail(user.Email), user.Email, user.CreatedAt, sessions, getLangStr(c), s.siteConfig(c), isAdmin).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering dashboard: %v", err)
 	}
 }
