@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	appConfig "GoApp/internal/config"
+	"GoApp/internal/rbac"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -69,6 +70,13 @@ func (s *Server) RegisterRoutes(cfg *appConfig.Config) http.Handler {
 		protected.GET("/sensors/sht40/:addr/ws", s.sht40HistoryWSHandler)
 		protected.GET("/sensors/soil/:idx/history", s.soilHistoryHandler)
 		protected.GET("/sensors/soil/:idx/ws", s.soilHistoryWSHandler)
+	}
+
+	admin := r.Group("/admin")
+	admin.Use(s.authMiddleware())
+	{
+		admin.GET("/soil-calibration", s.requirePermission(rbac.ResourceSoilCalibration, rbac.ActionRead), s.soilCalibrationAdminPageHandler)
+		admin.POST("/soil-calibration", s.requirePermission(rbac.ResourceSoilCalibration, rbac.ActionWrite), s.soilCalibrationUpdateHandler)
 	}
 	return r
 }

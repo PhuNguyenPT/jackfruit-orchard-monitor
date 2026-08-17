@@ -2,6 +2,7 @@ package server
 
 import (
 	"GoApp/internal/database"
+	"GoApp/internal/model"
 	"GoApp/internal/views"
 	"log"
 	"net/http"
@@ -28,11 +29,17 @@ func (s *Server) sensorsPageHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	soilCal := make(map[int16]model.SoilCalibration, len(soilReadings))
+	for _, r := range soilReadings {
+		soilCal[r.SensorIdx] = s.hub.GetSoilCalibration(r.SensorIdx)
+	}
+
 	deviceStatuses := s.hub.GetDeviceStatuses()
 
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue, s.siteConfig(c), deviceStatuses).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorsPage(shtReadings, soilReadings, lang, getUserName(c), soilCal, s.siteConfig(c), deviceStatuses).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
@@ -52,9 +59,14 @@ func (s *Server) sensorsGridHandler(c *gin.Context) {
 		return
 	}
 
+	soilCal := make(map[int16]model.SoilCalibration, len(soilReadings))
+	for _, r := range soilReadings {
+		soilCal[r.SensorIdx] = s.hub.GetSoilCalibration(r.SensorIdx)
+	}
+
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SensorGrid(shtReadings, soilReadings, lang, s.cfg.SoilDryValue, s.cfg.SoilWetValue).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.SensorGrid(shtReadings, soilReadings, lang, soilCal).Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 }
@@ -122,8 +134,9 @@ func (s *Server) soilHistoryHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	cal := s.hub.GetSoilCalibration(int16(idx))
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.SoilHistoryPage(rows, int16(idx), lang, s.siteConfig(c), s.cfg.SoilDryValue, s.cfg.SoilWetValue).
+	if err := views.SoilHistoryPage(rows, int16(idx), lang, s.siteConfig(c), cal.Dry, cal.Wet).
 		Render(c.Request.Context(), c.Writer); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}

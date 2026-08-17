@@ -3,6 +3,8 @@ package server
 import (
 	"GoApp/internal/database"
 	"context"
+	"database/sql"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +13,10 @@ import (
 
 type mockDB struct {
 	deleteExpiredSessionsCalled int
+	soilCalibrations            map[int16]database.SoilCalibration
+	permissions                 map[string]bool // key: "<resource>:<action>", e.g. "soil_calibration:w"
+	missingEmails               map[string]bool // opt-in: emails that should 404 from GetUserByEmail
+	addedToGroup                []database.AddUserToGroupParams
 }
 
 // --- Core Server & User Mocks ---
@@ -28,6 +34,9 @@ func (m *mockDB) CreateUser(ctx context.Context, arg database.CreateUserParams) 
 }
 
 func (m *mockDB) GetUserByEmail(ctx context.Context, email string) (database.User, error) {
+	if m.missingEmails != nil && m.missingEmails[email] {
+		return database.User{}, sql.ErrNoRows
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
 	if err != nil {
 		return database.User{}, err
@@ -236,4 +245,55 @@ func (m *mockDB) GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, ar
 		}
 	}
 	return out, nil
+}
+
+// --- Soil Calibration Mocks ---
+
+func (m *mockDB) ListSoilCalibrations(ctx context.Context) ([]database.SoilCalibration, error) {
+	out := make([]database.SoilCalibration, 0, len(m.soilCalibrations))
+	// Sorted by sensor_idx to match the real query's ORDER BY sensor_idx,
+	// since map iteration order is random and tests may assert on ordering.
+	idxs := make([]int16, 0, len(m.soilCalibrations))
+	for idx := range m.soilCalibrations {
+		idxs = append(idxs, idx)
+	}
+	sort.Slice(idxs, func(i, j int) bool { return idxs[i] < idxs[j] })
+	for _, idx := range idxs {
+		out = append(out, m.soilCalibrations[idx])
+	}
+	return out, nil
+}
+
+func (m *mockDB) UpsertSoilCalibration(ctx context.Context, arg database.UpsertSoilCalibrationParams) (database.SoilCalibration, error) {
+	if m.soilCalibrations == nil {
+		m.soilCalibrations = make(map[int16]database.SoilCalibration)
+	}
+	row := database.SoilCalibration{
+		SensorIdx: arg.SensorIdx,
+		DryValue:  arg.DryValue,
+		WetValue:  arg.WetValue,
+		UpdatedAt: time.Now(),
+	}
+	m.soilCalibrations[arg.SensorIdx] = row
+	return row, nil
+}
+
+// --- RBAC Mocks ---
+
+func (m *mockDB) UserHasPermission(ctx context.Context, arg database.UserHasPermissionParams) (bool, error) {
+	if m.permissions == nil {
+		return false, nil // secure by default: tests must opt in explicitly
+	}
+	return m.permissions[arg.Resource+":"+arg.Action], nil
+}
+
+// --- Group Membership Mocks ---
+
+func (m *mockDB) GetGroupByName(ctx context.Context, name string) (database.Group, error) {
+	return database.Group{ID: uuid.Must(uuid.NewV7()), Name: name}, nil
+}
+
+func (m *mockDB) AddUserToGroup(ctx context.Context, arg database.AddUserToGroupParams) error {
+	m.addedToGroup = append(m.addedToGroup, arg)
+	return nil
 }

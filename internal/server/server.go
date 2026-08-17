@@ -58,6 +58,12 @@ type DB interface {
 	DeleteOldSoilMoistureReadings(ctx context.Context, createdAt time.Time) error
 	GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxParams) ([]database.GetSoilMoistureReadingsBySensorIdxRow, error)
 	GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxSinceParams) ([]database.GetSoilMoistureReadingsBySensorIdxSinceRow, error)
+	ListSoilCalibrations(ctx context.Context) ([]database.SoilCalibration, error)
+	UpsertSoilCalibration(ctx context.Context, params database.UpsertSoilCalibrationParams) (database.SoilCalibration, error)
+
+	UserHasPermission(ctx context.Context, arg database.UserHasPermissionParams) (bool, error)
+	GetGroupByName(ctx context.Context, name string) (database.Group, error)
+	AddUserToGroup(ctx context.Context, arg database.AddUserToGroupParams) error
 }
 type sqlDB struct {
 	raw     *sql.DB
@@ -173,6 +179,22 @@ func (s *sqlDB) GetSoilMoistureReadingsBySensorIdx(ctx context.Context, arg data
 func (s *sqlDB) GetSoilMoistureReadingsBySensorIdxSince(ctx context.Context, arg database.GetSoilMoistureReadingsBySensorIdxSinceParams) ([]database.GetSoilMoistureReadingsBySensorIdxSinceRow, error) {
 	return s.queries.GetSoilMoistureReadingsBySensorIdxSince(ctx, arg)
 }
+func (s *sqlDB) ListSoilCalibrations(ctx context.Context) ([]database.SoilCalibration, error) {
+	return s.queries.ListSoilCalibrations(ctx)
+}
+func (s *sqlDB) UpsertSoilCalibration(ctx context.Context, arg database.UpsertSoilCalibrationParams) (database.SoilCalibration, error) {
+	return s.queries.UpsertSoilCalibration(ctx, arg)
+}
+
+func (s *sqlDB) UserHasPermission(ctx context.Context, arg database.UserHasPermissionParams) (bool, error) {
+	return s.queries.UserHasPermission(ctx, arg)
+}
+func (s *sqlDB) GetGroupByName(ctx context.Context, name string) (database.Group, error) {
+	return s.queries.GetGroupByName(ctx, name)
+}
+func (s *sqlDB) AddUserToGroup(ctx context.Context, arg database.AddUserToGroupParams) error {
+	return s.queries.AddUserToGroup(ctx, arg)
+}
 
 type Server struct {
 	port       int
@@ -207,6 +229,13 @@ func NewServer(cfg *config.Config) (*http.Server, *mqtt.Server, error) {
 		cfg: cfg,
 		hub: NewHub(cfg),
 	}
+	if err := s.seedDefaultAdmin(context.Background()); err != nil {
+		return nil, nil, fmt.Errorf("failed to seed default admin: %w", err)
+	}
+	if err := s.hub.LoadSoilCalibrations(context.Background(), s.db); err != nil {
+		return nil, nil, fmt.Errorf("failed to load soil calibrations: %w", err)
+	}
+
 	s.wsUpgrader = websocket.Upgrader{
 		HandshakeTimeout: wsHandshakeTimeout,
 		CheckOrigin:      s.wsCheckOrigin,
