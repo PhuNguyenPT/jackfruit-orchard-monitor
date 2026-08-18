@@ -67,3 +67,28 @@
 		opacity: 0;
 	}
 }
+
+.icon-mask {
+	display: block;
+	background-color: currentColor;
+	mask-size: contain;
+	mask-repeat: no-repeat;
+	mask-position: center;
+	-webkit-mask-size: contain;
+	-webkit-mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+}
+
+.icon-mask.hidden {
+	display: none;
+}
+
+.icon-eye {
+	mask-image: url(/public/assets/icons/eye.svg);
+	-webkit-mask-image: url(/public/assets/icons/eye.svg);
+}
+
+.icon-eye-slash {
+	mask-image: url(/public/assets/icons/eye-slash.svg);
+	-webkit-mask-image: url(/public/assets/icons/eye-slash.svg);
+}
