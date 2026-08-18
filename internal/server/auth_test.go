@@ -24,6 +24,9 @@ func TestRegisterPageHandler(t *testing.T) {
 	if ct := rr.Header().Get("Content-Type"); !strings.Contains(ct, "text/html") {
 		t.Errorf("expected HTML content type, got %v", ct)
 	}
+	if !strings.Contains(rr.Body.String(), `data-toggle-password="reg-password"`) {
+		t.Errorf("expected password visibility toggle button in register page")
+	}
 }
 
 func TestValidationMessage(t *testing.T) {
