@@ -75,6 +75,9 @@ func TestDashboardPageHandler(t *testing.T) {
 		if !strings.Contains(rr.Body.String(), "Active Sessions") {
 			t.Errorf("expected active sessions count in dashboard body")
 		}
+		if !strings.Contains(rr.Body.String(), `data-toggle-password="current_password"`) {
+			t.Errorf("expected password visibility toggle in dashboard body")
+		}
 	})
 }
 
