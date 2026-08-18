@@ -79,6 +79,85 @@ func TestDashboardPageHandler(t *testing.T) {
 			t.Errorf("expected password visibility toggle in dashboard body")
 		}
 	})
+
+	t.Run("admin without tab param defaults to account tab", func(t *testing.T) {
+		cfg := newTestConfig()
+		s := &Server{
+			db:  &mockDB{permissions: map[string]bool{"soil_calibration:w": true}},
+			cfg: cfg,
+			hub: NewHub(cfg),
+		}
+		handler := s.RegisterRoutes(s.cfg)
+
+		req, err := http.NewRequest(http.MethodGet, "/dashboard", nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		req.AddCookie(&http.Cookie{Name: "session_token", Value: "valid-token"})
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %v", rr.Code)
+		}
+		body := rr.Body.String()
+		if !strings.Contains(body, `data-dashboard-panel="account" class="space-y-6">`) {
+			t.Errorf("expected account panel visible by default")
+		}
+		if !strings.Contains(body, `data-dashboard-panel="admin" class="space-y-6 hidden">`) {
+			t.Errorf("expected admin panel hidden by default")
+		}
+	})
+
+	t.Run("admin with tab=admin lands on admin tab", func(t *testing.T) {
+		cfg := newTestConfig()
+		s := &Server{
+			db:  &mockDB{permissions: map[string]bool{"soil_calibration:w": true}},
+			cfg: cfg,
+			hub: NewHub(cfg),
+		}
+		handler := s.RegisterRoutes(s.cfg)
+
+		req, err := http.NewRequest(http.MethodGet, "/dashboard?tab=admin", nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		req.AddCookie(&http.Cookie{Name: "session_token", Value: "valid-token"})
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %v", rr.Code)
+		}
+		body := rr.Body.String()
+		if !strings.Contains(body, `data-dashboard-panel="admin" class="space-y-6">`) {
+			t.Errorf("expected admin panel visible when ?tab=admin")
+		}
+		if !strings.Contains(body, `data-dashboard-panel="account" class="space-y-6 hidden">`) {
+			t.Errorf("expected account panel hidden when ?tab=admin")
+		}
+	})
+
+	t.Run("non-admin ignores tab=admin query param", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "/dashboard?tab=admin", nil)
+		if err != nil {
+			t.Fatalf("failed to create request: %v", err)
+		}
+		req.AddCookie(&http.Cookie{Name: "session_token", Value: "valid-token"})
+		rr := httptest.NewRecorder()
+		testHandler.ServeHTTP(rr, req)
+
+		if rr.Code != http.StatusOK {
+			t.Errorf("expected status 200, got %v", rr.Code)
+		}
+		body := rr.Body.String()
+		if strings.Contains(body, `data-dashboard-panel="admin"`) {
+			t.Errorf("expected no admin panel for non-admin user even with ?tab=admin")
+		}
+		if strings.Contains(body, `data-dashboard-tab="admin"`) {
+			t.Errorf("expected no admin tab button for non-admin user")
+		}
+	})
 }
 
 func TestUpdateUserNameHandler(t *testing.T) {
