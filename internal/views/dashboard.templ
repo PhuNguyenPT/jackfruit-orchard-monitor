@@ -3,6 +3,7 @@ package views
 import "time"
 import "strconv"
 import "GoApp/internal/database"
+import "GoApp/internal/ctxutil"
 
 templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt time.Time, sessions []database.Session, lang string, site SiteConfig, isAdmin bool) {
 	<!DOCTYPE html>
@@ -74,33 +75,69 @@ templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt
 						<form hx-put="/dashboard/password" hx-target="#password-result" hx-indicator="#password-spinner" class="space-y-4">
 							<div>
 								<label for="current_password" class="block mb-2 font-medium text-gray-700 text-sm">{ T(lang).CurrentPassword }</label>
-								<input
-									type="password"
-									id="current_password"
-									name="current_password"
-									required
-									class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-								/>
+								<div class="relative">
+									<input
+										type="password"
+										id="current_password"
+										name="current_password"
+										required
+										class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+									/>
+									<button
+										type="button"
+										aria-label="Show password"
+										aria-pressed="false"
+										data-toggle-password="current_password"
+										class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+									>
+										<span data-icon="show" class="icon-mask icon-eye h-5 w-5 bg-current"></span>
+										<span data-icon="hide" class="hidden icon-mask icon-eye-slash h-5 w-5 bg-current"></span>
+									</button>
+								</div>
 							</div>
 							<div>
 								<label for="new_password" class="block mb-2 font-medium text-gray-700 text-sm">{ T(lang).NewPassword }</label>
-								<input
-									type="password"
-									id="new_password"
-									name="new_password"
-									required
-									class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-								/>
+								<div class="relative">
+									<input
+										type="password"
+										id="new_password"
+										name="new_password"
+										required
+										class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+									/>
+									<button
+										type="button"
+										aria-label="Show password"
+										aria-pressed="false"
+										data-toggle-password="new_password"
+										class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+									>
+										<span data-icon="show" class="icon-mask icon-eye h-5 w-5 bg-current"></span>
+										<span data-icon="hide" class="hidden icon-mask icon-eye-slash h-5 w-5 bg-current"></span>
+									</button>
+								</div>
 							</div>
 							<div>
 								<label for="confirm_password" class="block mb-2 font-medium text-gray-700 text-sm">{ T(lang).ConfirmPassword }</label>
-								<input
-									type="password"
-									id="confirm_password"
-									name="confirm_password"
-									required
-									class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-								/>
+								<div class="relative">
+									<input
+										type="password"
+										id="confirm_password"
+										name="confirm_password"
+										required
+										class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+									/>
+									<button
+										type="button"
+										aria-label="Show password"
+										aria-pressed="false"
+										data-toggle-password="confirm_password"
+										class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+									>
+										<span data-icon="show" class="icon-mask icon-eye h-5 w-5 bg-current"></span>
+										<span data-icon="hide" class="hidden icon-mask icon-eye-slash h-5 w-5 bg-current"></span>
+									</button>
+								</div>
 							</div>
 							<button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm flex items-center gap-2">
 								<span>{ T(lang).UpdatePassword }</span>
@@ -169,6 +206,7 @@ templ DashboardPage(name string, maskedEmail string, fullEmail string, createdAt
 				</div>
 			</main>
 			@Footer(lang, site)
+			<script nonce={ ctxutil.GetNonce(ctx) } src="/public/password-toggle.min.js"></script>
 		</body>
 	</html>
 }
