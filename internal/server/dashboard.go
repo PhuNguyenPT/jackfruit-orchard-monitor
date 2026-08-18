@@ -41,9 +41,14 @@ func (s *Server) dashboardPageHandler(c *gin.Context) {
 
 	isAdmin := s.userIsAdmin(c.Request.Context(), userID)
 
+	activeTab := "account"
+	if isAdmin && c.Query("tab") == "admin" {
+		activeTab = "admin"
+	}
+
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "text/html; charset=utf-8")
-	if err := views.DashboardPage(user.Name, maskEmail(user.Email), user.Email, user.CreatedAt, sessions, getLangStr(c), s.siteConfig(c), isAdmin).Render(c.Request.Context(), c.Writer); err != nil {
+	if err := views.DashboardPage(user.Name, maskEmail(user.Email), user.Email, user.CreatedAt, sessions, getLangStr(c), s.siteConfig(c), isAdmin, activeTab).Render(c.Request.Context(), c.Writer); err != nil {
 		log.Printf("error rendering dashboard: %v", err)
 	}
 }
